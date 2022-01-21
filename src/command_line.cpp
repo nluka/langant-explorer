@@ -13,8 +13,8 @@ void validate_option_value_exists(char const * argName, int argIndex, int argc);
 
 void process_command_line_args(int const argc, char const * const * const argv) {
   if (argc < 2) {
-    printfc(TextColor::Red, "%s\n", "Missing simulation file pathname as first argument");
-    end(ExitCode::MissingSimulationFile);
+    printfc(TextColor::Red, "%s\n", "No arguments specified, use -h or --help for usage info");
+    end(ExitCode::NoArgsSpecified);
   }
 
   // handle help/version options

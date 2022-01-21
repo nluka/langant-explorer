@@ -9,7 +9,7 @@
 
 enum class ExitCode {
   Success = 0,
-  MissingSimulationFile,
+  NoArgsSpecified,
   UnknownArgument,
   ArgumentMissingValue,
   FailedToAllocateMemory,

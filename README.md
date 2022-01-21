@@ -2,12 +2,11 @@
 
 High-performance application for running customized [Langton's Ant](https://en.wikipedia.org/wiki/Langton%27s_ant) simulations.
 
-- [Command Line Arguments](#command-line-arguments)
-  - [Usage](#usage)
-    - [Options]
-      - [--image-output-path, -o](#--image-output-path--o)
-      - [--logs, -l](#--logs--l)
-      - [--no-image-output, -n](#--no-image-output--n)
+- [Usage](#usage)
+  - [Options](#options)
+    - [--image-output-path, -o](#--image-output-path--o)
+    - [--logs, -l](#--logs--l)
+    - [--no-image-output, -n](#--no-image-output--n)
 - [Simulation File](#simulation-file)
   - [Format](#format)
     - [Notes](#notes)
@@ -16,11 +15,11 @@ High-performance application for running customized [Langton's Ant](https://en.w
     - [Classic](#classic)
     - [Classic + Inverted](#classic--inverted)
 
-## Command Line Arguments
+## Usage
 
-The first argument must be the pathname to the [simulation file](#simulation-file) for the program to use. All other arguments are optional. To check the version use `--version` as the first argument instead of the simulation file pathname.
+The first argument must be the pathname to the [simulation file](#simulation-file) for the program to use. All other arguments are options. Use `-v`/`--version` to check the program version.
 
-### Optional
+### Options
 
 #### --image-output-path, -o
 
