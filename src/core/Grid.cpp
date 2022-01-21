@@ -3,21 +3,20 @@
 #include "../util/util.hpp"
 
 bool grid_init_cells(Grid * const grid) {
-  const size_t cellCount = grid->width * grid->height;
+  size_t const cellCount = grid->width * grid->height;
 
-  { // try to allocate
-    grid->cells = (color_t*)malloc(sizeof(*grid->cells) * cellCount);
-    if (grid->cells == NULL) {
-      return false;
-    }
+  // try to allocate
+  grid->cells = (color_t*)malloc(sizeof(*grid->cells) * cellCount);
+  if (grid->cells == NULL) {
+    return false;
   }
 
-  { // init each cell
-    for (size_t i = 0; i < cellCount; ++i) {
-      grid->cells[i] = grid->initialColor;
-    }
-    grid->cellCount = cellCount;
+  // init cells
+  for (size_t i = 0; i < cellCount; ++i) {
+    grid->cells[i] = grid->initialColor;
   }
+
+  grid->cellCount = cellCount;
 
   return true;
 }

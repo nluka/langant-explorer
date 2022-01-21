@@ -148,8 +148,9 @@ void file_move_cursor_to_next_char_occurence(
   do {
     c = fgetc(simFile);
     if (c == EOF) {
-      log_event(EventType::Error, "Failed to parse: expected '%s'", searchChar);
-      printfc(TextColor::Red, "Failed to parse: expected '%s'", searchChar);
+      char const * const format = "Failed to parse: expected '%s'";
+      log_event(EventType::Error, format, searchChar);
+      printfc(TextColor::Red, format, searchChar);
       printf("\n");
       end(ExitCode::FailedToParseSimulationFile);
     }
@@ -231,7 +232,7 @@ void parse_rule_struct(
   Rule rule;
   color_t color;
 
-  {
+  { // parse color
     char fieldName[] = "rule x color";
     fieldName[5] = '0' + static_cast<char>(ruleCount + 1);
     parse_struct_field(
