@@ -5,7 +5,7 @@ High-performance application for running customized [Langton's Ant](https://en.w
 - [Usage](#usage)
   - [Options](#options)
     - [--image-output-path, -o](#--image-output-path--o)
-    - [--logs, -l](#--logs--l)
+    - [--log, -l](#--logs--l)
     - [--no-image-output, -n](#--no-image-output--n)
 - [Simulation File](#simulation-file)
   - [Format](#format)
@@ -27,11 +27,11 @@ Specifies the output path for image files.
 
 For example: `-o ../out` or `--image-output-path out/`.
 
-#### --logs, -l
+#### --log, -l
 
 Specifies the pathname to the file in which to save event logs.
 
-For example: `-l sample.log` or `--save-event-log log.txt`.
+For example: `-l sample.log` or `--log log.txt`.
 
 #### --no-image-output, -n
 
