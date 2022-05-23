@@ -1,5 +1,7 @@
 # directories
 .vscode
+.vs
+*.user
 bin
 interm
 out
