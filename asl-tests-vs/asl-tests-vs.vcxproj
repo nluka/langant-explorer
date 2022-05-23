@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{dced86f2-7404-466d-afd7-aec08954e8b5}</ProjectGuid>
-    <RootNamespace>aslvs</RootNamespace>
+    <ProjectGuid>{ff80a5fb-5411-4a93-a26d-d1a6650557ac}</ProjectGuid>
+    <RootNamespace>asltestsvs</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -72,27 +72,27 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\bin\</OutDir>
-    <IntDir>..\interm\</IntDir>
-    <TargetName>asl</TargetName>
+    <OutDir>..\tests\</OutDir>
+    <IntDir>..\interm2\</IntDir>
+    <TargetName>asl-tests-vs</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\bin\</OutDir>
-    <IntDir>..\interm\</IntDir>
-    <TargetName>asl</TargetName>
+    <OutDir>..\tests\</OutDir>
+    <IntDir>..\interm2\</IntDir>
+    <TargetName>asl-tests-vs</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\bin\</OutDir>
-    <IntDir>..\interm\</IntDir>
-    <TargetName>asl</TargetName>
+    <OutDir>..\tests\</OutDir>
+    <IntDir>..\interm2\</IntDir>
+    <TargetName>asl-tests-vs</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\bin\</OutDir>
-    <IntDir>..\interm\</IntDir>
-    <TargetName>asl</TargetName>
+    <OutDir>..\tests\</OutDir>
+    <IntDir>..\interm2\</IntDir>
+    <TargetName>asl-tests-vs</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -163,14 +163,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\cpp-lib\impl\pgm8.cpp" />
-    <ClCompile Include="..\src\ant-simulator-core.cpp" />
-    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\cpp-lib\impl\term.cpp" />
+    <ClCompile Include="..\cpp-lib\impl\test.cpp" />
+    <ClCompile Include="..\tests\test-suite.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\cpp-lib\includes\arr2d.hpp" />
-    <ClInclude Include="..\cpp-lib\includes\pgm8.hpp" />
-    <ClInclude Include="..\src\ant-simulator-core.hpp" />
+    <ClInclude Include="..\cpp-lib\includes\lengthof.hpp" />
+    <ClInclude Include="..\cpp-lib\includes\term.hpp" />
+    <ClInclude Include="..\cpp-lib\includes\test.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -3,5 +3,9 @@
 .vs
 *.user
 bin
-interm
+interm*
 out
+
+# files
+*.exe
+*.pdb

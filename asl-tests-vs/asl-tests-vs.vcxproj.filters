@@ -15,24 +15,24 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\ant-simulator-core.cpp">
+    <ClCompile Include="..\tests\test-suite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\main.cpp">
+    <ClCompile Include="..\cpp-lib\impl\term.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\cpp-lib\impl\pgm8.cpp">
+    <ClCompile Include="..\cpp-lib\impl\test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\ant-simulator-core.hpp">
+    <ClInclude Include="..\cpp-lib\includes\lengthof.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\cpp-lib\includes\arr2d.hpp">
+    <ClInclude Include="..\cpp-lib\includes\term.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\cpp-lib\includes\pgm8.hpp">
+    <ClInclude Include="..\cpp-lib\includes\test.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

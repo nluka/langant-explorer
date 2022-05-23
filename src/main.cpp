@@ -1,7 +1,7 @@
 #include <array>
 #include <iostream>
 #include "ant-simulator-core.hpp"
-#include "cpp-lib/includes/pgm8.hpp"
+#include "../cpp-lib/includes/pgm8.hpp"
 
 using asc::Simulation, asc::Rule;
 
