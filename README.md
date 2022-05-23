@@ -12,8 +12,6 @@ High-performance application for running customized [Langton's Ant](https://en.w
     - [Notes](#notes)
   - [Properties](#properties)
   - [Examples](#examples)
-    - [Classic](#classic)
-    - [Classic + Inverted](#classic--inverted)
 
 ## Usage
 
@@ -68,15 +66,14 @@ Defines the simulation(s) for the program to run, can be any text file.
 #### Notes
 
 - A simulation can have multiple rules
-- All rules must be governed by another rule
-- Grid initial-color must be governed by a rule
+- All colors (including grid inital-color) must be governed by a rule
 - Simulations are delimited by '#' and up to 8 can be specified
 
 ### Examples
 
-#### Classic
+#### RL
 
-    simulation: (classic, PGMa, 11000)
+    simulation: (RL, PGMa, 11000)
     grid: (200, 200, 1)
     rules: [
       (1, right, 0)
@@ -86,7 +83,7 @@ Defines the simulation(s) for the program to run, can be any text file.
 
 #### RLR
 
-    simulation: (rlr, PGMb, 50000)
+    simulation: (RLR, PGMb, 50000)
     grid: (200, 200, 1)
     rules: [
       (0, right, 1)
@@ -97,7 +94,7 @@ Defines the simulation(s) for the program to run, can be any text file.
 
 #### LLRR
 
-    simulation: (llrr, PGMa, 50000)
+    simulation: (LLRR, PGMa, 50000)
     grid: (200, 200, 0)
     rules: [
       (0, left, 1)
@@ -109,7 +106,7 @@ Defines the simulation(s) for the program to run, can be any text file.
 
 #### LRRRRRLLR
 
-    simulation: (lrrrrrllr, PGMb, 1000000)
+    simulation: (LRRRRRLLR, PGMb, 1000000)
     grid: (1000, 1000, 1)
     rules: [
       (1, left, 2)
@@ -126,7 +123,7 @@ Defines the simulation(s) for the program to run, can be any text file.
 
 #### LLRRRLRLRLLR
 
-    simulation: (llrrrlrlrllr, PGMa, 100000)
+    simulation: (LLRRRLRLRLLR, PGMa, 100000)
     grid: (1000, 100, 0)
     rules: [
       (0, left, 1)
@@ -146,7 +143,7 @@ Defines the simulation(s) for the program to run, can be any text file.
 
 #### RRLLLRLLLRRR
 
-    simulation: (rrlllrlllrrr, PGMb, 0)
+    simulation: (RRLLLRLLLRRR, PGMb, 0)
     grid: (5000, 5000, 0)
     rules: [
       (0, right, 1)
