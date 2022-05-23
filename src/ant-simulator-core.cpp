@@ -85,9 +85,7 @@ Simulation::Simulation(
     ss << "not enough memory for grid";
     throw ss.str();
   }
-  for (size_t i = 0; i < cellCount; ++i) {
-    m_grid[i] = gridInitialColor;
-  }
+  std::fill_n(m_grid, cellCount, gridInitialColor);
 }
 
 bool Simulation::is_finished() const {
