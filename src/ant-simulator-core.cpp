@@ -88,6 +88,21 @@ Simulation::Simulation(
   std::fill_n(m_grid, cellCount, gridInitialColor);
 }
 
+StepResult Simulation::last_step_result() const {
+  return m_mostRecentStepResult;
+}
+uint_fast16_t Simulation::ant_col() const {
+  return m_antCol;
+}
+uint_fast16_t Simulation::ant_row() const {
+  return m_antRow;
+}
+int_fast8_t Simulation::ant_orientation() const {
+  return m_antOrientation;
+}
+uint8_t const *Simulation::grid() const {
+  return m_grid;
+}
 bool Simulation::is_finished() const {
   return m_mostRecentStepResult > StepResult::SUCCESS;
 }
@@ -139,12 +154,4 @@ void Simulation::step_once() {
       m_mostRecentStepResult = StepResult::SUCCESS;
     }
   }
-}
-
-StepResult Simulation::last_step_result() const {
-  return m_mostRecentStepResult;
-}
-
-uint8_t const *Simulation::grid() const {
-  return m_grid;
 }

@@ -72,10 +72,15 @@ public:
     int_fast8_t                  antOrientation,
     std::array<Rule, 256> const &rules
   );
-  bool is_finished() const;
-  void step_once();
+
   StepResult last_step_result() const;
+  uint_fast16_t ant_col() const;
+  uint_fast16_t ant_row() const;
+  int_fast8_t ant_orientation() const;
   uint8_t const *grid() const;
+  bool is_finished() const;
+
+  void step_once();
 };
 
 } // namespace asc
