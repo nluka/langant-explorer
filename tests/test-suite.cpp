@@ -21,12 +21,12 @@ void assert_file(FstreamType const *file, char const *const name) {
 int main() {
   term::set_color_text_default(ColorText::DEFAULT);
 
-  std::ofstream *result = nullptr;
-  { // setup result file
+  std::ofstream result;
+  {
     std::string const pathname = "tests/out/assertions.txt";
-    result = new std::ofstream(pathname);
-    assert_file<std::ofstream>(result, pathname.c_str());
-    test::set_ofstream(result);
+    result = std::ofstream(pathname);
+    assert_file<std::ofstream>(&result, pathname.c_str());
+    test::set_ofstream(&result);
   }
 
   {
