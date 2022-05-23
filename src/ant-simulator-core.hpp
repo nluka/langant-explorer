@@ -64,13 +64,13 @@ protected:
 public:
   Simulation();
   Simulation(
-    uint_fast16_t                 gridWidth,
-    uint_fast16_t                 gridHeight,
-    uint8_t                       gridInitialColor,
-    uint_fast16_t                 antStartingCol,
-    uint_fast16_t                 antStartingRow,
-    int_fast8_t                   antOrientation,
-    std::array<Rule, 256> const   rules
+    uint_fast16_t               gridWidth,
+    uint_fast16_t               gridHeight,
+    uint8_t                     gridInitialColor,
+    uint_fast16_t               antStartingCol,
+    uint_fast16_t               antStartingRow,
+    int_fast8_t                 antOrientation,
+    std::array<Rule, 256> const &rules
   );
   bool is_finished() const;
   void step_once();

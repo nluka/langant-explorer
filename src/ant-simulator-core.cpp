@@ -51,7 +51,7 @@ Simulation::Simulation(
   uint_fast16_t const          antStartingCol,
   uint_fast16_t const          antStartingRow,
   int_fast8_t const            antOrientation,
-  std::array<Rule, 256> const  rules
+  std::array<Rule, 256> const &rules
 ) :
   m_gridWidth{gridWidth},
   m_gridHeight{gridHeight},
