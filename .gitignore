@@ -1,7 +1,5 @@
 # directories
 .vscode
-ant-simulator-lite-vs/.vs
 bin
-intermediates
-logs
+interm
 out
