@@ -32,6 +32,24 @@ ElemT max(
   return max;
 }
 
+template<typename ElemT>
+constexpr
+bool cmp(
+  ElemT const *const arr1,
+  ElemT const *const arr2,
+  size_t const width,
+  size_t const height,
+  size_t const startIdx = 0
+) {
+  size_t const len = width * height;
+  for (size_t i = startIdx; i < len; ++i) {
+    if (arr1[i] != arr2[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace arr2d
 
 #endif // CPPLIB_ARR2D_HPP
