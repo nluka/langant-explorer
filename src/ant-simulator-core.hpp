@@ -27,7 +27,7 @@ enum class StepResult {
   FAILED_AT_BOUNDARY
 };
 
-char const *step_result_to_string(StepResult res);
+char const *step_result_to_string(StepResult);
 
 struct Rule {
   bool        m_isDefined; // false if rule is not in use
@@ -58,18 +58,18 @@ protected:
   // i.e rule for color value N is m_rules[N] where (0 <= N <= 255)
   std::array<Rule, 256>   m_rules;
 
-  bool is_col_in_grid_bounds(int col);
-  bool is_row_in_grid_bounds(int row);
+  bool is_col_in_grid_bounds(int);
+  bool is_row_in_grid_bounds(int);
 
 public:
   Simulation();
   Simulation(
-    uint_fast16_t               gridWidth,
-    uint_fast16_t               gridHeight,
-    uint8_t                     gridInitialColor,
-    uint_fast16_t               antStartingCol,
-    uint_fast16_t               antStartingRow,
-    int_fast8_t                 antOrientation,
+    uint_fast16_t                gridWidth,
+    uint_fast16_t                gridHeight,
+    uint8_t                      gridInitialColor,
+    uint_fast16_t                antStartingCol,
+    uint_fast16_t                antStartingRow,
+    int_fast8_t                  antOrientation,
     std::array<Rule, 256> const &rules
   );
   bool is_finished() const;
