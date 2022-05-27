@@ -5,6 +5,7 @@
 #include <cinttypes>
 #include <vector>
 #include <array>
+#include <fstream>
 
 namespace asc { // stands for `ant simulator core`
 
@@ -28,6 +29,8 @@ enum class StepResult {
 };
 
 char const *step_result_to_string(StepResult);
+char const *ant_orient_to_string(int_fast8_t);
+char const *turn_dir_to_string(int_fast8_t);
 
 struct Rule {
   bool        m_isDefined; // false if rule is not in use
@@ -40,6 +43,7 @@ struct Rule {
 
 class Simulation {
 protected:
+  std::string             m_name;
   // we use fast int types when possible because arithmetic on these values
   // needs to be as fast as possible as it may be repeated
   // millions to trillions of times
@@ -64,21 +68,31 @@ protected:
 public:
   Simulation();
   Simulation(
-    uint_fast16_t                gridWidth,
-    uint_fast16_t                gridHeight,
-    uint8_t                      gridInitialColor,
-    uint_fast16_t                antStartingCol,
-    uint_fast16_t                antStartingRow,
-    int_fast8_t                  antOrientation,
+    std::string const &name,
+    uint_fast16_t gridWidth,
+    uint_fast16_t gridHeight,
+    uint8_t gridInitialColor,
+    uint_fast16_t antStartingCol,
+    uint_fast16_t antStartingRow,
+    int_fast8_t antOrientation,
     std::array<Rule, 256> const &rules
   );
 
-  StepResult last_step_result() const;
-  uint_fast16_t ant_col() const;
-  uint_fast16_t ant_row() const;
-  int_fast8_t ant_orientation() const;
-  uint8_t const *grid() const;
-  bool is_finished() const;
+  std::string const & name() const;
+  StepResult          last_step_result() const;
+  uint_fast16_t       grid_width() const;
+  uint_fast16_t       grid_height() const;
+  uint_fast16_t       ant_col() const;
+  uint_fast16_t       ant_row() const;
+  int_fast8_t         ant_orientation() const;
+  uint8_t const *     grid() const;
+  bool                is_finished() const;
+
+  void save(
+    std::ofstream &fsim,
+    std::ofstream &fpgm,
+    std::string const &fpgmPathname
+  ) const;
 
   void step_once();
 };

@@ -9,6 +9,7 @@ int main() {
   uint_fast16_t const gridWidth = 100, gridHeight = 100;
 
   Simulation sim(
+    "LR",
     gridWidth, gridHeight, 1,
     50, 50, AO_WEST,
     std::array<Rule, 256>{

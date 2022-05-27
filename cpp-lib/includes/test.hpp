@@ -20,8 +20,6 @@ private:
   bool const m_expr;
 
 public:
-  static void use_stdout(bool b);
-  static void set_file_stream(std::ofstream *os);
   static size_t get_success_count();
   static size_t get_fail_count();
   static void print_summary();

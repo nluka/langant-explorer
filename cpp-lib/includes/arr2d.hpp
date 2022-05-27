@@ -50,6 +50,24 @@ bool cmp(
   return true;
 }
 
+template<typename ElemT>
+constexpr
+bool is_homogenous(
+  ElemT const *const arr,
+  size_t const width,
+  size_t const height,
+  size_t const startIdx = 0
+) {
+  size_t const len = width * height;
+  ElemT const &firstElem = arr[startIdx];
+  for (size_t i = startIdx + 1; i < len; ++i) {
+    if (arr[i] != firstElem) {
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace arr2d
 
 #endif // CPPLIB_ARR2D_HPP

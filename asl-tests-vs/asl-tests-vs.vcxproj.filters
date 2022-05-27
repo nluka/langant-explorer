@@ -27,6 +27,9 @@
     <ClCompile Include="..\src\ant-simulator-core.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\cpp-lib\impl\pgm8.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\cpp-lib\includes\lengthof.hpp">
@@ -39,6 +42,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\ant-simulator-core.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpp-lib\includes\pgm8.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpp-lib\includes\cstr.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpp-lib\includes\arr2d.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

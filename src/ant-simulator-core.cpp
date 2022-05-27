@@ -1,15 +1,33 @@
 #include <sstream>
 #include <algorithm>
+#include "../cpp-lib/includes/pgm8.hpp"
 #include "ant-simulator-core.hpp"
 
 using asc::Simulation, asc::Rule, asc::StepResult;
 
 char const *asc::step_result_to_string(StepResult const res) {
   switch (res) {
-    case StepResult::NIL: return "nil";
-    case StepResult::SUCCESS: return "success";
-    case StepResult::FAILED_AT_BOUNDARY: return "hit boundary";
-    default: return nullptr;
+    case StepResult::NIL:                 return "nil";
+    case StepResult::SUCCESS:             return "success";
+    case StepResult::FAILED_AT_BOUNDARY:  return "hit boundary";
+    default: throw "bad StepResult";
+  }
+}
+char const *asc::ant_orient_to_string(int_fast8_t const orientation) {
+  switch (orientation) {
+    case AO_NORTH:  return "N";
+    case AO_EAST:   return "E";
+    case AO_SOUTH:  return "S";
+    case AO_WEST:   return "W";
+    default: throw "bad orientation";
+  }
+}
+char const *asc::turn_dir_to_string(int_fast8_t turnDir) {
+  switch (turnDir) {
+    case TD_LEFT:  return "L";
+    case TD_NONE:  return "N";
+    case TD_RIGHT: return "R";
+    default: throw "bad turn direction";
   }
 }
 
@@ -23,6 +41,7 @@ Rule::Rule(
   uint8_t const replacementColor,
   int_fast8_t const turnDirection
 ) :
+  m_isDefined{true},
   m_replacementColor{replacementColor},
   m_turnDirection{turnDirection}
 {}
@@ -35,7 +54,8 @@ bool Simulation::is_row_in_grid_bounds(int const row) {
 }
 
 Simulation::Simulation()
-: m_gridWidth{0},
+: m_name{},
+  m_gridWidth{0},
   m_gridHeight{0},
   m_grid{nullptr},
   m_antCol{0},
@@ -45,14 +65,16 @@ Simulation::Simulation()
 {}
 
 Simulation::Simulation(
-  uint_fast16_t const          gridWidth,
-  uint_fast16_t const          gridHeight,
-  uint8_t const                gridInitialColor,
-  uint_fast16_t const          antStartingCol,
-  uint_fast16_t const          antStartingRow,
-  int_fast8_t const            antOrientation,
+  std::string const &name,
+  uint_fast16_t const gridWidth,
+  uint_fast16_t const gridHeight,
+  uint8_t const gridInitialColor,
+  uint_fast16_t const antStartingCol,
+  uint_fast16_t const antStartingRow,
+  int_fast8_t const antOrientation,
   std::array<Rule, 256> const &rules
 ) :
+  m_name{name},
   m_gridWidth{gridWidth},
   m_gridHeight{gridHeight},
   m_grid{nullptr},
@@ -91,6 +113,12 @@ Simulation::Simulation(
 StepResult Simulation::last_step_result() const {
   return m_mostRecentStepResult;
 }
+uint_fast16_t Simulation::grid_width() const {
+  return m_gridWidth;
+}
+uint_fast16_t Simulation::grid_height() const {
+  return m_gridHeight;
+}
 uint_fast16_t Simulation::ant_col() const {
   return m_antCol;
 }
@@ -107,9 +135,80 @@ bool Simulation::is_finished() const {
   return m_mostRecentStepResult > StepResult::SUCCESS;
 }
 
+void Simulation::save(
+  std::ofstream &fsim,
+  std::ofstream &fpgm,
+  std::string const &fpgmPathname
+) const {
+  bool const isGridHomogenous =
+    arr2d::is_homogenous(m_grid, m_gridWidth, m_gridHeight);
+
+  if (!isGridHomogenous) { // write PGM file
+    // TODO: cache value instead of recomputing on each save
+    uint8_t const maxval = ([this](){
+      for (uint8_t color = 255; color >= 1; --color) {
+        auto const &rule = m_rules[color];
+        if (rule.m_isDefined) {
+          return color;
+        }
+      }
+      return static_cast<uint8_t>(0);
+    })();
+
+    pgm8::write_ascii(
+      &fpgm,
+      static_cast<uint16_t>(m_gridWidth),
+      static_cast<uint16_t>(m_gridHeight),
+      maxval,
+      m_grid
+    );
+  }
+
+  { // write sim file
+    char const *const delim = ";\n";
+
+    fsim
+      << "name = " << m_name << delim
+      << "iteration = " << m_iterationsCompleted << delim
+      << "lastStepResult = " <<
+        asc::step_result_to_string(m_mostRecentStepResult) << delim
+      << "gridWidth = " << m_gridWidth << delim
+      << "gridHeight = " << m_gridHeight
+    << delim;
+
+    fsim << "gridState = ";
+      if (isGridHomogenous) {
+        fsim << std::to_string(m_grid[0]);
+      } else {
+        fsim << fpgmPathname;
+      }
+    fsim << delim;
+
+    fsim
+      << "antCol = " << m_antCol << delim
+      << "antRow = " << m_antRow << delim
+      << "antOrientation = "
+        << ant_orient_to_string(m_antOrientation) << delim;
+
+    fsim << "rules = [\n";
+      for (size_t color = 0; color < m_rules.size(); ++color) {
+        auto const &rule = m_rules[color];
+        if (!rule.m_isDefined) {
+          continue;
+        }
+        fsim << "  {"
+          << color << ','
+          << std::to_string(rule.m_replacementColor) << ','
+          << asc::turn_dir_to_string(rule.m_turnDirection)
+        << "},\n";
+      }
+    fsim << ']' << delim;
+  }
+}
+
 void Simulation::step_once() {
-  size_t const currCellIndex = (m_antRow * m_gridWidth) + m_antCol;
-  uint8_t const currCellColor = m_grid[currCellIndex];
+  size_t const currCellIdx = (m_antRow * m_gridWidth) + m_antCol;
+  uint8_t const currCellColor = m_grid[currCellIdx];
   auto const &currCellRule = m_rules[currCellColor];
 
   { // turn
@@ -122,7 +221,7 @@ void Simulation::step_once() {
   }
 
   // update current cell color
-  m_grid[currCellIndex] = currCellRule.m_replacementColor;
+  m_grid[currCellIdx] = currCellRule.m_replacementColor;
 
   { // try to move to next cell
     int nextCol;

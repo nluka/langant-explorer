@@ -163,13 +163,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\cpp-lib\impl\pgm8.cpp" />
     <ClCompile Include="..\cpp-lib\impl\term.cpp" />
     <ClCompile Include="..\cpp-lib\impl\test.cpp" />
     <ClCompile Include="..\src\ant-simulator-core.cpp" />
     <ClCompile Include="..\tests\test-suite.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\cpp-lib\includes\arr2d.hpp" />
+    <ClInclude Include="..\cpp-lib\includes\cstr.hpp" />
     <ClInclude Include="..\cpp-lib\includes\lengthof.hpp" />
+    <ClInclude Include="..\cpp-lib\includes\pgm8.hpp" />
     <ClInclude Include="..\cpp-lib\includes\term.hpp" />
     <ClInclude Include="..\cpp-lib\includes\test.hpp" />
     <ClInclude Include="..\src\ant-simulator-core.hpp" />
