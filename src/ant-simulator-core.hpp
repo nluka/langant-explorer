@@ -34,33 +34,30 @@ char const *turn_dir_to_string(int_fast8_t);
 
 struct Rule {
   bool        m_isDefined; // false if rule is not in use
-  uint8_t     m_replacementColor;
+  uint8_t     m_replacementShade;
   int_fast8_t m_turnDirection;
 
   Rule();
-  Rule(uint8_t replacementColor, int_fast8_t turnDirection);
+  Rule(uint8_t replacementShade, int_fast8_t turnDirection);
 };
 
 class Simulation {
 protected:
-  std::string             m_name;
+  std::string m_name;
   // we use fast int types when possible because arithmetic on these values
   // needs to be as fast as possible as it may be repeated
   // millions to trillions of times
-  uint_fast64_t           m_iterationsCompleted = 0;
-  StepResult              m_mostRecentStepResult = StepResult::NIL;
-  uint_fast16_t           m_gridWidth, m_gridHeight;
-  // would like to use uint_fast8_t here, but this may increase the memory
-  // requirement for this grid by several factors which is unacceptable.
-  // would also like to use vector, but I need to control EXACTLY how much
-  // memory to allocate upfront - vector does not give me this control.
-  uint8_t *               m_grid;
-  uint_fast16_t           m_antCol, m_antRow;
-  int_fast8_t             m_antOrientation;
-  // acts like a hash table, there are 256 colors so we can use the 8-bit
-  // color values as indices for their rules
-  // i.e rule for color value N is m_rules[N] where (0 <= N <= 255)
-  std::array<Rule, 256>   m_rules;
+  uint_fast64_t m_iterationsCompleted = 0;
+  StepResult m_mostRecentStepResult = StepResult::NIL;
+  uint_fast16_t m_gridWidth, m_gridHeight;
+  // 2D array but allocated as a single contiguous block of memory
+  uint8_t *m_grid;
+  uint_fast16_t m_antCol, m_antRow;
+  int_fast8_t m_antOrientation;
+  // hash table for shade rules, there are 256 shades so we can use their 8-bit
+  // values as indices for their rules
+  // i.e rule for shade N is m_rules[N] where (0 <= N <= 255)
+  std::array<Rule, 256> m_rules;
 
   bool is_col_in_grid_bounds(int);
   bool is_row_in_grid_bounds(int);
@@ -71,22 +68,22 @@ public:
     std::string const &name,
     uint_fast16_t gridWidth,
     uint_fast16_t gridHeight,
-    uint8_t gridInitialColor,
+    uint8_t gridInitialShade,
     uint_fast16_t antStartingCol,
     uint_fast16_t antStartingRow,
     int_fast8_t antOrientation,
     std::array<Rule, 256> const &rules
   );
 
-  std::string const & name() const;
-  StepResult          last_step_result() const;
-  uint_fast16_t       grid_width() const;
-  uint_fast16_t       grid_height() const;
-  uint_fast16_t       ant_col() const;
-  uint_fast16_t       ant_row() const;
-  int_fast8_t         ant_orientation() const;
-  uint8_t const *     grid() const;
-  bool                is_finished() const;
+  std::string const &name() const;
+  StepResult last_step_result() const;
+  uint_fast16_t grid_width() const;
+  uint_fast16_t grid_height() const;
+  uint_fast16_t ant_col() const;
+  uint_fast16_t ant_row() const;
+  int_fast8_t ant_orientation() const;
+  uint8_t const *grid() const;
+  bool is_finished() const;
 
   void save(
     std::ofstream &fsim,

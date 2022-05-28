@@ -33,16 +33,16 @@ char const *asc::turn_dir_to_string(int_fast8_t turnDir) {
 
 Rule::Rule()
 : m_isDefined{false},
-  m_replacementColor{},
+  m_replacementShade{},
   m_turnDirection{}
 {}
 
 Rule::Rule(
-  uint8_t const replacementColor,
+  uint8_t const replacementShade,
   int_fast8_t const turnDirection
 ) :
   m_isDefined{true},
-  m_replacementColor{replacementColor},
+  m_replacementShade{replacementShade},
   m_turnDirection{turnDirection}
 {}
 
@@ -68,7 +68,7 @@ Simulation::Simulation(
   std::string const &name,
   uint_fast16_t const gridWidth,
   uint_fast16_t const gridHeight,
-  uint8_t const gridInitialColor,
+  uint8_t const gridInitialShade,
   uint_fast16_t const antStartingCol,
   uint_fast16_t const antStartingRow,
   int_fast8_t const antOrientation,
@@ -107,7 +107,7 @@ Simulation::Simulation(
     ss << "not enough memory for grid";
     throw ss.str();
   }
-  std::fill_n(m_grid, cellCount, gridInitialColor);
+  std::fill_n(m_grid, cellCount, gridInitialShade);
 }
 
 StepResult Simulation::last_step_result() const {
@@ -146,10 +146,10 @@ void Simulation::save(
   if (!isGridHomogenous) { // write PGM file
     // TODO: cache value instead of recomputing on each save
     uint8_t const maxval = ([this](){
-      for (uint8_t color = 255; color >= 1; --color) {
-        auto const &rule = m_rules[color];
+      for (uint8_t shade = 255; shade >= 1; --shade) {
+        auto const &rule = m_rules[shade];
         if (rule.m_isDefined) {
-          return color;
+          return shade;
         }
       }
       return static_cast<uint8_t>(0);
@@ -191,14 +191,14 @@ void Simulation::save(
         << ant_orient_to_string(m_antOrientation) << delim;
 
     fsim << "rules = [\n";
-      for (size_t color = 0; color < m_rules.size(); ++color) {
-        auto const &rule = m_rules[color];
+      for (size_t shade = 0; shade < m_rules.size(); ++shade) {
+        auto const &rule = m_rules[shade];
         if (!rule.m_isDefined) {
           continue;
         }
         fsim << "  {"
-          << color << ','
-          << std::to_string(rule.m_replacementColor) << ','
+          << shade << ','
+          << std::to_string(rule.m_replacementShade) << ','
           << asc::turn_dir_to_string(rule.m_turnDirection)
         << "},\n";
       }
@@ -208,8 +208,8 @@ void Simulation::save(
 
 void Simulation::step_once() {
   size_t const currCellIdx = (m_antRow * m_gridWidth) + m_antCol;
-  uint8_t const currCellColor = m_grid[currCellIdx];
-  auto const &currCellRule = m_rules[currCellColor];
+  uint8_t const currCellShade = m_grid[currCellIdx];
+  auto const &currCellRule = m_rules[currCellShade];
 
   { // turn
     m_antOrientation = m_antOrientation + currCellRule.m_turnDirection;
@@ -220,8 +220,8 @@ void Simulation::step_once() {
     }
   }
 
-  // update current cell color
-  m_grid[currCellIdx] = currCellRule.m_replacementColor;
+  // update current cell shade
+  m_grid[currCellIdx] = currCellRule.m_replacementShade;
 
   { // try to move to next cell
     int nextCol;

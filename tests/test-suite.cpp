@@ -53,52 +53,50 @@ int main() {
     test::set_ofstream(&result);
   }
 
-  {
-    std::vector<Assertion> assertions{};
+  std::vector<Assertion> assertions{};
 
-    { // https://mathworld.wolfram.com/images/gifs/langant.gif
-      char const *const simName = "RL";
-      uint_fast16_t const gridWidth = 7, gridHeight = 8;
-      Simulation sim(
-        simName,
-        gridWidth, gridHeight, 1,
-        2, 2, AO_NORTH,
-        std::array<Rule, 256>{{
-          Rule(1, TD_RIGHT),
-          Rule(0, TD_LEFT),
-        }}
-      );
+  { // https://mathworld.wolfram.com/images/gifs/langant.gif
+    char const *const simName = "RL";
+    uint_fast16_t const gridWidth = 7, gridHeight = 8;
+    Simulation sim(
+      simName,
+      gridWidth, gridHeight, 1,
+      2, 2, AO_NORTH,
+      std::array<Rule, 256>{{
+        Rule(1, TD_RIGHT),
+        Rule(0, TD_LEFT),
+      }}
+    );
 
-      LOOP_N(50, sim.step_once());
+    LOOP_N(50, sim.step_once());
 
-      uint8_t const expectedGrid[gridWidth * gridHeight] {
-        1,1,1,1,1,1,1,
-        1,1,0,0,1,1,1,
-        1,0,1,1,0,1,1,
-        1,0,1,1,1,0,1,
-        1,1,0,1,1,0,1,
-        1,0,1,1,0,1,1,
-        1,1,0,0,1,1,1,
-        1,1,1,1,1,1,1,
-      };
+    uint8_t const expectedGrid[gridWidth * gridHeight] {
+      1,1,1,1,1,1,1,
+      1,1,0,0,1,1,1,
+      1,0,1,1,0,1,1,
+      1,0,1,1,1,0,1,
+      1,1,0,1,1,0,1,
+      1,0,1,1,0,1,1,
+      1,1,0,0,1,1,1,
+      1,1,1,1,1,1,1,
+    };
 
-      assertions.emplace_back(
-        simName,
-        arr2d::cmp(
-          expectedGrid, sim.grid(), gridWidth, gridHeight
-        ) &&
-        sim.ant_col() == 1 &&
-        sim.ant_row() == 3 &&
-        sim.ant_orientation() == AO_NORTH
-      );
-    }
+    assertions.emplace_back(
+      simName,
+      arr2d::cmp(
+        expectedGrid, sim.grid(), gridWidth, gridHeight
+      ) &&
+      sim.ant_col() == 1 &&
+      sim.ant_row() == 3 &&
+      sim.ant_orientation() == AO_NORTH
+    );
 
     run_suite("Simulation::step_once", assertions);
   }
 
-  {
-    std::vector<Assertion> assertions{};
+  assertions.clear();
 
+  {
     auto const saveSimAndAssertResultingFiles = [&assertions](
       char const *const simName,
       Simulation const &sim,
