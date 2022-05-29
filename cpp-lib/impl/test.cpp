@@ -1,4 +1,5 @@
 #include <iostream>
+#include "../includes/cstr.hpp"
 #include "../includes/test.hpp"
 
 using
@@ -60,7 +61,11 @@ void Assertion::print_summary() {
 }
 
 Assertion::Assertion(char const *const name, bool const expr)
-: m_name{name}, m_expr{expr} {}
+: m_name{name}, m_expr{expr}
+{}
+Assertion::Assertion(std::string const name, bool const expr)
+: m_name{name}, m_expr{expr}
+{}
 
 void Assertion::run(bool const verbose) const {
   if (m_expr == true) {
@@ -70,7 +75,7 @@ void Assertion::run(bool const verbose) const {
       printf_colored(
         ColorText::GREEN,
         "`%s` passed\n",
-        m_name
+        m_name.c_str()
       );
     }
 
@@ -84,7 +89,7 @@ void Assertion::run(bool const verbose) const {
       printf_colored(
         ColorText::RED,
         "`%s` failed\n",
-        m_name
+        m_name.c_str()
       );
     }
 
@@ -117,7 +122,7 @@ void test::run_suite(
   Assertion const assertions[],
   size_t const assertionCount
 ) {
-  suite_runner(name, [&assertions, assertionCount](){
+  suite_runner(name, [&assertions, assertionCount]() {
     for (size_t i = 0; i < assertionCount; ++i) {
       assertions[i].run();
     }
@@ -128,7 +133,7 @@ void test::run_suite(
   char const *const name,
   std::vector<Assertion> const &assertions
 ) {
-  suite_runner(name, [&assertions](){
+  suite_runner(name, [&assertions]() {
     for (auto const &asr : assertions) {
       asr.run();
     }

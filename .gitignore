@@ -4,7 +4,6 @@
 *.user
 bin
 interm*
-expected
 out
 
 # files

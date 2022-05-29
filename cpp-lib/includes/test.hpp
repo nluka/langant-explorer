@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <vector>
+#include <string>
 #include "term.hpp"
 
 namespace test {
@@ -16,7 +17,7 @@ class Assertion {
 private:
   static size_t s_successCount, s_failCount;
 
-  char const *const m_name;
+  std::string const m_name;
   bool const m_expr;
 
 public:
@@ -26,6 +27,7 @@ public:
   static void reset_counters();
 
   Assertion(char const *name, bool expr);
+  Assertion(std::string const name, bool expr);
   void run(bool verbose = false) const;
 };
 

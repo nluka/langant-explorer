@@ -1,0 +1,20 @@
+name = RL;
+iterationsCompleted = 50;
+lastStepResult = success;
+gridWidth = 7;
+gridHeight = 8;
+gridState = "tests/out/RL(50).pgm";
+antCol = 1;
+antRow = 3;
+antOrientation = N;
+rules = [
+  {0,1,R},
+  {1,0,L},
+];
+lite.singularSnapshots = [
+  3,
+  50,
+];
+lite.periodicSnapshots = [
+  16,
+];

@@ -27,7 +27,7 @@ void assert_file(FstreamT const *file, char const *const fpathname) {
   }
 }
 
-std::string file_as_string(char const *const fpathname) {
+std::string file_as_str(char const *const fpathname) {
   std::ifstream file(fpathname);
   assert_file(&file, fpathname);
   std::stringstream ss{};
@@ -55,17 +55,20 @@ int main() {
 
   std::vector<Assertion> assertions{};
 
+  #pragma region Simulation::step_once
   { // https://mathworld.wolfram.com/images/gifs/langant.gif
     char const *const simName = "RL";
     uint_fast16_t const gridWidth = 7, gridHeight = 8;
     Simulation sim(
-      simName,
+      simName, 0,
       gridWidth, gridHeight, 1,
       2, 2, AO_NORTH,
       std::array<Rule, 256>{{
         Rule(1, TD_RIGHT),
         Rule(0, TD_LEFT),
-      }}
+      }},
+      std::vector<uint_fast64_t>{},
+      std::vector<uint_fast64_t>{}
     );
 
     LOOP_N(50, sim.step_once());
@@ -93,97 +96,76 @@ int main() {
 
     run_suite("Simulation::step_once", assertions);
   }
+  #pragma endregion
 
   assertions.clear();
 
-  {
-    auto const saveSimAndAssertResultingFiles = [&assertions](
-      char const *const simName,
-      Simulation const &sim,
-      uint8_t const *expectedGrid
-    ){
-      std::string const
-        fsimOutPathname = std::string("tests/out/") + simName + ".sim",
-        fsimInPathname = std::string("tests/expected/") + simName + ".sim",
-        fpgmPathname = std::string("tests/out/") + simName + ".pgm";
+  #pragma region Simulation::save and snapshots
+  asc::set_save_path("tests/out/");
 
-      { // generate files
-        std::ofstream
-          fsimOut = open_and_assert_fstream<std::ofstream>(fsimOutPathname.c_str()),
-          fpgmOut = open_and_assert_fstream<std::ofstream>(fpgmPathname.c_str());
-        sim.save(fsimOut, fpgmOut, fpgmPathname);
-      }
+  {
+    // gif: https://mathworld.wolfram.com/images/gifs/langant.gif
+    // split images: https://ezgif.com/split/ezgif-1-d048506a68.gif
+    char const *const simName = "RL";
+    uint_fast16_t const gridWidth = 7, gridHeight = 8;
+
+    Simulation sim(
+      simName, 0,
+      gridWidth, gridHeight, 1,
+      2, 2, AO_NORTH,
+      std::array<Rule, 256>{{
+        Rule(1, TD_RIGHT),
+        Rule(0, TD_LEFT),
+      }},
+      std::vector<uint_fast64_t>{3, 50},
+      std::vector<uint_fast64_t>{16}
+    );
+
+    LOOP_N(50, sim.step_once());
+
+    size_t const expectedSnapshotCount = 5;
+    std::array<uint_fast64_t, expectedSnapshotCount> const expectedSnapshots {
+      3, 16, 32, 48, 50
+    };
+
+    for (size_t i = 0; i < expectedSnapshotCount; ++i) {
+      uint_fast64_t const snap = expectedSnapshots[i];
+
+      std::string const assertionName = ([simName, snap]() {
+        std::stringstream ss{};
+        ss << simName << '(' << std::to_string(snap) << ')';
+        return ss.str();
+      })();
+
+      std::string const
+        fsimPathnameOut = "tests/out/" + assertionName + ".sim",
+        fsimPathnameExpected = "tests/expected/" + assertionName + ".sim",
+        fpgmPathnameOut = "tests/out/" + assertionName + ".pgm",
+        fpgmPathnameExpected = "tests/expected/" + assertionName + ".pgm";
 
       // verify sim file
       assertions.emplace_back(
-        simName,
-        file_as_string(fsimOutPathname.c_str())
-          == file_as_string(fsimInPathname.c_str())
+        std::string(assertionName + " sim file"),
+        file_as_str(fsimPathnameOut.c_str()) ==
+          file_as_str(fsimPathnameExpected.c_str())
       );
 
-      if (expectedGrid == nullptr) {
-        return;
-      }
-
-      std::ifstream fpgmIn =
-        open_and_assert_fstream<std::ifstream>(fpgmPathname.c_str());
+      auto fpgmIn = open_and_assert_fstream<std::ifstream>(fpgmPathnameOut.c_str());
       pgm8::Image img(fpgmIn);
 
       // verify PGM file
       assertions.emplace_back(
-        simName,
-        (
-          sim.grid_width() == img.width() &&
-          sim.grid_height() == img.height() &&
-          // check that pixels match
-          arr2d::cmp(img.pixels(), expectedGrid, img.width(), img.height())
-        )
+        std::string(assertionName + " PGM file"),
+        file_as_str(fpgmPathnameOut.c_str()) ==
+          file_as_str(fpgmPathnameExpected.c_str())
       );
-    };
-
-    {
-      char const *const simName = "LNR";
-      Simulation sim(
-        simName,
-        100, 100, 0,
-        50, 50, AO_NORTH,
-        std::array<Rule, 256>{{
-          Rule(1, TD_LEFT),
-          Rule(2, TD_NONE),
-          Rule(0, TD_RIGHT),
-        }}
-      );
-      saveSimAndAssertResultingFiles(simName, sim, nullptr);
     }
-
-    { // https://mathworld.wolfram.com/images/gifs/langant.gif
-      char const *const simName = "RL";
-      uint_fast16_t const gridWidth = 7, gridHeight = 8;
-      Simulation sim(
-        simName,
-        gridWidth, gridHeight, 1,
-        2, 2, AO_NORTH,
-        std::array<Rule, 256>{{
-          Rule(1, TD_RIGHT),
-          Rule(0, TD_LEFT),
-        }}
-      );
-      LOOP_N(50, sim.step_once());
-      uint8_t const expectedGrid[gridWidth * gridHeight] {
-        1,1,1,1,1,1,1,
-        1,1,0,0,1,1,1,
-        1,0,1,1,0,1,1,
-        1,0,1,1,1,0,1,
-        1,1,0,1,1,0,1,
-        1,0,1,1,0,1,1,
-        1,1,0,0,1,1,1,
-        1,1,1,1,1,1,1,
-      };
-      saveSimAndAssertResultingFiles(simName, sim, nullptr);
-    }
-
-    run_suite("Simulation::save", assertions);
   }
+
+  run_suite("Simulation::save and snapshots", assertions);
+  #pragma endregion
+
+  assertions.clear();
 
   return 0;
 }

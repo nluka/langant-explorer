@@ -9,6 +9,8 @@
 
 namespace asc { // stands for `ant simulator core`
 
+void set_save_path(char const *);
+
 //      AO stands for `ant orientation`
 #define AO_OVERFLOW_COUNTER_CLOCKWISE static_cast<int_fast8_t>(-1)
 #define AO_NORTH                      static_cast<int_fast8_t>( 0)
@@ -33,8 +35,8 @@ char const *ant_orient_to_string(int_fast8_t);
 char const *turn_dir_to_string(int_fast8_t);
 
 struct Rule {
-  bool        m_isDefined; // false if rule is not in use
-  uint8_t     m_replacementShade;
+  bool m_isDefined; // false if rule is not in use
+  uint8_t m_replacementShade;
   int_fast8_t m_turnDirection;
 
   Rule();
@@ -58,6 +60,9 @@ protected:
   // values as indices for their rules
   // i.e rule for shade N is m_rules[N] where (0 <= N <= 255)
   std::array<Rule, 256> m_rules;
+  std::vector<uint_fast64_t> m_singularSnapshots;
+  std::vector<uint_fast64_t> m_periodicSnapshots;
+  int m_nextSingularSnapshotIdx;
 
   bool is_col_in_grid_bounds(int);
   bool is_row_in_grid_bounds(int);
@@ -66,16 +71,21 @@ public:
   Simulation();
   Simulation(
     std::string const &name,
+    uint_fast64_t iterationsCompleted,
     uint_fast16_t gridWidth,
     uint_fast16_t gridHeight,
     uint8_t gridInitialShade,
     uint_fast16_t antStartingCol,
     uint_fast16_t antStartingRow,
     int_fast8_t antOrientation,
-    std::array<Rule, 256> const &rules
+    // quicker to just memcpy so take as lvalue ref
+    std::array<Rule, 256> const &rules,
+    std::vector<uint_fast64_t> &&singularSnapshots,
+    std::vector<uint_fast64_t> &&periodicSnapshots
   );
 
   std::string const &name() const;
+  uint_fast64_t iterations_completed() const;
   StepResult last_step_result() const;
   uint_fast16_t grid_width() const;
   uint_fast16_t grid_height() const;
@@ -84,13 +94,7 @@ public:
   int_fast8_t ant_orientation() const;
   uint8_t const *grid() const;
   bool is_finished() const;
-
-  void save(
-    std::ofstream &fsim,
-    std::ofstream &fpgm,
-    std::string const &fpgmPathname
-  ) const;
-
+  void save() const;
   void step_once();
 };
 
