@@ -53,11 +53,88 @@ Rule::Rule(
   m_turnDirection{turnDirection}
 {}
 
-bool Simulation::is_col_in_grid_bounds(int const col) {
-  return col >= 0 && col < static_cast<int>(m_gridWidth - 1);
+void Simulation::validate_grid_width(
+  std::vector<std::string> &errors,
+  uint_fast16_t const gridWidth
+) {
+  if (gridWidth < 1 || gridWidth > UINT16_MAX) {
+    std::stringstream ss{};
+    ss << "gridWidth (" << gridWidth << ") not in range [1, " << UINT16_MAX << ']';
+    errors.emplace_back(ss.str());
+  }
 }
-bool Simulation::is_row_in_grid_bounds(int const row) {
-  return row >= 0 && row < static_cast<int>(m_gridHeight - 1);
+void Simulation::validate_grid_height(
+  std::vector<std::string> &errors,
+  uint_fast16_t const gridHeight
+) {
+  if (gridHeight < 1 || gridHeight > UINT16_MAX) {
+    std::stringstream ss{};
+    ss << "gridHeight (" << gridHeight << ") not in range [1, " << UINT16_MAX << ']';
+    errors.emplace_back(ss.str());
+  }
+}
+void Simulation::validate_ant_col(
+  std::vector<std::string> &errors,
+  uint_fast16_t const antCol,
+  uint_fast16_t const gridWidth
+) {
+  if (!is_coord_in_grid_dimension(antCol, gridWidth)) {
+    std::stringstream ss{};
+    ss << "antCol (" << antCol << ") not within gridWidth (" << gridWidth << ')';
+    errors.emplace_back(ss.str());
+  }
+}
+void Simulation::validate_ant_row(
+  std::vector<std::string> &errors,
+  uint_fast16_t const antRow,
+  uint_fast16_t const gridHeight
+) {
+  if (!is_coord_in_grid_dimension(antRow, gridHeight)) {
+    std::stringstream ss{};
+    ss << "antRow (" << antRow << ") not within gridHeight (" << gridHeight << ')';
+    errors.emplace_back(ss.str());
+  }
+}
+void Simulation::validate_rules(
+  std::vector<std::string> &errors,
+  std::array<Rule, 256> const &rules
+) {
+  std::array<uint16_t, 256> shadeOccurences{};
+  size_t definedRules = 0;
+
+  for (size_t i = 0; i < rules.size(); ++i) {
+    auto const &r = rules[i];
+    if (r.m_isDefined) {
+      ++definedRules;
+      ++shadeOccurences[i];
+      ++shadeOccurences[r.m_replacementShade];
+    }
+  }
+
+  if (definedRules < 2) {
+    errors.emplace_back("fewer than 2 rules defined");
+    return;
+  }
+
+  size_t nonZeroOccurences = 0, nonTwoOccurences = 0;
+  for (auto const occurencesOfShade : shadeOccurences) {
+    if (occurencesOfShade != 0) {
+      ++nonZeroOccurences;
+      if (occurencesOfShade != 2) {
+        ++nonTwoOccurences;
+      }
+    }
+  }
+
+  if (nonZeroOccurences < 2 || nonTwoOccurences > 0) {
+    errors.emplace_back("rules don't form a closed chain");
+  }
+}
+bool Simulation::is_coord_in_grid_dimension(
+  int const coord,
+  uint_fast16_t const gridDimension
+) {
+  return coord >= 0 && coord < static_cast<int>(gridDimension);
 }
 
 Simulation::Simulation()
@@ -98,30 +175,10 @@ Simulation::Simulation(
   m_periodicSnapshots{periodicSnapshots},
   m_nextSingularSnapshotIdx{-1}
 {
-  std::stringstream ss;
-
-  // validate grid dimensions
-  if (gridWidth < 1 || gridWidth > UINT16_MAX)
-    ss << "gridWidth (" << gridWidth << ") not in range [1, " << UINT16_MAX << "]";
-  else if (gridHeight < 1 || gridHeight > UINT16_MAX)
-    ss << "gridHeight (" << gridHeight << ") not in range [1, " << UINT16_MAX << "]";
-  // validate ant starting coords
-  else if (!is_col_in_grid_bounds(antStartingCol))
-    ss << "antStartingCol (" << antStartingCol << ") not on grid";
-  else if (!is_row_in_grid_bounds(antStartingRow))
-    ss << "antStartingRow (" << antStartingRow << ") not on grid";
-  // TODO: validate rules
-
-  std::string const err = ss.str();
-  if (!err.empty()) {
-    throw err;
-  }
-
   size_t const cellCount = gridWidth * gridHeight;
   m_grid = new uint8_t[cellCount];
   if (m_grid == nullptr) {
-    ss << "not enough memory for grid";
-    throw ss.str();
+    throw "not enough memory for grid";
   }
   std::fill_n(m_grid, cellCount, gridInitialShade);
 
@@ -187,7 +244,6 @@ void Simulation::save() const {
   std::string const fnameBase = m_name + '(' + std::to_string(m_iterationsCompleted) + ')';
   fs::path const fpgmPathname = s_savePath / (fnameBase + ".pgm");
   std::ofstream fsim(s_savePath / (fnameBase + ".sim"));
-
 
   bool const isGridHomogenous =
     arr2d::is_homogenous(m_grid, m_gridWidth, m_gridHeight);
@@ -309,8 +365,8 @@ void Simulation::step_once() {
     }
 
     if (
-      !is_col_in_grid_bounds(nextCol) ||
-      !is_row_in_grid_bounds(nextRow)
+      !is_coord_in_grid_dimension(nextCol, m_gridWidth) ||
+      !is_coord_in_grid_dimension(nextRow, m_gridHeight)
     ) {
       m_mostRecentStepResult = StepResult::FAILED_AT_BOUNDARY;
     } else {
