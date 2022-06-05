@@ -224,7 +224,7 @@ int main(int const argc, char const *const *const argv) {
       errors[3] == "rules don't form a closed chain"
     );
 
-    printErrors();
+    // printErrors();
     errors.clear();
 
     run_suite("Simulation validation", assertions);

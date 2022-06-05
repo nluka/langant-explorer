@@ -175,7 +175,8 @@ Simulation::Simulation(
   m_periodicSnapshots{periodicSnapshots},
   m_nextSingularSnapshotIdx{-1}
 {
-  size_t const cellCount = gridWidth * gridHeight;
+  size_t const cellCount =
+    static_cast<size_t>(gridWidth) * static_cast<size_t>(gridHeight);
   m_grid = new uint8_t[cellCount];
   if (m_grid == nullptr) {
     throw "not enough memory for grid";
