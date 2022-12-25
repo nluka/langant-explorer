@@ -9,3 +9,8 @@ out
 # files
 *.exe
 *.pdb
+
+# ntest
+ant-simulator-lite/testing/report.md
+ant-simulator-lite/testing/*.expected
+ant-simulator-lite/testing/*.actual

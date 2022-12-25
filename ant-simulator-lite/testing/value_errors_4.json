@@ -1,0 +1,13 @@
+{
+  "generations": 20,
+  "last_step_result": "failed_at_boundary",
+  "grid_width": 0,
+  "grid_height": 0,
+  "grid_state": "locked_file",
+  "ant_col": 0,
+  "ant_row": 0,
+  "ant_orientation": "south",
+  "rules": [{ "shade": 0, "replacement": 1, "turn": "bogus" }],
+  "save_interval": 10,
+  "save_points": []
+}

@@ -1,40 +1,57 @@
-#include <array>
 #include <iostream>
-#include "ant-simulator-core.hpp"
-#include "../cpp-lib/includes/pgm8.hpp"
 
-using asc::Simulation, asc::Rule;
+#include "exit.hpp"
+#include "simulation.hpp"
+#include "term.hpp"
+#include "util.hpp"
 
-int main() {
-  uint_fast16_t const gridWidth = 100, gridHeight = 100;
+int main(int const argc, char const *const *const argv) {
+  if (argc != 3 + 1 /* executable pathname */) {
+    using namespace term::color;
+    printf(
+      fore::RED | back::BLACK,
+      "usage: <sim_file> <iteration_target> <img_fmt>\n"
+      "  <sim_file> = pathname to simulation file\n"
+      "  <iteration_target> = uint64 in range [1, UINT64_MAX]\n"
+      "  <img_fmt> = PGM image format, plain|raw (raw recommended)\n"
+    );
+    EXIT(ExitCode::WRONG_NUM_OF_ARGS);
+  }
 
-  Simulation sim(
-    "LR",
-    gridWidth, gridHeight, 1,
-    50, 50, AO_WEST,
-    std::array<Rule, 256>{
-      { Rule(1, TD_LEFT), Rule(0, TD_RIGHT) }
-    }
+  auto [sim, errors] = [argv]() {
+    std::string content = util::extract_txt_file_contents(argv[1]);
+    return parse_simulation(content);
+  }();
+
+  if (!errors.empty()) {
+    using namespace term::color;
+    for (auto const &err : errors)
+      printf(fore::RED | back::BLACK, err.c_str());
+    EXIT(ExitCode::BAD_SIM_FILE);
+  }
+
+  uint_fast64_t const iteration_target = std::stoull(argv[2]);
+
+  step_result::type step_res = step_result::NIL;
+  #if 1
+  do {
+    step_res = step_forward(sim);
+
+  } while (
+    step_res == step_result::SUCCESS &&
+    sim.generations < iteration_target
   );
-
-  for (size_t i = 1; i <= 11000; ++i) {
-    sim.step_once();
-  }
-
-  {
-    char const *const fpathname = "out/LR.pgm";
-    std::ofstream file(fpathname);
-    if (!file.is_open() || !file.good()) {
-      std::cerr << "ERROR: failed to open `" << fpathname << "`\n";
-      return 1;
-    }
-    try {
-      pgm8::write_ascii(&file, gridWidth, gridHeight, 1, sim.grid());
-    } catch (char const *const err) {
-      std::cerr << "ERROR: failed to write `" << fpathname << "`: " << err << '\n';
-      return 2;
+  #else
+  while (true) {
+    step_res = step_forward(sim);
+    if (
+      step_res != StepResult::SUCCESS ||
+      sim.generation == iteration_target
+    ) [[unlikely]] {
+      break;
     }
   }
+  #endif
 
-  return 0;
+  EXIT(ExitCode::SUCCESS);
 }
