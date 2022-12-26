@@ -18,6 +18,9 @@
 
 namespace util {
 
+// returns true if `val` is in range [min, max), false otherwise.
+bool in_range_incl_excl(int val, int min, int max);
+
 uint16_t byteswap_uint16(uint16_t val);
 uint32_t byteswap_uint32(uint32_t val);
 

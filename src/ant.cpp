@@ -5,13 +5,13 @@
 #include <regex>
 #include <unordered_map>
 
+#include "ant.hpp"
 #include "arr2d.hpp"
 #include "cstr.hpp"
 #include "json.hpp"
-#include "simulation.hpp"
 #include "util.hpp"
 
-char const *orientation::to_string(int8_t const orient) {
+char const *ant::orientation::to_string(int8_t const orient) {
   switch (orient) {
     case orientation::NORTH:
       return "north";
@@ -29,7 +29,7 @@ char const *orientation::to_string(int8_t const orient) {
   }
 }
 
-char const *turn_direction::to_string(int8_t const turn_dir) {
+char const *ant::turn_direction::to_string(int8_t const turn_dir) {
   switch (turn_dir) {
     case turn_direction::NIL:
       return "nil";
@@ -45,7 +45,7 @@ char const *turn_direction::to_string(int8_t const turn_dir) {
   }
 }
 
-char const *step_result::to_string(step_result::type const step_res) {
+char const *ant::step_result::to_string(step_result::type const step_res) {
   switch (step_res) {
     case step_result::NIL:
       return "nil";
@@ -58,127 +58,20 @@ char const *step_result::to_string(step_result::type const step_res) {
   }
 }
 
-bool rule::operator!=(rule const &other) const noexcept {
+bool ant::rule::operator!=(ant::rule const &other) const noexcept {
   return this->replacement_shade != other.replacement_shade
     || this->turn_dir != other.turn_dir;
 }
 
-std::ostream &operator<<(std::ostream &os, rule const &rule) {
-  os << "(shade=" << std::to_string(rule.replacement_shade)
-    << ", direc=" << turn_direction::to_string(rule.turn_dir) << ')';
-  return os;
+namespace ant {
+  std::ostream &operator<<(std::ostream &os, ant::rule const &rule) {
+    os << "(r=" << std::to_string(rule.replacement_shade)
+      << ", d=" << ant::turn_direction::to_string(rule.turn_dir) << ')';
+    return os;
+  }
 }
 
-std::vector<std::string> validate_simulation(simulation const &sim) {
-  std::vector<std::string> errors{};
-  std::stringstream err{};
-
-  auto const emplace_err = [&errors, &err]() {
-    errors.emplace_back(err.str());
-    err.str(""); // clear buffer
-    err.clear(); // clear stream state
-  };
-
-  // grid_width and ant_col validation
-  if (sim.grid_width < 1 || sim.grid_width > UINT16_MAX) {
-    err << "grid_width `" << sim.grid_width
-      << "` not in range [1, " << UINT16_MAX << ']';
-    emplace_err();
-  } else if (!in_range_incl_excl(sim.ant_col, 0, sim.grid_width)) {
-    err << "ant_col `" << sim.ant_col
-      << "` not in grid x-axis [0, " << sim.grid_width << ')';
-    emplace_err();
-  }
-
-  // grid_height and ant_row validation
-  if (sim.grid_height < 1 || sim.grid_height > UINT16_MAX) {
-    err << "grid_height `" << sim.grid_height
-      << "` not in range [1, " << UINT16_MAX << ']';
-    emplace_err();
-  } else if (!in_range_incl_excl(sim.ant_row, 0, sim.grid_height)) {
-    err << "ant_row `" << sim.ant_row
-      << "` not in grid y-axis [0, " << sim.grid_height << ')';
-    emplace_err();
-  }
-
-  // ant_orientation validation
-  if (
-    sim.ant_orientation < orientation::NORTH ||
-    sim.ant_orientation > orientation::WEST
-  ) {
-    err << "ant_orientation `" << static_cast<int>(sim.ant_orientation)
-      << "` not in range [1, 4]";
-    emplace_err();
-  }
-
-  // rules validation
-  {
-    std::array<uint16_t, 256> shadeOccurences{};
-    size_t numDefinedRules = 0;
-
-    for (size_t i = 0; i < sim.rules.size(); ++i) {
-      auto const &r = sim.rules[i];
-      bool const isRuleUsed = r.turn_dir != turn_direction::NIL;
-      if (isRuleUsed) {
-        ++numDefinedRules;
-        ++shadeOccurences[i];
-        ++shadeOccurences[r.replacement_shade];
-      }
-    }
-
-    if (numDefinedRules < 2) {
-      err << "fewer than 2 rules defined";
-      emplace_err();
-    } else {
-      size_t num_non_zero_occurences = 0, num_non_two_occurences = 0;
-      for (auto const occurencesOfShade : shadeOccurences) {
-        if (occurencesOfShade != 0) {
-          ++num_non_zero_occurences;
-          if (occurencesOfShade != 2)
-            ++num_non_two_occurences;
-        }
-      }
-      if (num_non_zero_occurences < 2 || num_non_two_occurences > 0) {
-        err << "rules don't form a closed chain";
-        emplace_err();
-      }
-    }
-  }
-
-  // save_points validation
-  {
-    std::unordered_map<
-      uint_fast64_t, // point
-      size_t // num of occurences
-    > save_point_occurences{};
-
-    // count how many times each save_point occurs
-    for (size_t i = 0; i < sim.num_save_points; ++i)
-      ++save_point_occurences[sim.save_points[i]];
-
-    // check for repeats
-    for (auto const [save_point, num_occurences] : save_point_occurences) {
-      if (num_occurences > 1) {
-        err << "save_point `" << save_point
-          << "` repeated " << num_occurences << " times";
-        emplace_err();
-      }
-    }
-
-    // check for zeroes
-    for (size_t i = 0; i < sim.num_save_points; ++i) {
-      if (sim.save_points[i] == 0) {
-        err << "save_point cannot be `0`";
-        emplace_err();
-        break;
-      }
-    }
-  }
-
-  return errors;
-}
-
-step_result::type step_forward(simulation &sim) {
+ant::step_result::type ant::simulation_step_forward(simulation &sim) {
   size_t const curr_cell_idx = (sim.ant_row * sim.grid_width) + sim.ant_col;
   uint8_t const curr_cell_shade = sim.grid[curr_cell_idx];
   auto const &curr_cell_rule = sim.rules[curr_cell_shade];
@@ -210,8 +103,8 @@ step_result::type step_forward(simulation &sim) {
     next_row = sim.ant_row;
 
   if (
-    in_range_incl_excl(next_col, 0, sim.grid_width) &&
-    in_range_incl_excl(next_row, 0, sim.grid_height)
+    util::in_range_incl_excl(next_col, 0, sim.grid_width) &&
+    util::in_range_incl_excl(next_row, 0, sim.grid_height)
   ) [[likely]] {
     sim.ant_col = next_col;
     sim.ant_row = next_row;
@@ -222,11 +115,22 @@ step_result::type step_forward(simulation &sim) {
   }
 }
 
-bool in_range_incl_excl(int const val, int const min, int const max) {
-  return val >= min && val < max;
+using json_t = nlohmann::json;
+
+// The .what() string of a nlohmann::json exception has the format:
+// "[json.exception.x.y] explanation" where x is a class name and y is a positive integer.
+//                       ^ This function extracts a string starting from exactly this point.
+template <typename Ty>
+char const *nlohmann_json_extract_sentence(Ty const &except) {
+  auto const from_first_space = std::strchr(except.what(), ' ');
+  if (from_first_space == nullptr) {
+    throw std::runtime_error("unable to find first space in nlohmann.json exception string");
+  } else {
+    return from_first_space + 1; // trim off leading space
+  }
 }
 
-void save(simulation const &sim, char const *name, pgm8::format const fmt) {
+void ant::simulation_save(simulation const &sim, char const *name, pgm8::format const fmt) {
   char sim_file_pathname[256];
   std::snprintf(
     sim_file_pathname, util::lengthof(sim_file_pathname), "%s.sim", name
@@ -289,23 +193,8 @@ void save(simulation const &sim, char const *name, pgm8::format const fmt) {
   }
 }
 
-using json_t = nlohmann::json;
-
-// The .what() string of a nlohmann::json exception has the format:
-// "[json.exception.x.y] explanation" where x is a class name and y is a positive integer.
-//                       ^ This function extracts a string starting from exactly this point.
-template <typename Ty>
-char const *nlohmann_json_extract_sentence(Ty const &except) {
-  auto const from_first_space = std::strchr(except.what(), ' ');
-  if (from_first_space == nullptr) {
-    throw std::runtime_error("unable to find first space in nlohmann.json exception string");
-  } else {
-    return from_first_space + 1; // trim off leading space
-  }
-}
-
 template <typename PropTy>
-void try_to_parse_and_set_unsigned_int(
+bool try_to_parse_and_set_uint(
   json_t const &json,
   char const *const property,
   PropTy &out,
@@ -314,32 +203,40 @@ void try_to_parse_and_set_unsigned_int(
   std::stringstream &err,
   std::function<void (std::stringstream &)> const &emplace_err
 ) {
+  uintmax_t val;
+
   try {
-    uintmax_t const val = json[property].get<uintmax_t>();
-
-    if (!json[property].is_number_unsigned()) {
-      err << "invalid `" << property << "` -> not an unsigned integer";
-      emplace_err(err);
-      return;
-    }
-
-    if (val < min) {
-      err << "invalid `" << property << "` -> cannot be < " << min;
-      emplace_err(err);
-    } else if (val > max) {
-      err << "invalid `" << property << "` -> cannot be > " << max;
-      emplace_err(err);
-    } else {
-      out = static_cast<PropTy>(val);
-    }
+    val = json[property].get<uintmax_t>();
   } catch (json_t::basic_json::type_error const &except) {
     err << "invalid `" << property << "` -> " << nlohmann_json_extract_sentence(except);
     emplace_err(err);
+    return false;
   }
+
+  if (!json[property].is_number_unsigned()) {
+    err << "invalid `" << property << "` -> not an unsigned integer";
+    emplace_err(err);
+    return false;
+  }
+
+  if (val < min) {
+    err << "invalid `" << property << "` -> cannot be < " << min;
+    emplace_err(err);
+    return false;
+  }
+
+  if (val > max) {
+    err << "invalid `" << property << "` -> cannot be > " << max;
+    emplace_err(err);
+    return false;
+  }
+
+  out = static_cast<PropTy>(val);
+  return true;
 }
 
 template <typename EnumImplTy>
-void try_to_parse_and_set_enum(
+bool try_to_parse_and_set_enum(
   json_t const &json,
   char const *const property,
   std::vector<
@@ -349,37 +246,39 @@ void try_to_parse_and_set_enum(
   std::stringstream &err,
   std::function<void (std::stringstream &)> const &emplace_err
 ) {
+  std::string parsed_text;
   try {
-    std::string const parsed_text = json[property].get<std::string>();
-
-    for (auto const &pair : text_to_integral_mappings) {
-      std::string const &text = pair.first;
-      EnumImplTy const integral = pair.second;
-      if (text == parsed_text) {
-        out = integral;
-        return;
-      }
-    }
-
-    std::stringstream allowed_values_stream{};
-    for (auto const &pair : text_to_integral_mappings) {
-      std::string const &text = pair.first;
-      allowed_values_stream << text << '|';
-    }
-    std::string allowed_values_str = allowed_values_stream.str();
-    allowed_values_str.pop_back(); // remove trailing pipe (|)
-    err << "invalid `" << property << "` -> not one of " << allowed_values_str;
-    emplace_err(err);
-
+    parsed_text = json[property].get<std::string>();
   } catch (json_t::basic_json::type_error const &except) {
     err << "invalid `" << property << "` -> " << nlohmann_json_extract_sentence(except);
     emplace_err(err);
+    return false;
   }
+
+  for (auto const &pair : text_to_integral_mappings) {
+    std::string const &text = pair.first;
+    EnumImplTy const integral = pair.second;
+    if (text == parsed_text) {
+      out = integral;
+      return true;
+    }
+  }
+
+  std::stringstream allowed_values_stream{};
+  for (auto const &pair : text_to_integral_mappings) {
+    std::string const &text = pair.first;
+    allowed_values_stream << text << '|';
+  }
+  std::string allowed_values_str = allowed_values_stream.str();
+  allowed_values_str.pop_back(); // remove trailing pipe (|)
+  err << "invalid `" << property << "` -> not one of " << allowed_values_str;
+  emplace_err(err);
+  return false;
 }
 
 static
 bool try_to_parse_and_set_rule(
-  std::array<rule, 256> &out,
+  std::array<ant::rule, 256> &out,
   json_t const &rule,
   size_t const index,
   std::stringstream &err,
@@ -410,7 +309,7 @@ bool try_to_parse_and_set_rule(
   }
 
   uint8_t shade, replacement;
-  turn_direction::type turn_dir;
+  ant::turn_direction::type turn_dir;
 
   try {
     if (!rule["shade"].is_number_unsigned()) {
@@ -431,7 +330,7 @@ bool try_to_parse_and_set_rule(
 
     shade = static_cast<uint8_t>(temp);
 
-    if (out[shade].turn_dir != turn_direction::NIL) {
+    if (out[shade].turn_dir != ant::turn_direction::NIL) {
       // rule already set
       err << "invalid `rules` -> more than one rule for shade " << shade;
       emplace_err(err);
@@ -475,11 +374,11 @@ bool try_to_parse_and_set_rule(
     std::string const turn = rule["turn"].get<std::string>();
 
     if (turn == "L") {
-      turn_dir = turn_direction::LEFT;
+      turn_dir = ant::turn_direction::LEFT;
     } else if (turn == "N") {
-      turn_dir = turn_direction::NONE;
+      turn_dir = ant::turn_direction::NONE;
     } else if (turn == "R") {
-      turn_dir = turn_direction::RIGHT;
+      turn_dir = ant::turn_direction::RIGHT;
     } else {
       err << "invalid `rules` -> [" << index << "].turn is not one of L|N|R";
       emplace_err(err);
@@ -526,8 +425,79 @@ bool try_to_parse_and_set_save_point(
   return true;
 }
 
-parse_result_t parse_simulation(std::string &str) {
-  simulation sim{};
+static
+bool try_to_parse_and_set_rules(
+  json_t const &json,
+  ant::simulation &sim,
+  std::stringstream &err,
+  std::function<void (std::stringstream &)> const &emplace_err
+) {
+  json_t::array_t rules;
+  try {
+    rules = json["rules"].get<json_t::array_t>();
+  } catch (json_t::basic_json::type_error const &except) {
+    err << "invalid `rules` -> " << nlohmann_json_extract_sentence(except);
+    emplace_err(err);
+    return false;
+  }
+
+  if (rules.size() > sim.rules.size()) {
+    err << "invalid `rules` -> max 256 allowed, but got " << rules.size();
+    emplace_err(err);
+    return false;
+  }
+
+  std::array<ant::rule, 256> parsed_rules{};
+
+  for (size_t i = 0; i < rules.size(); ++i) {
+    if (!try_to_parse_and_set_rule(parsed_rules, rules[i], i, err, emplace_err)) {
+      return false;
+    }
+  }
+
+  // validation
+  {
+    std::array<uint16_t, 256> shade_occurences{};
+    size_t num_defined_rules = 0;
+
+    for (size_t i = 0; i < sim.rules.size(); ++i) {
+      auto const &r = sim.rules[i];
+      bool const is_rule_used = r.turn_dir != ant::turn_direction::NIL;
+      if (is_rule_used) {
+        ++num_defined_rules;
+        ++shade_occurences[i];
+        ++shade_occurences[r.replacement_shade];
+      }
+    }
+
+    if (num_defined_rules < 2) {
+      err << "invalid `rules` -> fewer than 2 defined";
+      emplace_err(err);
+      return false;
+    }
+
+    size_t num_non_zero_occurences = 0, num_non_two_occurences = 0;
+    for (auto const occurencesOfShade : shade_occurences) {
+      if (occurencesOfShade != 0) {
+        ++num_non_zero_occurences;
+        if (occurencesOfShade != 2)
+          ++num_non_two_occurences;
+      }
+    }
+
+    if (num_non_zero_occurences < 2 || num_non_two_occurences > 0) {
+      err << "invalid `rules` -> don't form a closed chain";
+      emplace_err(err);
+      return false;
+    }
+  }
+
+  sim.rules = parsed_rules;
+  return true;
+}
+
+ant::simulation_parse_result_t ant::simulation_parse(std::string const &str) {
+  ant::simulation sim{};
   std::vector<std::string> errors{};
   std::stringstream err{};
 
@@ -585,84 +555,104 @@ parse_result_t parse_simulation(std::string &str) {
     good &= validate_property_set("save_points");
 
     if (!good) {
-      // if any properties not set, stop here
+      // if any properties not set, stop parsing
       return { sim, errors };
     }
   }
 
-  try_to_parse_and_set_unsigned_int<uint_fast64_t>(
+  [[maybe_unused]]
+  bool const generations_parse_success = try_to_parse_and_set_uint<
+    uint_fast64_t
+  >(
     json, "generations", sim.generations,
     0, UINT_FAST64_MAX,
     err, emplace_err
   );
-  try_to_parse_and_set_unsigned_int<int>(
+
+  bool const grid_width_parse_success = try_to_parse_and_set_uint<int>(
     json, "grid_width", sim.grid_width,
     0, UINT16_MAX,
     err, emplace_err
   );
-  try_to_parse_and_set_unsigned_int<int>(
+
+  bool const grid_height_parse_success = try_to_parse_and_set_uint<int>(
     json, "grid_height", sim.grid_height,
     0, UINT16_MAX,
     err, emplace_err
   );
-  try_to_parse_and_set_unsigned_int<int>(
+
+  bool const ant_col_parse_success = try_to_parse_and_set_uint<int>(
     json, "ant_col", sim.ant_col,
     0, UINT16_MAX,
     err, emplace_err
   );
-  try_to_parse_and_set_unsigned_int<int>(
+
+  bool const ant_row_parse_success = try_to_parse_and_set_uint<int>(
     json, "ant_row", sim.ant_row,
     0, UINT16_MAX,
     err, emplace_err
   );
-  try_to_parse_and_set_unsigned_int<uint_fast64_t>(
+
+  if (
+    grid_width_parse_success &&
+    (sim.grid_width < 1 || sim.grid_width > UINT16_MAX)
+  ) {
+    err << "invalid `grid_width` -> not in range [1, " << UINT16_MAX << ']';
+    emplace_err(err);
+  } else if (
+    ant_col_parse_success &&
+    !util::in_range_incl_excl(sim.ant_col, 0, sim.grid_width)
+  ) {
+    err << "invalid `ant_col` -> not in grid x-axis [0, " << sim.grid_width << ')';
+    emplace_err(err);
+  }
+
+  if (
+    grid_height_parse_success &&
+    (sim.grid_height < 1 || sim.grid_height > UINT16_MAX)
+  ) {
+    err << "invalid `grid_height` -> not in range [1, " << UINT16_MAX << ']';
+    emplace_err(err);
+  } else if (
+    ant_row_parse_success &&
+    !util::in_range_incl_excl(sim.ant_row, 0, sim.grid_height)
+  ) {
+    err << "invalid `ant_row` -> not in grid y-axis [0, " << sim.grid_height << ')';
+    emplace_err(err);
+  }
+
+  [[maybe_unused]]
+  bool const save_interval_parse_success = try_to_parse_and_set_uint<
+    uint_fast64_t
+  >(
     json, "save_interval", sim.save_interval,
     0, UINT_FAST64_MAX,
     err, emplace_err
   );
 
-  try_to_parse_and_set_enum<step_result::type>(json, "last_step_result", {
-    { "nil", step_result::NIL },
-    { "success", step_result::SUCCESS },
-    { "failed_at_boundary", step_result::FAILED_AT_BOUNDARY },
+  [[maybe_unused]]
+  bool const last_step_res_parse_success = try_to_parse_and_set_enum<
+    ant::step_result::type
+  >(json, "last_step_result", {
+    { "nil", ant::step_result::NIL },
+    { "success", ant::step_result::SUCCESS },
+    { "failed_at_boundary", ant::step_result::FAILED_AT_BOUNDARY },
   }, sim.last_step_res, err, emplace_err);
 
-  try_to_parse_and_set_enum<orientation::type>(json, "ant_orientation", {
-    { "north", orientation::NORTH },
-    { "east", orientation::EAST },
-    { "south", orientation::SOUTH },
-    { "west", orientation::WEST },
+  [[maybe_unused]]
+  bool const ant_orientation_parse_success = try_to_parse_and_set_enum<
+    ant::orientation::type
+  >(json, "ant_orientation", {
+    { "north", ant::orientation::NORTH },
+    { "east", ant::orientation::EAST },
+    { "south", ant::orientation::SOUTH },
+    { "west", ant::orientation::WEST },
   }, sim.ant_orientation, err, emplace_err);
 
-  {
-    json_t::array_t rules;
-
-    try {
-      rules = json["rules"].get<json_t::array_t>();
-
-      if (rules.size() > sim.rules.size()) {
-        err << "invalid `rules` -> max 256 allowed, but got " << rules.size();
-        emplace_err(err);
-      } else {
-        std::array<rule, 256> parsed_rules{};
-
-        bool success = true;
-        for (size_t i = 0; i < rules.size(); ++i) {
-          if (!try_to_parse_and_set_rule(parsed_rules, rules[i], i, err, emplace_err)) {
-            success = false;
-            break;
-          }
-        }
-
-        if (success) {
-          sim.rules = parsed_rules;
-        }
-      }
-    } catch (json_t::basic_json::type_error const &except) {
-      err << "invalid `rules` -> " << nlohmann_json_extract_sentence(except);
-      emplace_err(err);
-    }
-  }
+  [[maybe_unused]]
+  bool const rules_parse_success = try_to_parse_and_set_rules(
+    json, sim, err, emplace_err
+  );
 
   {
     json_t::array_t save_points;
@@ -696,6 +686,36 @@ parse_result_t parse_simulation(std::string &str) {
     } catch (json_t::basic_json::type_error const &except) {
       err << "invalid `save_points` -> " << nlohmann_json_extract_sentence(except);
       emplace_err(err);
+    }
+  }
+
+  // save_points validation
+  {
+    std::unordered_map<
+      uint_fast64_t, // point
+      size_t // num of occurences
+    > save_point_occurences{};
+
+    // count how many times each save_point occurs
+    for (size_t i = 0; i < sim.num_save_points; ++i)
+      ++save_point_occurences[sim.save_points[i]];
+
+    // check for repeats
+    for (auto const [save_point, num_occurences] : save_point_occurences) {
+      if (num_occurences > 1) {
+        err << "save_point `" << save_point
+          << "` repeated " << num_occurences << " times";
+        emplace_err(err);
+      }
+    }
+
+    // check for zeroes
+    for (size_t i = 0; i < sim.num_save_points; ++i) {
+      if (sim.save_points[i] == 0) {
+        err << "save_point cannot be `0`";
+        emplace_err(err);
+        break;
+      }
     }
   }
 

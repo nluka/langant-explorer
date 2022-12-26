@@ -1,5 +1,5 @@
-#ifndef SIMULATION_HPP
-#define SIMULATION_HPP
+#ifndef ANT_HPP
+#define ANT_HPP
 
 #include <array>
 #include <cinttypes>
@@ -7,6 +7,8 @@
 #include <string>
 
 #include "pgm8.hpp"
+
+namespace ant {
 
 // not using an enum class because I want to do arithmetic with
 // turn_direction values without casting.
@@ -73,16 +75,13 @@ struct simulation {
   std::array<uint_fast64_t, 7> save_points;
 };
 
-typedef std::pair<simulation, std::vector<std::string>> parse_result_t;
-parse_result_t parse_simulation(std::string &);
+typedef std::pair<simulation, std::vector<std::string>> simulation_parse_result_t;
+simulation_parse_result_t simulation_parse(std::string const &);
 
-std::vector<std::string> validate_simulation(simulation const &);
+step_result::type simulation_step_forward(simulation &);
 
-step_result::type step_forward(simulation &);
+void simulation_save(simulation const &, char const *name, pgm8::format);
 
-// returns true if `val` is in range [min, max), false otherwise.
-bool in_range_incl_excl(int val, int min, int max);
+} // namespace ant
 
-void save(simulation const &, char const *name, pgm8::format);
-
-#endif // SIMULATION_HPP
+#endif // ANT_HPP

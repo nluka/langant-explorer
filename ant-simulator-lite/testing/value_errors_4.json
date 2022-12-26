@@ -1,8 +1,8 @@
 {
   "generations": 20,
   "last_step_result": "failed_at_boundary",
-  "grid_width": 0,
-  "grid_height": 0,
+  "grid_width": 1,
+  "grid_height": 1,
   "grid_state": "fake_file",
   "ant_col": 0,
   "ant_row": 0,

@@ -8,6 +8,10 @@
 
 using namespace std;
 
+bool util::in_range_incl_excl(int const val, int const min, int const max) {
+  return val >= min && val < max;
+}
+
 fstream util::open_file(char const *const pathname, int const flags) {
   bool const forReading = (flags & 1) == 1;
   if (forReading) {

@@ -1,17 +1,17 @@
+#include "ant.hpp"
 #include "arr2d.hpp"
 #include "exit.hpp"
 #include "ntest.hpp"
 #include "seqgen.hpp"
-#include "simulation.hpp"
 #include "util.hpp"
 
-typedef std::array<rule, 256> Rules;
+typedef std::array<ant::rule, 256> rules_t;
 
-Rules generate_rules(std::vector<std::pair<
+rules_t generate_rules(std::vector<std::pair<
   size_t, // shade
-  rule
+  ant::rule
 >> const &scheme) {
-  Rules rules{};
+  rules_t rules{};
   for (auto const [shade, rule] : scheme)
     rules[shade] = rule;
   return rules;
@@ -20,88 +20,88 @@ Rules generate_rules(std::vector<std::pair<
 int main() {
   ntest::init();
 
-  ntest::assert_stdvec({
-    // no errors
-  }, validate_simulation({
-    0, // generations
-    step_result::NIL,
-    5, // grid_width
-    10, // grid_height
-    3, // ant_col
-    6, // ant_row
-    orientation::NORTH,
-    nullptr, // grid
-    generate_rules({
-      { 0, {1, turn_direction::RIGHT} },
-      { 1, {0, turn_direction::LEFT} },
-    }),
-    0, // save_interval
-    {}, // save_points
-  }));
+  // ntest::assert_stdvec({
+  //   // no errors
+  // }, validate_simulation({
+  //   0, // generations
+  //   step_result::NIL,
+  //   5, // grid_width
+  //   10, // grid_height
+  //   3, // ant_col
+  //   6, // ant_row
+  //   orientation::NORTH,
+  //   nullptr, // grid
+  //   generate_rules({
+  //     { 0, {1, turn_direction::RIGHT} },
+  //     { 1, {0, turn_direction::LEFT} },
+  //   }),
+  //   0, // save_interval
+  //   {}, // save_points
+  // }));
 
-  ntest::assert_stdvec({
-    "grid_width `-1` not in range [1, 65535]",
-    "grid_height `70000` not in range [1, 65535]",
-    "ant_orientation `5` not in range [1, 4]",
-    "fewer than 2 rules defined",
-  }, validate_simulation({
-    0, // generations
-    step_result::NIL,
-    -1, // grid_width
-    70'000, // grid_height
-    10, // ant_col
-    10, // ant_row
-    orientation::OVERFLOW_CLOCKWISE,
-    nullptr, // grid
-    generate_rules({
-      // 1->0
-      // ^__|
-      { 1, {0, turn_direction::LEFT} },
-    }),
-    0, // save_interval
-    3, // num_save_points
-    { 1, 2, 3, }, // save_points
-  }));
+  // ntest::assert_stdvec({
+  //   "grid_width `-1` not in range [1, 65535]",
+  //   "grid_height `70000` not in range [1, 65535]",
+  //   "ant_orientation `5` not in range [1, 4]",
+  //   "fewer than 2 rules defined",
+  // }, validate_simulation({
+  //   0, // generations
+  //   step_result::NIL,
+  //   -1, // grid_width
+  //   70'000, // grid_height
+  //   10, // ant_col
+  //   10, // ant_row
+  //   orientation::OVERFLOW_CLOCKWISE,
+  //   nullptr, // grid
+  //   generate_rules({
+  //     // 1->0
+  //     // ^__|
+  //     { 1, {0, turn_direction::LEFT} },
+  //   }),
+  //   0, // save_interval
+  //   3, // num_save_points
+  //   { 1, 2, 3, }, // save_points
+  // }));
 
-  ntest::assert_stdvec({
-    "ant_col `-1` not in grid x-axis [0, 5)",
-    "ant_row `11` not in grid y-axis [0, 10)",
-    "ant_orientation `0` not in range [1, 4]",
-    "rules don't form a closed chain",
-    "save_point `0` repeated 2 times",
-    "save_point `1` repeated 3 times",
-    "save_point `2` repeated 2 times",
-    "save_point cannot be `0`",
-  }, validate_simulation({
-    0, // generations
-    step_result::NIL,
-    5, // grid_width
-    10, // grid_height
-    -1, // ant_col
-    11, // ant_row
-    orientation::OVERFLOW_COUNTER_CLOCKWISE,
-    nullptr, // grid
-    generate_rules({
-      // 0->1->2
-      { 0, {1, turn_direction::LEFT} },
-      { 1, {2, turn_direction::LEFT} },
-    }),
-    0, // save_interval
-    7, // num_save_points
-    { // save_points
-      0, 0,
-      1, 1, 1,
-      2, 2,
-    },
-  }));
+  // ntest::assert_stdvec({
+  //   "ant_col `-1` not in grid x-axis [0, 5)",
+  //   "ant_row `11` not in grid y-axis [0, 10)",
+  //   "ant_orientation `0` not in range [1, 4]",
+  //   "rules don't form a closed chain",
+  //   "save_point `0` repeated 2 times",
+  //   "save_point `1` repeated 3 times",
+  //   "save_point `2` repeated 2 times",
+  //   "save_point cannot be `0`",
+  // }, validate_simulation({
+  //   0, // generations
+  //   step_result::NIL,
+  //   5, // grid_width
+  //   10, // grid_height
+  //   -1, // ant_col
+  //   11, // ant_row
+  //   orientation::OVERFLOW_COUNTER_CLOCKWISE,
+  //   nullptr, // grid
+  //   generate_rules({
+  //     // 0->1->2
+  //     { 0, {1, turn_direction::LEFT} },
+  //     { 1, {2, turn_direction::LEFT} },
+  //   }),
+  //   0, // save_interval
+  //   7, // num_save_points
+  //   { // save_points
+  //     0, 0,
+  //     1, 1, 1,
+  //     2, 2,
+  //   },
+  // }));
 
   {
     auto const assert_parse = [](
-      parse_result_t const &expected, char const *const actual_pathname,
+      ant::simulation_parse_result_t const &expected, char const *const actual_pathname,
       std::source_location const loc = std::source_location::current()
     ) {
       std::string content = util::extract_txt_file_contents(actual_pathname);
-      auto const &[act_sim, act_errors] = parse_simulation(content);
+      auto const &[act_sim, act_errors] = ant::simulation_parse(content);
       auto const &[exp_sim, exp_errors] = expected;
 
       ntest::assert_uint64(exp_sim.generations, act_sim.generations, loc);
@@ -202,18 +202,20 @@ int main() {
     assert_parse({
       {
         18446744073709551615, // generations
-        step_result::NIL,
+        ant::step_result::NIL,
         65535, // grid_width
         65535, // grid_height
         65535, // ant_col
         65535, // ant_row
-        orientation::NORTH,
+        ant::orientation::NORTH,
         nullptr, // grid
         {}, // rules
         0, // save_interval
         0, // num_save_points
         {}, // save_points
       }, {
+        "invalid `ant_col` -> not in grid x-axis [0, 65535)",
+        "invalid `ant_row` -> not in grid y-axis [0, 65535)",
         "invalid `rules` -> [0].replacement is not an unsigned integer",
         "invalid `save_points` -> [2] is not an unsigned integer",
         "invalid `grid_state` -> fill value must be <= 255",
@@ -223,18 +225,20 @@ int main() {
     assert_parse({
       {
         10, // generations
-        step_result::SUCCESS,
+        ant::step_result::SUCCESS,
         0, // grid_width
         0, // grid_height
         0, // ant_col
         0, // ant_row
-        orientation::EAST,
+        ant::orientation::EAST,
         nullptr, // grid
         {}, // rules
         9223372036854775806, // save_interval
         3, // num_save_points
         {10, 20, 30}, // save_points
       }, {
+        "invalid `grid_width` -> not in range [1, 65535]",
+        "invalid `grid_height` -> not in range [1, 65535]",
         "invalid `rules` -> [0].replacement is > 255",
         "invalid `grid_state` -> file \"non_existent_file\" does not exist",
       }
@@ -243,12 +247,12 @@ int main() {
     assert_parse({
       {
         20, // generations
-        step_result::FAILED_AT_BOUNDARY,
-        0, // grid_width
-        0, // grid_height
+        ant::step_result::FAILED_AT_BOUNDARY,
+        1, // grid_width
+        1, // grid_height
         0, // ant_col
         0, // ant_row
-        orientation::SOUTH,
+        ant::orientation::SOUTH,
         nullptr, // grid
         {}, // rules
         10, // save_interval
@@ -263,12 +267,12 @@ int main() {
     assert_parse({
       {
         20, // generations
-        step_result::FAILED_AT_BOUNDARY,
+        ant::step_result::FAILED_AT_BOUNDARY,
         300, // grid_width
         200, // grid_height
         3, // ant_col
         6, // ant_row
-        orientation::WEST,
+        ant::orientation::WEST,
         nullptr, // grid
         {}, // rules
         10, // save_interval
@@ -279,6 +283,25 @@ int main() {
       }
     }, "value_errors_5.json");
 
+    assert_parse({
+      {
+        0, // generations
+        ant::step_result::NIL,
+        5, // grid_width
+        6, // grid_height
+        0, // ant_col
+        0, // ant_row
+        ant::orientation::EAST,
+        nullptr, // grid
+        {}, // rules
+        10, // save_interval
+        0, // num_save_points
+        {}, // save_points
+      }, {
+        "invalid `rules` -> fewer than 2 defined"
+      }
+    }, "value_errors_6.json");
+
     //   {
     //     uint8_t grid[50];
     //     seqgen::populate(grid, "0{50}");
@@ -286,12 +309,12 @@ int main() {
     //     assert_parse({
     //       {
     //         0, // generations
-    //         step_result::NIL,
+    //         ant::step_result::NIL,
     //         5, // grid_width
     //         10, // grid_height
     //         -1, // ant_col
     //         11, // ant_row
-    //         orientation::WEST,
+    //         ant::orientation::WEST,
     //         nullptr, // grid
     //         generate_rules({
     //           // 0->1->2
