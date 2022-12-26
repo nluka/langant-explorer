@@ -127,6 +127,8 @@ namespace internal {
 
 } // namespace internal
 
+void init();
+
 void assert_int8(
   int8_t expected, int8_t actual,
   std::source_location loc = std::source_location::current()
@@ -200,6 +202,21 @@ void assert_arr(
   Ty const *const actual, size_t const actual_size,
   std::source_location const loc = std::source_location::current())
 {
+  if (expected_size > 0 && expected == nullptr) {
+    std::stringstream err{};
+    err
+      << "ntest::assert_arr - 'expected' array size was > 0 but data was nullptr, at "
+      << loc.file_name() << ':' << loc.line() << "," << loc.column();
+    throw std::runtime_error(err.str());
+  }
+  if (actual_size > 0 && actual == nullptr) {
+    std::stringstream err{};
+    err
+      << "ntest::assert_arr - 'actual' array size was > 0 but data was nullptr, at "
+      << loc.file_name() << ':' << loc.line() << "," << loc.column();
+    throw std::runtime_error(err.str());
+  }
+
   bool const passed = ntest::internal::arr_eq(
     expected, expected_size, actual, actual_size);
 
@@ -282,7 +299,7 @@ void assert_stdarr(
   std::source_location const loc = std::source_location::current())
 {
   bool const passed = ntest::internal::arr_eq(
-    expected.data(), Size, actual.data(), Size);
+    expected.data(), expected.size(), actual.data(), actual.size());
 
   std::stringstream serialized_vals{};
   serialized_vals

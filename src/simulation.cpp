@@ -273,15 +273,19 @@ void save(simulation const &sim, char const *name, pgm8::format const fmt) {
   }
 
   {
-    std::ofstream imgFile(img_pathname);
-    pgm8::write(
-      imgFile,
-      static_cast<uint16_t>(sim.grid_width),
-      static_cast<uint16_t>(sim.grid_height),
-      arr2d::max(sim.grid, sim.grid_width, sim.grid_height),
-      sim.grid,
-      fmt
-    );
+    std::ofstream file(img_pathname);
+    if (!file.is_open()) {
+      // error
+      return;
+    }
+
+    pgm8::image_properties img_props;
+    img_props.set_format(fmt);
+    img_props.set_width(static_cast<uint16_t>(sim.grid_width));
+    img_props.set_height(static_cast<uint16_t>(sim.grid_height));
+    img_props.set_maxval(arr2d::max(sim.grid, sim.grid_width, sim.grid_height));
+
+    pgm8::write(file, img_props, sim.grid);
   }
 }
 
@@ -630,39 +634,6 @@ parse_result_t parse_simulation(std::string &str) {
     { "west", orientation::WEST },
   }, sim.ant_orientation, err, emplace_err);
 
-  try {
-    std::string const val = json["grid_state"].get<std::string>();
-
-    if (val == "") {
-      err << "invalid `grid_state` -> cannot be blank";
-      emplace_err(err);
-
-    } else if (std::regex_match(val, std::regex("^fill -{1,}[0-9]{1,}$", std::regex_constants::icase))) {
-      err << "invalid `grid_state` -> fill value cannot be negative";
-      emplace_err(err);
-
-    } else if (std::regex_match(val, std::regex("^fill [0-9]{1,}$", std::regex_constants::icase))) {
-      char const *const num_str = val.c_str() + 4;
-      uintmax_t const num = strtoumax(num_str, nullptr, 10);
-      if (num > UINT8_MAX) {
-        err << "invalid `grid_state` -> fill value must be <= "
-          // need to cast from uint8_t because operator<< overload doesn't treat it like a number
-          << static_cast<int>(UINT8_MAX);
-        emplace_err(err);
-      } else {
-        // fill is good, process
-      }
-    } else {
-      // check file path is valid
-      // check file exists
-      // open file (might fail)
-      // read file content
-    }
-  } catch (json_t::basic_json::type_error const &except) {
-    err << "invalid `grid_state` -> " << nlohmann_json_extract_sentence(except);
-    emplace_err(err);
-  }
-
   {
     json_t::array_t rules;
 
@@ -726,6 +697,68 @@ parse_result_t parse_simulation(std::string &str) {
       err << "invalid `save_points` -> " << nlohmann_json_extract_sentence(except);
       emplace_err(err);
     }
+  }
+
+  try {
+    std::string const val = json["grid_state"].get<std::string>();
+
+    if (val == "") {
+      err << "invalid `grid_state` -> cannot be blank";
+      emplace_err(err);
+
+    } else if (std::regex_match(val, std::regex("^fill -{1,}[0-9]{1,}$", std::regex_constants::icase))) {
+      err << "invalid `grid_state` -> fill value cannot be negative";
+      emplace_err(err);
+
+    } else if (std::regex_match(val, std::regex("^fill [0-9]{1,}$", std::regex_constants::icase))) {
+      char const *const num_str = val.c_str() + 4;
+      uintmax_t const fill_val = strtoumax(num_str, nullptr, 10);
+      if (fill_val > UINT8_MAX) {
+        err << "invalid `grid_state` -> fill value must be <= "
+          // need to cast from uint8_t because operator<< overload doesn't treat it like a number
+          << static_cast<int>(UINT8_MAX);
+        emplace_err(err);
+      } else if (errors.empty()) {
+        // only try to allocate and setup grid if there are no errors
+
+        size_t const num_pixels = static_cast<size_t>(sim.grid_width) * sim.grid_height;
+        try {
+          sim.grid = new uint8_t[num_pixels];
+          std::fill_n(sim.grid, num_pixels, static_cast<uint8_t>(fill_val));
+        } catch (std::bad_alloc const &) {
+          err << "failed to allocate " << num_pixels << " bytes for grid";
+          emplace_err(err);
+        }
+      }
+    } else {
+      if (!std::filesystem::exists(val)) {
+        err << "invalid `grid_state` -> file \"" << val << "\" does not exist";
+        emplace_err(err);
+      } else {
+        std::ifstream file(val);
+        if (!file.is_open()) {
+          err << "unable to open file \"" << val << "\"";
+          emplace_err(err);
+        } else {
+          size_t num_pixels = 0;
+          try {
+            auto const img_props = pgm8::read_properties(file);
+            num_pixels = img_props.num_pixels();
+            sim.grid = new uint8_t[num_pixels];
+            pgm8::read_pixels(file, img_props, sim.grid);
+          } catch (std::bad_alloc const &) {
+            err << "failed to allocate " << num_pixels << " bytes for grid";
+            emplace_err(err);
+          } catch (std::runtime_error const &except) {
+            err << "failed to read file \"" << val << "\" - " << except.what();
+            emplace_err(err);
+          }
+        }
+      }
+    }
+  } catch (json_t::basic_json::type_error const &except) {
+    err << "invalid `grid_state` -> " << nlohmann_json_extract_sentence(except);
+    emplace_err(err);
   }
 
   return { sim, errors };

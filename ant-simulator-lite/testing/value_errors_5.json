@@ -1,8 +1,8 @@
 {
   "generations": 20,
   "last_step_result": "failed_at_boundary",
-  "grid_width": 65535,
-  "grid_height": 65535,
+  "grid_width": 300,
+  "grid_height": 200,
   "grid_state": "FILL 10",
   "ant_col": 3,
   "ant_row": 6,

@@ -625,3 +625,28 @@ void ntest::generate_report(char const *const name)
   s_failed_assertions.clear();
   s_passed_assertions.clear();
 }
+
+void ntest::init()
+{
+  auto const current_path = fs::current_path();
+
+  // remove any residual .expected and .actual files
+  for (
+    auto const &entry :
+    fs::directory_iterator(
+      current_path,
+      fs::directory_options::skip_permission_denied
+    )
+  ) {
+    if (!entry.is_regular_file())
+      continue;
+
+    auto const path = entry.path();
+    if (!path.has_extension())
+      continue;
+
+    auto const extension = path.extension();
+    if (extension == ".expected" || extension == ".actual")
+      fs::remove(path);
+  }
+}

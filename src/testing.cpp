@@ -18,6 +18,8 @@ Rules generate_rules(std::vector<std::pair<
 }
 
 int main() {
+  ntest::init();
+
   ntest::assert_stdvec({
     // no errors
   }, validate_simulation({
@@ -129,9 +131,9 @@ int main() {
         "invalid `save_interval` -> type must be number, but is array",
         "invalid `last_step_result` -> type must be string, but is number",
         "invalid `ant_orientation` -> type must be string, but is number",
-        "invalid `grid_state` -> type must be string, but is boolean",
         "invalid `rules` -> type must be array, but is object",
         "invalid `save_points` -> type must be array, but is boolean",
+        "invalid `grid_state` -> type must be string, but is boolean",
       }
     }, "type_errors_0.json");
 
@@ -145,9 +147,9 @@ int main() {
         "invalid `save_interval` -> type must be number, but is string",
         "invalid `last_step_result` -> type must be string, but is boolean",
         "invalid `ant_orientation` -> type must be string, but is boolean",
-        "invalid `grid_state` -> type must be string, but is number",
         "invalid `rules` -> not an array of objects",
         "invalid `save_points` -> [0] is not an unsigned integer",
+        "invalid `grid_state` -> type must be string, but is number",
       }
     }, "type_errors_1.json");
 
@@ -177,9 +179,9 @@ int main() {
         "invalid `save_interval` -> not an unsigned integer",
         "invalid `last_step_result` -> not one of nil|success|failed_at_boundary",
         "invalid `ant_orientation` -> not one of north|east|south|west",
-        "invalid `grid_state` -> cannot be blank",
         "invalid `rules` -> [0].shade is not an unsigned integer",
         "invalid `save_points` -> [1] is not an unsigned integer",
+        "invalid `grid_state` -> cannot be blank",
       }
     }, "value_errors_0.json");
 
@@ -191,34 +193,88 @@ int main() {
         "invalid `ant_row` -> cannot be > 65535",
         "invalid `last_step_result` -> not one of nil|success|failed_at_boundary",
         "invalid `ant_orientation` -> not one of north|east|south|west",
-        "invalid `grid_state` -> fill value cannot be negative",
         "invalid `rules` -> [0].shade is > 255",
         "invalid `save_points` -> [0] is not an unsigned integer",
+        "invalid `grid_state` -> fill value cannot be negative",
       }
     }, "value_errors_1.json");
 
     assert_parse({
-      {}, {
-        "invalid `grid_state` -> fill value must be <= 255",
+      {
+        18446744073709551615, // generations
+        step_result::NIL,
+        65535, // grid_width
+        65535, // grid_height
+        65535, // ant_col
+        65535, // ant_row
+        orientation::NORTH,
+        nullptr, // grid
+        {}, // rules
+        0, // save_interval
+        0, // num_save_points
+        {}, // save_points
+      }, {
         "invalid `rules` -> [0].replacement is not an unsigned integer",
         "invalid `save_points` -> [2] is not an unsigned integer",
+        "invalid `grid_state` -> fill value must be <= 255",
       }
     }, "value_errors_2.json");
 
     assert_parse({
-      {}, {
+      {
+        10, // generations
+        step_result::SUCCESS,
+        0, // grid_width
+        0, // grid_height
+        0, // ant_col
+        0, // ant_row
+        orientation::EAST,
+        nullptr, // grid
+        {}, // rules
+        9223372036854775806, // save_interval
+        3, // num_save_points
+        {10, 20, 30}, // save_points
+      }, {
         "invalid `rules` -> [0].replacement is > 255",
+        "invalid `grid_state` -> file \"non_existent_file\" does not exist",
       }
     }, "value_errors_3.json");
 
     assert_parse({
-      {}, {
+      {
+        20, // generations
+        step_result::FAILED_AT_BOUNDARY,
+        0, // grid_width
+        0, // grid_height
+        0, // ant_col
+        0, // ant_row
+        orientation::SOUTH,
+        nullptr, // grid
+        {}, // rules
+        10, // save_interval
+        0, // num_save_points
+        {}, // save_points
+      }, {
         "invalid `rules` -> [0].turn is not one of L|N|R",
+        "invalid `grid_state` -> file \"fake_file\" does not exist",
       }
     }, "value_errors_4.json");
 
     assert_parse({
-      {}, {
+      {
+        20, // generations
+        step_result::FAILED_AT_BOUNDARY,
+        300, // grid_width
+        200, // grid_height
+        3, // ant_col
+        6, // ant_row
+        orientation::WEST,
+        nullptr, // grid
+        {}, // rules
+        10, // save_interval
+        0, // num_save_points
+        {}, // save_points
+      }, {
         "invalid `rules` -> [0].turn is not one of L|N|R"
       }
     }, "value_errors_5.json");

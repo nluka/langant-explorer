@@ -6,36 +6,55 @@
 // Module for reading and writing 8-bit PGM images.
 namespace pgm8 {
 
-struct image
+enum class format : uint8_t
 {
-  uint16_t width, height;
-  uint8_t maxval;
-  uint8_t *pixels;
-};
-
-enum class format
-{
+  NIL = 0,
   // Pixels stored in ASCII decimal.
   PLAIN = 2,
   // Pixels stored in binary raster.
   RAW = 5,
 };
 
-image read(std::ifstream &file);
+struct image_properties
+{
+public:
+  [[nodiscard]] uint16_t get_width() const noexcept;
+  [[nodiscard]] uint16_t get_height() const noexcept;
+  [[nodiscard]] uint8_t get_maxval() const noexcept;
+  [[nodiscard]] pgm8::format get_format() const noexcept;
 
-void write(
-  std::ofstream &file,
-  pgm8::image const &img,
-  pgm8::format const fmt
+  void set_width(uint16_t);
+  void set_height(uint16_t);
+  void set_maxval(uint8_t);
+  void set_format(format);
+
+  [[nodiscard]] size_t num_pixels() const noexcept;
+
+  void validate() const;
+
+private:
+  uint16_t m_width = 0, m_height = 0;
+  uint8_t m_maxval = 0;
+  format m_fmt = format::NIL;
+  bool
+    m_width_set = false,
+    m_height_set = false,
+    m_maxval_set = false,
+    m_fmt_set = false;
+};
+
+[[nodiscard]] image_properties read_properties(std::ifstream &file);
+
+void read_pixels(
+  std::ifstream &file,
+  image_properties props,
+  uint8_t *buffer
 );
 
 void write(
   std::ofstream &file,
-  uint16_t const width,
-  uint16_t const height,
-  uint8_t const maxval,
-  uint8_t const *const pixels,
-  pgm8::format const fmt
+  image_properties props,
+  uint8_t const *pixels
 );
 
 } // namespace pgm8

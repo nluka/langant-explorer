@@ -3,7 +3,7 @@
   "last_step_result": "failed_at_boundary",
   "grid_width": 0,
   "grid_height": 0,
-  "grid_state": "locked_file",
+  "grid_state": "fake_file",
   "ant_col": 0,
   "ant_row": 0,
   "ant_orientation": "south",
