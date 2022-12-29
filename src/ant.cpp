@@ -441,7 +441,7 @@ bool try_to_parse_and_set_rules(
     return false;
   }
 
-  if (rules.size() > sim.rules.size()) {
+  if (rules.size() > 256) {
     err << "invalid `rules` -> max 256 allowed, but got " << rules.size();
     emplace_err(err);
     return false;
@@ -460,8 +460,8 @@ bool try_to_parse_and_set_rules(
     std::array<uint16_t, 256> shade_occurences{};
     size_t num_defined_rules = 0;
 
-    for (size_t i = 0; i < sim.rules.size(); ++i) {
-      auto const &r = sim.rules[i];
+    for (size_t i = 0; i < parsed_rules.size(); ++i) {
+      auto const &r = parsed_rules[i];
       bool const is_rule_used = r.turn_dir != ant::turn_direction::NIL;
       if (is_rule_used) {
         ++num_defined_rules;
@@ -494,6 +494,190 @@ bool try_to_parse_and_set_rules(
 
   sim.rules = parsed_rules;
   return true;
+}
+
+static
+bool try_to_parse_and_set_save_points(
+  json_t const &json,
+  ant::simulation &sim,
+  std::stringstream &err,
+  std::function<void (std::stringstream &)> const &emplace_err
+) {
+  json_t::array_t save_points;
+  try {
+    save_points = json["save_points"].get<json_t::array_t>();
+  } catch (json_t::basic_json::type_error const &except) {
+    err << "invalid `save_points` -> " << nlohmann_json_extract_sentence(except);
+    emplace_err(err);
+  }
+
+  size_t const num_save_points_specified = save_points.size();
+  size_t const max_save_points_allowed = sim.save_points.size();
+
+  if (num_save_points_specified > max_save_points_allowed) {
+    err << "invalid `save_points` -> more than " << max_save_points_allowed << " not allowed";
+    emplace_err(err);
+    return false;
+  }
+
+  std::array<uint_fast64_t, 7> parsed_save_points{};
+
+  for (size_t i = 0; i < num_save_points_specified; ++i) {
+    if (!try_to_parse_and_set_save_point(
+      parsed_save_points, save_points[i], i, err, emplace_err
+    )) {
+      return false;
+    }
+  }
+
+  // validation
+  {
+    std::unordered_map<
+      uint_fast64_t, // point
+      size_t // num of occurences
+    > save_point_occurences{};
+
+    // count how many times each save_point occurs
+    for (size_t i = 0; i < num_save_points_specified; ++i)
+      ++save_point_occurences[parsed_save_points[i]];
+
+    // check for repeats
+    for (auto const [save_point, num_occurences] : save_point_occurences) {
+      if (num_occurences > 1) {
+        err << "save_point `" << save_point << "` repeated " << num_occurences << " times";
+        emplace_err(err);
+        return false;
+      }
+    }
+
+    // check for zeroes
+    for (size_t i = 0; i < num_save_points_specified; ++i) {
+      if (parsed_save_points[i] == 0) {
+        err << "save_point cannot be `0`";
+        emplace_err(err);
+        return false;
+      }
+    }
+  }
+
+  sim.save_points = parsed_save_points;
+  sim.num_save_points = num_save_points_specified;
+  return true;
+}
+
+static
+bool try_to_parse_and_set_grid_state(
+  json_t const &json,
+  ant::simulation &sim,
+  std::stringstream &err,
+  std::function<void (std::stringstream &)> const &emplace_err,
+  std::vector<std::string> const &errors
+) {
+  std::string grid_state;
+  try {
+    grid_state = json["grid_state"].get<std::string>();
+  } catch (json_t::basic_json::type_error const &except) {
+    err << "invalid `grid_state` -> " << nlohmann_json_extract_sentence(except);
+    emplace_err(err);
+    return false;
+  }
+
+  if (grid_state == "") {
+    err << "invalid `grid_state` -> cannot be blank";
+    emplace_err(err);
+    return false;
+  }
+
+  if (std::regex_match(
+    grid_state,
+    std::regex("^fill -{1,}[0-9]{1,}$", std::regex_constants::icase))
+  ) {
+    err << "invalid `grid_state` -> fill value cannot be negative";
+    emplace_err(err);
+    return false;
+  }
+
+  if (std::regex_match(
+    grid_state,
+    std::regex("^fill [0-9]{1,}$", std::regex_constants::icase))
+  ) {
+    char const *const num_str = grid_state.c_str() + 4;
+    uintmax_t const fill_val = strtoumax(num_str, nullptr, 10);
+
+    if (fill_val > UINT8_MAX) {
+      err << "invalid `grid_state` -> fill value must be <= "
+        // need to cast from ui8 because operator<< overload doesn't treat it like a number
+        << static_cast<int>(UINT8_MAX);
+      emplace_err(err);
+      return false;
+    }
+
+    if (!errors.empty()) {
+      return false;
+    }
+
+    if (sim.rules[fill_val].turn_dir == ant::turn_direction::NIL) {
+      err << "invalid `grid_state` -> fill value has no governing rule";
+      emplace_err(err);
+      return false;
+    }
+
+    // only try to allocate and setup grid if there are no errors
+    size_t const num_pixels = static_cast<size_t>(sim.grid_width) * sim.grid_height;
+    try {
+      sim.grid = new uint8_t[num_pixels];
+    } catch (std::bad_alloc const &) {
+      err << "failed to allocate " << num_pixels << " bytes for grid";
+      emplace_err(err);
+      return false;
+    }
+
+    std::fill_n(sim.grid, num_pixels, static_cast<uint8_t>(fill_val));
+    return true;
+
+  } else {
+    if (!std::filesystem::exists(grid_state)) {
+      err << "invalid `grid_state` -> file \"" << grid_state << "\" does not exist";
+      emplace_err(err);
+      return false;
+    }
+
+    std::ifstream file(grid_state);
+    if (!file.is_open()) {
+      err << "unable to open file \"" << grid_state << "\"";
+      emplace_err(err);
+      return false;
+    }
+
+    pgm8::image_properties img_props;
+    try {
+      img_props = pgm8::read_properties(file);
+    } catch (std::runtime_error const &except) {
+      err << "failed to read file \"" << grid_state << "\" - " << except.what();
+      emplace_err(err);
+      return false;
+    }
+
+    size_t const num_pixels = img_props.num_pixels();
+
+    try {
+      sim.grid = new uint8_t[num_pixels];
+    } catch (std::bad_alloc const &) {
+      err << "failed to allocate " << num_pixels << " bytes for grid";
+      emplace_err(err);
+      return false;
+    }
+
+    try {
+      pgm8::read_pixels(file, img_props, sim.grid);
+    } catch (std::runtime_error const &except) {
+      err << "failed to read file \"" << grid_state << "\" - " << except.what();
+      emplace_err(err);
+      return false;
+    }
+
+    return true;
+  }
 }
 
 ant::simulation_parse_result_t ant::simulation_parse(std::string const &str) {
@@ -654,132 +838,15 @@ ant::simulation_parse_result_t ant::simulation_parse(std::string const &str) {
     json, sim, err, emplace_err
   );
 
-  {
-    json_t::array_t save_points;
+  [[maybe_unused]]
+  bool const save_points_parse_success = try_to_parse_and_set_save_points(
+    json, sim, err, emplace_err
+  );
 
-    try {
-      save_points = json["save_points"].get<json_t::array_t>();
-
-      size_t const num_save_points_specified = save_points.size();
-      size_t const max_save_points_allowed = sim.save_points.size();
-
-      if (num_save_points_specified > max_save_points_allowed) {
-        err << "invalid `save_points` -> max " << max_save_points_allowed
-          << " allowed, but got " << num_save_points_specified;
-        emplace_err(err);
-      } else {
-        std::array<uint_fast64_t, 7> parsed_save_points{};
-
-        bool success = true;
-        for (size_t i = 0; i < num_save_points_specified; ++i) {
-          if (!try_to_parse_and_set_save_point(parsed_save_points, save_points[i], i, err, emplace_err)) {
-            success = false;
-            break;
-          }
-        }
-
-        if (success) {
-          sim.save_points = parsed_save_points;
-          sim.num_save_points = num_save_points_specified;
-        }
-      }
-    } catch (json_t::basic_json::type_error const &except) {
-      err << "invalid `save_points` -> " << nlohmann_json_extract_sentence(except);
-      emplace_err(err);
-    }
-  }
-
-  // save_points validation
-  {
-    std::unordered_map<
-      uint_fast64_t, // point
-      size_t // num of occurences
-    > save_point_occurences{};
-
-    // count how many times each save_point occurs
-    for (size_t i = 0; i < sim.num_save_points; ++i)
-      ++save_point_occurences[sim.save_points[i]];
-
-    // check for repeats
-    for (auto const [save_point, num_occurences] : save_point_occurences) {
-      if (num_occurences > 1) {
-        err << "save_point `" << save_point
-          << "` repeated " << num_occurences << " times";
-        emplace_err(err);
-      }
-    }
-
-    // check for zeroes
-    for (size_t i = 0; i < sim.num_save_points; ++i) {
-      if (sim.save_points[i] == 0) {
-        err << "save_point cannot be `0`";
-        emplace_err(err);
-        break;
-      }
-    }
-  }
-
-  try {
-    std::string const val = json["grid_state"].get<std::string>();
-
-    if (val == "") {
-      err << "invalid `grid_state` -> cannot be blank";
-      emplace_err(err);
-
-    } else if (std::regex_match(val, std::regex("^fill -{1,}[0-9]{1,}$", std::regex_constants::icase))) {
-      err << "invalid `grid_state` -> fill value cannot be negative";
-      emplace_err(err);
-
-    } else if (std::regex_match(val, std::regex("^fill [0-9]{1,}$", std::regex_constants::icase))) {
-      char const *const num_str = val.c_str() + 4;
-      uintmax_t const fill_val = strtoumax(num_str, nullptr, 10);
-      if (fill_val > UINT8_MAX) {
-        err << "invalid `grid_state` -> fill value must be <= "
-          // need to cast from uint8_t because operator<< overload doesn't treat it like a number
-          << static_cast<int>(UINT8_MAX);
-        emplace_err(err);
-      } else if (errors.empty()) {
-        // only try to allocate and setup grid if there are no errors
-
-        size_t const num_pixels = static_cast<size_t>(sim.grid_width) * sim.grid_height;
-        try {
-          sim.grid = new uint8_t[num_pixels];
-          std::fill_n(sim.grid, num_pixels, static_cast<uint8_t>(fill_val));
-        } catch (std::bad_alloc const &) {
-          err << "failed to allocate " << num_pixels << " bytes for grid";
-          emplace_err(err);
-        }
-      }
-    } else {
-      if (!std::filesystem::exists(val)) {
-        err << "invalid `grid_state` -> file \"" << val << "\" does not exist";
-        emplace_err(err);
-      } else {
-        std::ifstream file(val);
-        if (!file.is_open()) {
-          err << "unable to open file \"" << val << "\"";
-          emplace_err(err);
-        } else {
-          size_t num_pixels = 0;
-          try {
-            auto const img_props = pgm8::read_properties(file);
-            num_pixels = img_props.num_pixels();
-            sim.grid = new uint8_t[num_pixels];
-            pgm8::read_pixels(file, img_props, sim.grid);
-          } catch (std::bad_alloc const &) {
-            err << "failed to allocate " << num_pixels << " bytes for grid";
-            emplace_err(err);
-          } catch (std::runtime_error const &except) {
-            err << "failed to read file \"" << val << "\" - " << except.what();
-            emplace_err(err);
-          }
-        }
-      }
-    }
-  } catch (json_t::basic_json::type_error const &except) {
-    err << "invalid `grid_state` -> " << nlohmann_json_extract_sentence(except);
-    emplace_err(err);
-  }
+  [[maybe_unused]]
+  bool const grid_state_parse_success = try_to_parse_and_set_grid_state(
+    json, sim, err, emplace_err, errors
+  );
 
   return { sim, errors };
 }
