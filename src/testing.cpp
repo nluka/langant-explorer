@@ -269,6 +269,87 @@ int main() {
         "invalid `grid_state` -> fill value has no governing rule",
       }
     }, "value_errors_8.json");
+
+    assert_parse({
+      {
+        0, // generations
+        ant::step_result::NIL,
+        5, // grid_width
+        6, // grid_height
+        0, // ant_col
+        0, // ant_row
+        ant::orientation::EAST,
+        nullptr, // grid
+        {}, // rules
+        0, // save_interval
+        0, // num_save_points
+        {}, // save_points
+      }, {
+        "invalid `rules` -> don't form a closed chain",
+      }
+    }, "value_errors_9.json");
+
+    {
+      uint8_t grid[5 * 6];
+      std::fill_n(grid, 5 * 6, 0ui8);
+
+      assert_parse({
+        {
+          0, // generations
+          ant::step_result::NIL,
+          5, // grid_width
+          6, // grid_height
+          2, // ant_col
+          3, // ant_row
+          ant::orientation::WEST,
+          grid,
+          generate_rules({
+            // 0->1->2
+            { 0, {1, ant::turn_direction::LEFT} },
+            { 1, {0, ant::turn_direction::RIGHT} },
+          }),
+          10, // save_interval
+          1, // num_save_points
+          {15}, // save_points
+        }, {
+          // no errors
+        }
+      }, "good_fill.json");
+    }
+
+    {
+      uint8_t grid[5 * 5] {
+        0, 1, 0, 1, 0,
+        1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0,
+        1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0,
+      };
+
+      assert_parse({
+        {
+          0, // generations
+          ant::step_result::NIL,
+          5, // grid_width
+          5, // grid_height
+          2, // ant_col
+          2, // ant_row
+          ant::orientation::WEST,
+          &grid[0],
+          generate_rules({
+            // 0->1->2
+            { 0, {1, ant::turn_direction::LEFT} },
+            { 1, {2, ant::turn_direction::NONE} },
+            { 2, {0, ant::turn_direction::RIGHT} },
+          }),
+          0, // save_interval
+          0, // num_save_points
+          {}, // save_points
+        }, {
+          // no errors
+        }
+      }, "good_img.json");
+    }
   }
 
   ntest::generate_report("report");
