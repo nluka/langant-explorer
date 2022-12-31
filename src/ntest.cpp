@@ -141,6 +141,34 @@ void assert_integral(
   }
 }
 
+static
+char const *bool_to_string(bool const b)
+{
+  if (b == true) {
+    return "true";
+  } else {
+    return "false";
+  }
+}
+
+void ntest::assert_bool(
+  bool const expected, bool const actual,
+  std::source_location const loc)
+{
+  bool const passed = actual == expected;
+
+  stringstream serialized_vals{};
+  serialized_vals << "bool | " << bool_to_string(expected);
+
+  if (passed)
+    ntest::internal::emplace_passed_assertion(serialized_vals, loc);
+  else // failed
+  {
+    serialized_vals << " | " << bool_to_string(actual);
+    ntest::internal::emplace_failed_assertion(serialized_vals, loc);
+  }
+}
+
 void ntest::assert_int8(
   int8_t const expected, int8_t const actual,
   source_location const loc)

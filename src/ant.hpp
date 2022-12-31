@@ -75,12 +75,31 @@ struct simulation {
   std::array<uint_fast64_t, 7> save_points;
 };
 
-typedef std::pair<simulation, std::vector<std::string>> simulation_parse_result_t;
-simulation_parse_result_t simulation_parse(std::string const &);
+typedef std::pair<
+  simulation, std::vector<std::string>
+> simulation_parse_result_t;
 
-step_result::type simulation_step_forward(simulation &);
+simulation_parse_result_t simulation_parse(
+  std::string const &json_str,
+  std::filesystem::path const &dir
+);
 
-void simulation_save(simulation const &, char const *name, pgm8::format);
+step_result::type simulation_step_forward(simulation &sim);
+
+void simulation_save(
+  simulation const &sim,
+  char const *name,
+  std::filesystem::path const &dir,
+  pgm8::format img_fmt
+);
+
+void simulation_run(
+  simulation &sim,
+  char const *name,
+  uint_fast64_t generation_target,
+  pgm8::format img_fmt,
+  std::filesystem::path const &save_dir
+);
 
 } // namespace ant
 

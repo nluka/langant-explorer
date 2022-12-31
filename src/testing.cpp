@@ -1,8 +1,8 @@
 #include "ant.hpp"
 #include "arr2d.hpp"
 #include "exit.hpp"
+#include "json.hpp"
 #include "ntest.hpp"
-#include "seqgen.hpp"
 #include "util.hpp"
 
 typedef std::array<ant::rule, 256> rules_t;
@@ -25,8 +25,12 @@ int main() {
       ant::simulation_parse_result_t const &expected, char const *const actual_pathname,
       std::source_location const loc = std::source_location::current()
     ) {
-      std::string content = util::extract_txt_file_contents(actual_pathname);
-      auto const &[act_sim, act_errors] = ant::simulation_parse(content);
+      std::string const content = util::extract_txt_file_contents(
+        (std::string("parse/") + actual_pathname).c_str()
+      );
+      auto const &[act_sim, act_errors] = ant::simulation_parse(
+        content, std::filesystem::current_path() / "parse"
+      );
       auto const &[exp_sim, exp_errors] = expected;
 
       ntest::assert_uint64(exp_sim.generations, act_sim.generations, loc);
@@ -349,6 +353,66 @@ int main() {
           // no errors
         }
       }, "good_img.json");
+    }
+  }
+
+  {
+    auto const assert_save_point = [](
+      char const *const expected_json_name_cstr,
+      char const *const actual_json_name_cstr,
+      std::source_location const loc = std::source_location::current()
+    ) {
+      using json_t = nlohmann::json;
+
+      std::string const expected_json_pathname = std::string("run_with_save_points/") + expected_json_name_cstr;
+      std::string const actual_json_pathname = std::string("run_with_save_points/") + actual_json_name_cstr;
+
+      std::string const expected_json_str = util::extract_txt_file_contents(expected_json_pathname.c_str());
+      std::string const actual_json_str = util::extract_txt_file_contents(actual_json_pathname.c_str());
+
+      json_t const expected_json = json_t::parse(expected_json_str);
+      json_t const actual_json = json_t::parse(actual_json_str);
+
+      bool match =
+        expected_json["generations"] == actual_json["generations"] &&
+        expected_json["last_step_result"] == actual_json["last_step_result"] &&
+        expected_json["grid_width"] == actual_json["grid_width"] &&
+        expected_json["grid_height"] == actual_json["grid_height"] &&
+        expected_json["ant_col"] == actual_json["ant_col"] &&
+        expected_json["ant_row"] == actual_json["ant_row"] &&
+        expected_json["ant_orientation"] == actual_json["ant_orientation"] &&
+        // expected_json["rules"] == actual_json["rules"] &&
+        // expected_json["save_points"] == actual_json["save_points"] &&
+        expected_json["save_interval"] == actual_json["save_interval"]
+      ;
+
+      std::string const expected_img = util::extract_txt_file_contents(
+        (std::string("run_with_save_points/") + expected_json["grid_state"].get<std::string>()).c_str()
+      );
+      std::string const actual_img = util::extract_txt_file_contents(
+        (std::string("run_with_save_points/") + actual_json["grid_state"].get<std::string>()).c_str()
+      );
+
+      match &= expected_img == actual_img;
+
+      ntest::assert_bool(true, match, loc);
+    };
+
+    namespace fs = std::filesystem;
+
+    fs::path const save_dir = fs::current_path() / "run_with_save_points";
+
+    std::string const json_str = util::extract_txt_file_contents("run_with_save_points/RL-init.json");
+    auto [sim, errors] = ant::simulation_parse(json_str, save_dir);
+    ntest::assert_bool(true, errors.empty());
+
+    if (errors.empty()) {
+      ant::simulation_run(sim, "RL.actual", 50, pgm8::format::PLAIN, save_dir);
+      assert_save_point("RL.expected(3).json", "RL.actual(3).json");
+      assert_save_point("RL.expected(16).json", "RL.actual(16).json");
+      assert_save_point("RL.expected(32).json", "RL.actual(32).json");
+      assert_save_point("RL.expected(48).json", "RL.actual(48).json");
+      assert_save_point("RL.expected(50).json", "RL.actual(50).json");
     }
   }
 

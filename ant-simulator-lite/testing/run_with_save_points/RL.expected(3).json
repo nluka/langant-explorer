@@ -1,0 +1,16 @@
+{
+  "generations": 3,
+  "last_step_result": "success",
+  "grid_width": 7,
+  "grid_height": 8,
+  "grid_state": "RL.expected(3).pgm",
+  "ant_col": 2,
+  "ant_row": 3,
+  "ant_orientation": "east",
+  "rules": [
+    { "shade": 0, "replacement": 1, "turn": "R" },
+    { "shade": 1, "replacement": 0, "turn": "L" }
+  ],
+  "save_points": [3, 50],
+  "save_interval": 16
+}
