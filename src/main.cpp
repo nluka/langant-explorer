@@ -13,7 +13,7 @@ int main(int const argc, char const *const *const argv) {
       fore::RED | back::BLACK,
       "usage: <name> <sim_file> <generation_target> <img_fmt>\n"
       "  <name> = name of simulation\n"
-      "  <sim_file> = pathname to simulation file\n"
+      "  <sim_file> = pathname to simulation JSON file\n"
       "  <generation_target> = uint64 in range [1, UINT64_MAX]\n"
       "  <img_fmt> = PGM image format, plain|raw (raw recommended)\n"
     );

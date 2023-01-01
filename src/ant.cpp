@@ -7,8 +7,6 @@
 #include <unordered_map>
 
 #include "ant.hpp"
-#include "arr2d.hpp"
-#include "cstr.hpp"
 #include "json.hpp"
 #include "util.hpp"
 
@@ -22,6 +20,22 @@ std::string error(char const *const fmt, ...) {
   va_end(args);
 
   return std::string(buffer);
+}
+
+static
+uint8_t compute_maxval(
+  uint8_t const *const arr,
+  size_t const width,
+  size_t const height
+) {
+  auto const *max = &arr[0];
+  size_t const len = width * height;
+  for (size_t i = 1; i < len; ++i) {
+    if (arr[i] > *max) {
+      max = &arr[i];
+    }
+  }
+  return *max;
 }
 
 char const *ant::orientation::to_string(int8_t const orient) {
@@ -201,6 +215,7 @@ void ant::simulation_save(
     for (size_t i = 0; i < sim.num_save_points; ++i) {
       save_points_json.push_back(sim.save_points[i]);
     }
+    std::reverse(save_points_json.begin(), save_points_json.end());
     json["save_points"] = save_points_json;
 
     sim_file << json.dump(2);
@@ -219,7 +234,7 @@ void ant::simulation_save(
     img_props.set_format(fmt);
     img_props.set_width(static_cast<uint16_t>(sim.grid_width));
     img_props.set_height(static_cast<uint16_t>(sim.grid_height));
-    img_props.set_maxval(arr2d::max(sim.grid, sim.grid_width, sim.grid_height));
+    img_props.set_maxval(compute_maxval(sim.grid, sim.grid_width, sim.grid_height));
 
     pgm8::write(img_file, img_props, sim.grid);
   }

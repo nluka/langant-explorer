@@ -1,5 +1,4 @@
 #include "ant.hpp"
-#include "arr2d.hpp"
 #include "exit.hpp"
 #include "json.hpp"
 #include "ntest.hpp"
@@ -381,8 +380,8 @@ int main() {
         expected_json["ant_col"] == actual_json["ant_col"] &&
         expected_json["ant_row"] == actual_json["ant_row"] &&
         expected_json["ant_orientation"] == actual_json["ant_orientation"] &&
-        // expected_json["rules"] == actual_json["rules"] &&
-        // expected_json["save_points"] == actual_json["save_points"] &&
+        expected_json["rules"].get<json_t::array_t>() == actual_json["rules"].get<json_t::array_t>() &&
+        expected_json["save_points"].get<json_t::array_t>() == actual_json["save_points"].get<json_t::array_t>() &&
         expected_json["save_interval"] == actual_json["save_interval"]
       ;
 
@@ -393,7 +392,7 @@ int main() {
         (std::string("run_with_save_points/") + actual_json["grid_state"].get<std::string>()).c_str()
       );
 
-      match &= expected_img == actual_img;
+      match = match && (expected_img == actual_img);
 
       ntest::assert_bool(true, match, loc);
     };

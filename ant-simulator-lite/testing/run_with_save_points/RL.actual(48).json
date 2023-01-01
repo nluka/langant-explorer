@@ -21,7 +21,7 @@
   ],
   "save_interval": 16,
   "save_points": [
-    50,
-    3
+    3,
+    50
   ]
 }
