@@ -9,6 +9,8 @@ out
 # files
 *.exe
 *.pdb
+*.json
+*.pgm
 
 # ntest
 ant-simulator-lite/testing/report.md
