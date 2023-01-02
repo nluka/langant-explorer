@@ -9,7 +9,7 @@ struct timespan {
   size_t days, hours, minutes, seconds;
 };
 
-timespan timespan_calculate(time_t secs_elapsed);
+timespan timespan_calculate(time_t secs);
 std::string timespan_to_string(timespan const &ts);
 
 #endif // TIMESPAN_HPP

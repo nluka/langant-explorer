@@ -69,31 +69,39 @@ int main(int const argc, char const *const *const argv) {
 
       while (true) {
         time_t const time_now = time(nullptr);
-        auto const generations_thus_far = sim.generations;
-        auto const percent_completion = (generations_thus_far / (double)generation_target) * 100.0;
+        size_t const secs_elapsed = time_now - start_time;
+
+        auto const gens_thus_far = sim.generations;
+        double const mega_gens_thus_far = gens_thus_far / 1'000'000.0;
+        double const mega_gens_per_sec = mega_gens_thus_far / std::max(secs_elapsed, 1llu);
+        double const percent_completion = (gens_thus_far / (double)generation_target) * 100.0;
+
+        auto const gens_remaining = generation_target - gens_thus_far;
+        double const mega_gens_remaining = gens_remaining / 1'000'000.0;
+        double const secs_remaining = mega_gens_remaining / mega_gens_per_sec;
 
         term::clear_curr_line();
         term::color::printf(term::color::fore::CYAN | term::color::back::BLACK, "%s ", name);
-        printf("%llu / %llu generations (%.1lf%%)\n", generations_thus_far, generation_target, percent_completion);
+        printf(
+          "%llu / %llu generations (%.1lf%%), %.2lf Mgens/sec\n",
+          gens_thus_far, generation_target, percent_completion, mega_gens_per_sec
+        );
 
-        // TODO: generation rate (Mgen/sec)
-
-        // TODO: estimated time remaining
         term::clear_curr_line();
         printf(
           "%s elapsed, estimated %s remaining\n",
-          timespan_to_string(timespan_calculate(time_now - start_time)).c_str(),
-          "---"
+          timespan_to_string(timespan_calculate(secs_elapsed)).c_str(),
+          timespan_to_string(timespan_calculate(static_cast<time_t>(secs_remaining))).c_str()
         );
 
         if (
           sim.last_step_res > ant::step_result::SUCCESS ||
-          generations_thus_far >= generation_target
+          gens_thus_far >= generation_target
         ) {
           break;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
         term::cursor::move_up(2);
       }
 
