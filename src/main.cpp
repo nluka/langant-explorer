@@ -42,13 +42,15 @@ int main(int const argc, char const *const *const argv) {
 
     if (!errors.empty()) {
       using namespace term::color;
+      printf(fore::RED | back::BLACK, "fatal: malformed simulation file (%zu errors)\n", errors.size());
       for (auto const &err : errors)
-        printf(fore::RED | back::BLACK, err.c_str());
+        printf(fore::RED | back::BLACK, "  %s\n", err.c_str());
       EXIT(ExitCode::BAD_SIM_FILE);
     }
 
     uint_fast64_t const generation_target = std::stoull(generation_target_str);
 
+    // TODO: set high priority
     std::thread sim_thread([&sim, name, generation_target, &current_path]() {
       ant::simulation_run(
         sim,
@@ -62,9 +64,6 @@ int main(int const argc, char const *const *const argv) {
     auto const update_ui = [name, generation_target, &sim]() {
       term::cursor::hide();
 
-      // static uint_fast64_t prev_generations = 0;
-      // static auto prev_timepoint = std::chrono::steady_clock::now();
-
       while (true) {
         auto const generations_thus_far = sim.generations;
         auto const percent_completion = (generations_thus_far / (double)generation_target) * 100.0;
@@ -74,6 +73,10 @@ int main(int const argc, char const *const *const argv) {
 
         term::clear_curr_line();
         printf("generations: %llu / %llu (%.1lf%%)\n", generations_thus_far, generation_target, percent_completion);
+
+        // TODO: generation rate (Mgen/sec)
+        // TODO: time elapsed
+        // TODO: estimated time remaining
 
         if (
           sim.last_step_res > ant::step_result::SUCCESS ||

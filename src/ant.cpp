@@ -692,7 +692,7 @@ ant::simulation_parse_result_t ant::simulation_parse(
   try {
     json = json_t::parse(str);
   } catch (json_t::basic_json::parse_error const &except) {
-    emplace_err(error("%s", except.what()));
+    emplace_err(error("%s", nlohmann_json_extract_sentence(except)));
     return { sim, errors };
   } catch (...) {
     emplace_err("unexpected error whilst trying to parse simulation");
