@@ -168,6 +168,7 @@
     <ClCompile Include="..\..\src\ntest.cpp" />
     <ClCompile Include="..\..\src\pgm8.cpp" />
     <ClCompile Include="..\..\src\term.cpp" />
+    <ClCompile Include="..\..\src\timespan.cpp" />
     <ClCompile Include="..\..\src\util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -176,6 +177,7 @@
     <ClInclude Include="..\..\src\ntest.hpp" />
     <ClInclude Include="..\..\src\pgm8.hpp" />
     <ClInclude Include="..\..\src\term.hpp" />
+    <ClInclude Include="..\..\src\timespan.hpp" />
     <ClInclude Include="..\..\src\util.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

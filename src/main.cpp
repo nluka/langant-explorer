@@ -6,6 +6,7 @@
 #include "ant.hpp"
 #include "exit.hpp"
 #include "term.hpp"
+#include "timespan.hpp"
 #include "util.hpp"
 
 int main(int const argc, char const *const *const argv) {
@@ -64,19 +65,26 @@ int main(int const argc, char const *const *const argv) {
     auto const update_ui = [name, generation_target, &sim]() {
       term::cursor::hide();
 
+      time_t const start_time = time(nullptr);
+
       while (true) {
+        time_t const time_now = time(nullptr);
         auto const generations_thus_far = sim.generations;
         auto const percent_completion = (generations_thus_far / (double)generation_target) * 100.0;
 
         term::clear_curr_line();
-        printf("name: %s\n", name);
-
-        term::clear_curr_line();
-        printf("generations: %llu / %llu (%.1lf%%)\n", generations_thus_far, generation_target, percent_completion);
+        term::color::printf(term::color::fore::CYAN | term::color::back::BLACK, "%s ", name);
+        printf("%llu / %llu generations (%.1lf%%)\n", generations_thus_far, generation_target, percent_completion);
 
         // TODO: generation rate (Mgen/sec)
-        // TODO: time elapsed
+
         // TODO: estimated time remaining
+        term::clear_curr_line();
+        printf(
+          "%s elapsed, estimated %s remaining\n",
+          timespan_to_string(timespan_calculate(time_now - start_time)).c_str(),
+          "---"
+        );
 
         if (
           sim.last_step_res > ant::step_result::SUCCESS ||
@@ -98,7 +106,11 @@ int main(int const argc, char const *const *const argv) {
     sim_thread.join();
 
     if (sim.last_step_res != ant::step_result::SUCCESS) {
-      printf("simulation terminated early: %s\n", ant::step_result::to_string(sim.last_step_res));
+      term::color::printf(
+        term::color::fore::RED | term::color::back::BLACK,
+        "simulation terminated early -> %s\n",
+        ant::step_result::to_string(sim.last_step_res)
+      );
       ant::simulation_save(sim, name, current_path, pgm8::format::RAW);
     }
 
