@@ -23,14 +23,14 @@ std::string error(char const *const fmt, ...) {
 }
 
 static
-uint8_t compute_maxval(
-  uint8_t const *const arr,
-  size_t const width,
-  size_t const height
+u8 compute_maxval(
+  u8 const *const arr,
+  usize const width,
+  usize const height
 ) {
   auto const *max = &arr[0];
-  size_t const len = width * height;
-  for (size_t i = 1; i < len; ++i) {
+  usize const len = width * height;
+  for (usize i = 1; i < len; ++i) {
     if (arr[i] > *max) {
       max = &arr[i];
     }
@@ -38,7 +38,7 @@ uint8_t compute_maxval(
   return *max;
 }
 
-char const *ant::orientation::to_string(int8_t const orient) {
+char const *ant::orientation::to_string(i8 const orient) {
   switch (orient) {
     case orientation::NORTH:
       return "north";
@@ -56,7 +56,7 @@ char const *ant::orientation::to_string(int8_t const orient) {
   }
 }
 
-char const *ant::turn_direction::to_string(int8_t const turn_dir) {
+char const *ant::turn_direction::to_string(i8 const turn_dir) {
   switch (turn_dir) {
     case turn_direction::NIL:
       return "nil";
@@ -99,8 +99,8 @@ namespace ant {
 }
 
 ant::step_result::type ant::simulation_step_forward(simulation &sim) {
-  size_t const curr_cell_idx = (sim.ant_row * sim.grid_width) + sim.ant_col;
-  uint8_t const curr_cell_shade = sim.grid[curr_cell_idx];
+  usize const curr_cell_idx = (sim.ant_row * sim.grid_width) + sim.ant_col;
+  u8 const curr_cell_shade = sim.grid[curr_cell_idx];
   auto const &curr_cell_rule = sim.rules[curr_cell_shade];
 
   // turn
@@ -112,6 +112,25 @@ ant::step_result::type ant::simulation_step_forward(simulation &sim) {
 
   // update current cell shade
   sim.grid[curr_cell_idx] = curr_cell_rule.replacement_shade;
+
+  #if 1
+
+  int next_col, next_row;
+  if (sim.ant_orientation == orientation::NORTH) {
+    next_col = sim.ant_col;
+    next_row = sim.ant_row - 1;
+  } else if (sim.ant_orientation == orientation::EAST) {
+    next_col = sim.ant_col + 1;
+    next_row = sim.ant_row;
+  } else if (sim.ant_orientation == orientation::SOUTH) {
+    next_row = sim.ant_row + 1;
+    next_col = sim.ant_col;
+  } else { // west
+    next_col = sim.ant_col - 1;
+    next_row = sim.ant_row;
+  }
+
+  #else
 
   int next_col;
   if (sim.ant_orientation == orientation::EAST)
@@ -128,6 +147,8 @@ ant::step_result::type ant::simulation_step_forward(simulation &sim) {
     next_row = sim.ant_row + 1;
   else
     next_row = sim.ant_row;
+
+  #endif
 
   if (
     util::in_range_incl_excl(next_col, 0, sim.grid_width) &&
@@ -200,7 +221,7 @@ void ant::simulation_save(
     json["ant_orientation"] = ant::orientation::to_string(sim.ant_orientation);
     json["save_interval"] = sim.save_interval;
 
-    for (size_t shade = 0; shade < sim.rules.size(); ++shade) {
+    for (usize shade = 0; shade < sim.rules.size(); ++shade) {
       auto const &rule = sim.rules[shade];
       if (rule.turn_dir != ant::turn_direction::NIL) {
         temp["shade"] = shade;
@@ -212,7 +233,7 @@ void ant::simulation_save(
     }
     json["rules"] = rules_json;
 
-    for (size_t i = 0; i < sim.num_save_points; ++i) {
+    for (usize i = 0; i < sim.num_save_points; ++i) {
       save_points_json.push_back(sim.save_points[i]);
     }
     std::reverse(save_points_json.begin(), save_points_json.end());
@@ -232,8 +253,9 @@ void ant::simulation_save(
 
     pgm8::image_properties img_props;
     img_props.set_format(fmt);
-    img_props.set_width(static_cast<uint16_t>(sim.grid_width));
-    img_props.set_height(static_cast<uint16_t>(sim.grid_height));
+    img_props.set_width(static_cast<u16>(sim.grid_width));
+    img_props.set_height(static_cast<u16>(sim.grid_height));
+    // TODO: don't compute_maxval, deduce maxval from sim.rules instead
     img_props.set_maxval(compute_maxval(sim.grid, sim.grid_width, sim.grid_height));
 
     pgm8::write(img_file, img_props, sim.grid);
@@ -319,7 +341,7 @@ static
 bool try_to_parse_and_set_rule(
   std::array<ant::rule, 256> &out,
   json_t const &rule,
-  size_t const index,
+  usize const index,
   std::function<void (std::string &&)> const &emplace_err
 ) {
   if (!rule.is_object()) {
@@ -342,7 +364,7 @@ bool try_to_parse_and_set_rule(
     return false;
   }
 
-  uint8_t shade, replacement;
+  u8 shade, replacement;
   ant::turn_direction::type turn_dir;
 
   try {
@@ -358,7 +380,7 @@ bool try_to_parse_and_set_rule(
       return false;
     }
 
-    shade = static_cast<uint8_t>(temp);
+    shade = static_cast<u8>(temp);
 
     if (out[shade].turn_dir != ant::turn_direction::NIL) {
       // rule already set
@@ -384,7 +406,7 @@ bool try_to_parse_and_set_rule(
       return false;
     }
 
-    replacement = rule["replacement"].get<uint8_t>();
+    replacement = rule["replacement"].get<u8>();
 
   } catch (json_t::basic_json::type_error const &except) {
     emplace_err(error("invalid `rules` -> [%zu].replacement %s", index, nlohmann_json_extract_sentence(except)));
@@ -416,9 +438,9 @@ bool try_to_parse_and_set_rule(
 
 static
 bool try_to_parse_and_set_save_point(
-  std::array<uint_fast64_t, 7> &out,
+  std::array<u64, 7> &out,
   json_t const &save_point,
-  size_t const index,
+  usize const index,
   std::function<void (std::string &&)> const &emplace_err
 ) {
   if (!save_point.is_number_unsigned()) {
@@ -426,10 +448,10 @@ bool try_to_parse_and_set_save_point(
     return false;
   }
 
-  uint_fast64_t val;
+  u64 val;
 
   try {
-    val = save_point.get<uint_fast64_t>();
+    val = save_point.get<u64>();
   } catch (json_t::basic_json::type_error const &except) {
     emplace_err(error("invalid `save_points` -> [%zu] %s", index, nlohmann_json_extract_sentence(except)));
     return false;
@@ -460,7 +482,7 @@ bool try_to_parse_and_set_rules(
 
   std::array<ant::rule, 256> parsed_rules{};
 
-  for (size_t i = 0; i < rules.size(); ++i) {
+  for (usize i = 0; i < rules.size(); ++i) {
     if (!try_to_parse_and_set_rule(parsed_rules, rules[i], i, emplace_err)) {
       return false;
     }
@@ -468,10 +490,10 @@ bool try_to_parse_and_set_rules(
 
   // validation
   {
-    std::array<uint16_t, 256> shade_occurences{};
-    size_t num_defined_rules = 0;
+    std::array<u16, 256> shade_occurences{};
+    usize num_defined_rules = 0;
 
-    for (size_t i = 0; i < parsed_rules.size(); ++i) {
+    for (usize i = 0; i < parsed_rules.size(); ++i) {
       auto const &r = parsed_rules[i];
       bool const is_rule_used = r.turn_dir != ant::turn_direction::NIL;
       if (is_rule_used) {
@@ -486,19 +508,19 @@ bool try_to_parse_and_set_rules(
       return false;
     }
 
-    size_t num_non_zero_occurences = 0, num_non_two_occurences = 0;
-    for (auto const occurencesOfShade : shade_occurences) {
-      if (occurencesOfShade != 0) {
-        ++num_non_zero_occurences;
-        if (occurencesOfShade != 2)
-          ++num_non_two_occurences;
-      }
-    }
+    // usize num_non_zero_occurences = 0, num_non_two_occurences = 0;
+    // for (auto const occurencesOfShade : shade_occurences) {
+    //   if (occurencesOfShade != 0) {
+    //     ++num_non_zero_occurences;
+    //     if (occurencesOfShade != 2)
+    //       ++num_non_two_occurences;
+    //   }
+    // }
 
-    if (num_non_zero_occurences < 2 || num_non_two_occurences > 0) {
-      emplace_err("invalid `rules` -> don't form a closed chain");
-      return false;
-    }
+    // if (num_non_zero_occurences < 2 || num_non_two_occurences > 0) {
+    //   emplace_err("invalid `rules` -> don't form a closed chain");
+    //   return false;
+    // }
   }
 
   sim.rules = parsed_rules;
@@ -518,17 +540,17 @@ bool try_to_parse_and_set_save_points(
     emplace_err(error("invalid `save_points` -> %s", nlohmann_json_extract_sentence(except)));
   }
 
-  size_t const num_save_points_specified = save_points.size();
-  size_t const max_save_points_allowed = sim.save_points.size();
+  usize const num_save_points_specified = save_points.size();
+  usize const max_save_points_allowed = sim.save_points.size();
 
   if (num_save_points_specified > max_save_points_allowed) {
     emplace_err(error("invalid `save_points` -> more than " PRIuMAX " not allowed", max_save_points_allowed));
     return false;
   }
 
-  std::array<uint_fast64_t, 7> parsed_save_points{};
+  std::array<u64, 7> parsed_save_points{};
 
-  for (size_t i = 0; i < num_save_points_specified; ++i) {
+  for (usize i = 0; i < num_save_points_specified; ++i) {
     if (
       !try_to_parse_and_set_save_point(
         parsed_save_points, save_points[i], i, emplace_err
@@ -541,12 +563,12 @@ bool try_to_parse_and_set_save_points(
   // validation
   {
     std::unordered_map<
-      uint_fast64_t, // point
-      size_t // num of occurences
+      u64, // point
+      usize // num of occurences
     > save_point_occurences{};
 
     // count how many times each save_point occurs
-    for (size_t i = 0; i < num_save_points_specified; ++i)
+    for (usize i = 0; i < num_save_points_specified; ++i)
       ++save_point_occurences[parsed_save_points[i]];
 
     // check for repeats
@@ -558,7 +580,7 @@ bool try_to_parse_and_set_save_points(
     }
 
     // check for zeroes
-    for (size_t i = 0; i < num_save_points_specified; ++i) {
+    for (usize i = 0; i < num_save_points_specified; ++i) {
       if (parsed_save_points[i] == 0) {
         emplace_err("save_point cannot be `0`");
         return false;
@@ -623,15 +645,15 @@ bool try_to_parse_and_set_grid_state(
     }
 
     // only try to allocate and setup grid if there are no errors
-    size_t const num_pixels = static_cast<size_t>(sim.grid_width) * sim.grid_height;
+    usize const num_pixels = static_cast<usize>(sim.grid_width) * sim.grid_height;
     try {
-      sim.grid = new uint8_t[num_pixels];
+      sim.grid = new u8[num_pixels];
     } catch (std::bad_alloc const &) {
-      emplace_err(error("failed to allocate %zu bytes for grid", num_pixels * sizeof(uint8_t)));
+      emplace_err(error("failed to allocate %zu bytes for grid", num_pixels * sizeof(u8)));
       return false;
     }
 
-    std::fill_n(sim.grid, num_pixels, static_cast<uint8_t>(fill_val));
+    std::fill_n(sim.grid, num_pixels, static_cast<u8>(fill_val));
     return true;
 
   } else {
@@ -656,12 +678,12 @@ bool try_to_parse_and_set_grid_state(
       return false;
     }
 
-    size_t const num_pixels = img_props.num_pixels();
+    usize const num_pixels = img_props.num_pixels();
 
     try {
-      sim.grid = new uint8_t[num_pixels];
+      sim.grid = new u8[num_pixels];
     } catch (std::bad_alloc const &) {
-      emplace_err(error("failed to allocate %zu bytes for grid", num_pixels * sizeof(uint8_t)));
+      emplace_err(error("failed to allocate %zu bytes for grid", num_pixels * sizeof(u8)));
       return false;
     }
 
@@ -707,7 +729,7 @@ ant::simulation_parse_result_t ant::simulation_parse(
   auto const validate_property_set = [&json, &emplace_err, &err](
     char const *const key
   ) {
-    size_t const occurences = json.count(key);
+    usize const occurences = json.count(key);
     if (occurences == 0) {
       emplace_err(error("`%s` not set", key));
       return false;
@@ -738,33 +760,31 @@ ant::simulation_parse_result_t ant::simulation_parse(
   }
 
   [[maybe_unused]]
-  bool const generations_parse_success = try_to_parse_and_set_uint<
-    uint_fast64_t
-  >(
+  bool const generations_parse_success = try_to_parse_and_set_uint<u64>(
     json, "generations", sim.generations,
     0, UINT_FAST64_MAX,
     emplace_err
   );
 
-  bool const grid_width_parse_success = try_to_parse_and_set_uint<int>(
+  bool const grid_width_parse_success = try_to_parse_and_set_uint<i32>(
     json, "grid_width", sim.grid_width,
     0, UINT16_MAX,
     emplace_err
   );
 
-  bool const grid_height_parse_success = try_to_parse_and_set_uint<int>(
+  bool const grid_height_parse_success = try_to_parse_and_set_uint<i32>(
     json, "grid_height", sim.grid_height,
     0, UINT16_MAX,
     emplace_err
   );
 
-  bool const ant_col_parse_success = try_to_parse_and_set_uint<int>(
+  bool const ant_col_parse_success = try_to_parse_and_set_uint<i32>(
     json, "ant_col", sim.ant_col,
     0, UINT16_MAX,
     emplace_err
   );
 
-  bool const ant_row_parse_success = try_to_parse_and_set_uint<int>(
+  bool const ant_row_parse_success = try_to_parse_and_set_uint<i32>(
     json, "ant_row", sim.ant_row,
     0, UINT16_MAX,
     emplace_err
@@ -796,7 +816,7 @@ ant::simulation_parse_result_t ant::simulation_parse(
 
   [[maybe_unused]]
   bool const save_interval_parse_success = try_to_parse_and_set_uint<
-    uint_fast64_t
+    u64
   >(
     json, "save_interval", sim.save_interval,
     0, UINT_FAST64_MAX,
@@ -843,17 +863,17 @@ ant::simulation_parse_result_t ant::simulation_parse(
 void ant::simulation_run(
   simulation &sim,
   char const *const name,
-  uint_fast64_t const generation_target,
+  u64 const generation_target,
   pgm8::format const img_fmt,
   fs::path const &save_dir
 ) {
   std::sort(
     sim.save_points.begin(),
     sim.save_points.begin() + sim.num_save_points,
-    std::greater<uint_fast64_t>()
+    std::greater<u64>()
   );
 
-  size_t num_save_points_left = sim.num_save_points;
+  usize num_save_points_left = sim.num_save_points;
 
   if (sim.save_interval == 0) { // no save interval
 

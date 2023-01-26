@@ -7,13 +7,14 @@
 #include <string>
 
 #include "pgm8.hpp"
+#include "types.hpp"
 
 namespace ant {
 
 // not using an enum class because I want to do arithmetic with
 // turn_direction values without casting.
 namespace orientation {
-  typedef int8_t type;
+  typedef i8 type;
 
   type const
     OVERFLOW_COUNTER_CLOCKWISE = 0,
@@ -29,7 +30,7 @@ namespace orientation {
 // not using an enum class because I want to do arithmetic with
 // orientation values without casting.
 namespace turn_direction {
-  typedef int8_t type;
+  typedef i8 type;
 
   type const
     NIL = -2, // represents no value
@@ -43,7 +44,7 @@ namespace turn_direction {
 // not using an enum class because the other 2 enumerated types are done with
 // namespaces, so let's stay consistent.
 namespace step_result {
-  typedef int8_t type;
+  typedef i8 type;
 
   type const
     NIL = -1,
@@ -54,7 +55,7 @@ namespace step_result {
 };
 
 struct rule {
-  uint8_t replacement_shade = 0;
+  u8 replacement_shade = 0;
   turn_direction::type turn_dir = turn_direction::NIL;
 
   bool operator!=(rule const &) const noexcept;
@@ -63,16 +64,16 @@ struct rule {
 
 struct simulation {
   // state
-  uint_fast64_t generations;
+  u64 generations;
   step_result::type last_step_res;
-  int grid_width, grid_height, ant_col, ant_row;
-  int8_t ant_orientation;
-  uint8_t *grid;
+  i32 grid_width, grid_height, ant_col, ant_row;
+  i8 ant_orientation;
+  u8 *grid;
 
   std::array<rule, 256> rules;
-  uint_fast64_t save_interval;
-  size_t num_save_points;
-  std::array<uint_fast64_t, 7> save_points;
+  u64 save_interval;
+  usize num_save_points;
+  std::array<u64, 7> save_points;
 };
 
 typedef std::pair<
@@ -96,7 +97,7 @@ void simulation_save(
 void simulation_run(
   simulation &sim,
   char const *name,
-  uint_fast64_t generation_target,
+  u64 generation_target,
   pgm8::format img_fmt,
   std::filesystem::path const &save_dir
 );

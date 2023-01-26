@@ -7,7 +7,7 @@
 typedef std::array<ant::rule, 256> rules_t;
 
 rules_t generate_rules(std::vector<std::pair<
-  size_t, // shade
+  usize, // shade
   ant::rule
 >> const &scheme) {
   rules_t rules{};
@@ -42,9 +42,9 @@ int main() {
       ntest::assert_arr(
         exp_sim.grid,
         exp_sim.grid == nullptr ? 0
-          : static_cast<size_t>(exp_sim.grid_width) * exp_sim.grid_height,
+          : static_cast<usize>(exp_sim.grid_width) * exp_sim.grid_height,
         act_sim.grid, act_sim.grid == nullptr ? 0
-          : static_cast<size_t>(act_sim.grid_width) * act_sim.grid_height,
+          : static_cast<usize>(act_sim.grid_width) * act_sim.grid_height,
         loc
       );
       ntest::assert_stdvec(exp_errors, act_errors, loc);

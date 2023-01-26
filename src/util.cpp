@@ -4,20 +4,17 @@
 #include <sstream>
 
 #include "exit.hpp"
+#include "types.hpp"
 #include "util.hpp"
 
 using namespace std;
 
-bool util::in_range_incl_excl(int const val, int const min, int const max) {
-  return val >= min && val < max;
-}
-
 fstream util::open_file(char const *const pathname, int const flags) {
-  bool const forReading = (flags & 1) == 1;
-  if (forReading) {
+  bool const is_for_reading = (flags & 1) == 1;
+  if (is_for_reading) {
     if (!filesystem::exists(pathname)) {
       cerr << "fatal: file `" << pathname << "` not found\n";
-      EXIT(ExitCode::FILE_NOT_FOUND);
+      EXIT(exit_code::FILE_NOT_FOUND);
     }
   }
 
@@ -25,12 +22,12 @@ fstream util::open_file(char const *const pathname, int const flags) {
 
   if (!file.is_open()) {
     cerr << "fatal: unable to open file `" << pathname << "`\n";
-    EXIT(ExitCode::FILE_OPEN_FAILED);
+    EXIT(exit_code::FILE_OPEN_FAILED);
   }
 
   if (!file.good()) {
     cerr << "fatal: bad file `" << pathname << "`\n";
-    EXIT(ExitCode::BAD_FILE);
+    EXIT(exit_code::BAD_FILE);
   }
 
   return file;
@@ -54,30 +51,30 @@ string util::extract_txt_file_contents(char const *const pathname) {
   return content;
 }
 
-string util::format_file_size(uintmax_t const size) {
+string util::format_file_size(usize const size) {
   char out[21];
   format_file_size(size, out, sizeof(out));
   return string(out);
 }
 
 void util::format_file_size(
-  uintmax_t const size_,
+  usize const size_,
   char *const out,
-  size_t const outSize
+  usize const out_size
 ) {
   char const *units[] = { "B", "KB", "MB", "GB", "TB" };
-  size_t constexpr largestUnitIdx = util::lengthof(units) - 1;
-  size_t unitIdx = 0;
+  usize constexpr biggest_unit_idx = util::lengthof(units) - 1;
+  usize unit_idx = 0;
 
   double size = static_cast<double>(size_);
 
-  while (size >= 1024 && unitIdx < largestUnitIdx) {
+  while (size >= 1024 && unit_idx < biggest_unit_idx) {
     size /= 1024;
-    ++unitIdx;
+    ++unit_idx;
   }
 
   char const *const fmt =
-    unitIdx == 0
+    unit_idx == 0
     // no digits after decimal point for bytes
     // because showing a fraction of a byte doesn't make sense
     ? "%.0lf %s"
@@ -85,5 +82,5 @@ void util::format_file_size(
     // greater than bytes
     : "%.2lf %s";
 
-  snprintf(out, outSize, fmt, size, units[unitIdx]);
+  snprintf(out, out_size, fmt, size, units[unit_idx]);
 }

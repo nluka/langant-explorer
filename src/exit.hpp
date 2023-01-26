@@ -3,7 +3,7 @@
 
 #include <cstdlib>
 
-enum class ExitCode : int {
+enum class exit_code : int {
   SUCCESS = 0,
   GENERIC_ERROR,
   UNKNOWN_ERROR,

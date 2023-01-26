@@ -7,6 +7,7 @@
 #include "exit.hpp"
 #include "term.hpp"
 #include "timespan.hpp"
+#include "types.hpp"
 #include "util.hpp"
 
 int main(int const argc, char const *const *const argv) {
@@ -20,7 +21,7 @@ int main(int const argc, char const *const *const argv) {
       "  <generation_target> = uint64 in range [1, UINT64_MAX]\n"
       // "  <img_fmt> = PGM image format, plain|raw (raw is faster)\n"
     );
-    EXIT(ExitCode::WRONG_NUM_OF_ARGS);
+    EXIT(exit_code::WRONG_NUM_OF_ARGS);
   }
 
   char const
@@ -46,10 +47,10 @@ int main(int const argc, char const *const *const argv) {
       printf(fore::RED | back::BLACK, "fatal: malformed simulation file (%zu errors)\n", errors.size());
       for (auto const &err : errors)
         printf(fore::RED | back::BLACK, "  %s\n", err.c_str());
-      EXIT(ExitCode::BAD_SIM_FILE);
+      EXIT(exit_code::BAD_SIM_FILE);
     }
 
-    uint_fast64_t const generation_target = std::stoull(generation_target_str);
+    u64 const generation_target = std::stoull(generation_target_str);
 
     // TODO: set high priority
     std::thread sim_thread([&sim, name, generation_target, &current_path]() {
@@ -65,11 +66,13 @@ int main(int const argc, char const *const *const argv) {
     auto const update_ui = [name, generation_target, &sim]() {
       term::cursor::hide();
 
+      static usize ticks = 0;
+
       time_t const start_time = time(nullptr);
 
       while (true) {
         time_t const time_now = time(nullptr);
-        size_t const secs_elapsed = time_now - start_time;
+        usize const secs_elapsed = time_now - start_time;
 
         auto const gens_thus_far = sim.generations;
         double const mega_gens_thus_far = gens_thus_far / 1'000'000.0;
@@ -80,19 +83,25 @@ int main(int const argc, char const *const *const argv) {
         double const mega_gens_remaining = gens_remaining / 1'000'000.0;
         double const secs_remaining = mega_gens_remaining / mega_gens_per_sec;
 
-        term::clear_curr_line();
-        term::color::printf(term::color::fore::CYAN | term::color::back::BLACK, "%s ", name);
-        printf(
-          "%llu / %llu generations (%.1lf%%), %.2lf Mgens/sec\n",
-          gens_thus_far, generation_target, percent_completion, mega_gens_per_sec
-        );
+        // update every second
+        {
+          term::clear_curr_line();
+          term::color::printf(term::color::fore::CYAN | term::color::back::BLACK, "%s ", name);
+          printf(
+            "%llu / %llu generations (%.1lf%%), %.2lf Mgens/sec\n",
+            gens_thus_far, generation_target, percent_completion, mega_gens_per_sec
+          );
+        }
 
-        term::clear_curr_line();
-        printf(
-          "%s elapsed, estimated %s remaining\n",
-          timespan_to_string(timespan_calculate(secs_elapsed)).c_str(),
-          timespan_to_string(timespan_calculate(static_cast<time_t>(secs_remaining))).c_str()
-        );
+        // update 10 times per second
+        {
+          term::clear_curr_line();
+          printf(
+            "%s elapsed, estimated %s remaining\n",
+            timespan_to_string(timespan_calculate(secs_elapsed)).c_str(),
+            timespan_to_string(timespan_calculate(static_cast<time_t>(secs_remaining))).c_str()
+          );
+        }
 
         if (
           sim.last_step_res > ant::step_result::SUCCESS ||
@@ -101,7 +110,7 @@ int main(int const argc, char const *const *const argv) {
           break;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         term::cursor::move_up(2);
       }
 
@@ -122,16 +131,22 @@ int main(int const argc, char const *const *const argv) {
       ant::simulation_save(sim, name, current_path, pgm8::format::RAW);
     }
 
-    EXIT(ExitCode::SUCCESS);
+    EXIT(exit_code::SUCCESS);
 
   } catch (std::invalid_argument const &err) {
+
     term::color::printf(term::color::fore::RED, "fatal: %s", err.what());
-    EXIT(ExitCode::BAD_ARG_VALUE);
+    EXIT(exit_code::BAD_ARG_VALUE);
+
   } catch (std::runtime_error const &err) {
+
     term::color::printf(term::color::fore::RED, "fatal: %s", err.what());
-    EXIT(ExitCode::GENERIC_ERROR);
+    EXIT(exit_code::GENERIC_ERROR);
+
   } catch (...) {
+
     term::color::printf(term::color::fore::RED, "fatal: unknown error occurred");
-    EXIT(ExitCode::UNKNOWN_ERROR);
+    EXIT(exit_code::UNKNOWN_ERROR);
+
   }
 }

@@ -5,8 +5,10 @@
 #include <string>
 #include <ctime>
 
+#include "types.hpp"
+
 struct timespan {
-  size_t days, hours, minutes, seconds;
+  usize days, hours, minutes, seconds;
 };
 
 timespan timespan_calculate(time_t secs);
