@@ -182,7 +182,7 @@ namespace fs = std::filesystem;
 
 void ant::simulation_save(
   simulation const &sim,
-  char const *const name,
+  const char *const name,
   fs::path const &dir,
   pgm8::format const fmt
 ) {
@@ -862,7 +862,7 @@ ant::simulation_parse_result_t ant::simulation_parse(
 
 void ant::simulation_run(
   simulation &sim,
-  char const *const name,
+  std::string name,
   u64 const generation_target,
   pgm8::format const img_fmt,
   fs::path const &save_dir
@@ -890,7 +890,7 @@ void ant::simulation_run(
         num_save_points_left > 0 &&
         sim.generations == sim.save_points[(num_save_points_left--) - 1]
       ) [[unlikely]] {
-        simulation_save(sim, name, save_dir, img_fmt);
+        simulation_save(sim, name.c_str(), save_dir, img_fmt);
       }
 
       if (sim.generations == generation_target) [[unlikely]] {
@@ -909,12 +909,12 @@ void ant::simulation_run(
       ++sim.generations;
 
       if (sim.generations % sim.save_interval == 0) [[unlikely]] {
-        simulation_save(sim, name, save_dir, img_fmt);
+        simulation_save(sim, name.c_str(), save_dir, img_fmt);
       } else if (
         num_save_points_left > 0 &&
         sim.generations == sim.save_points[num_save_points_left - 1]
       ) [[unlikely]] {
-        simulation_save(sim, name, save_dir, img_fmt);
+        simulation_save(sim, name.c_str(), save_dir, img_fmt);
         --num_save_points_left;
       }
 

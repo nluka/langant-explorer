@@ -89,14 +89,14 @@ step_result::type simulation_step_forward(simulation &sim);
 
 void simulation_save(
   simulation const &sim,
-  char const *name,
+  const char *name,
   std::filesystem::path const &dir,
   pgm8::format img_fmt
 );
 
 void simulation_run(
   simulation &sim,
-  char const *name,
+  std::string name,
   u64 generation_target,
   pgm8::format img_fmt,
   std::filesystem::path const &save_dir

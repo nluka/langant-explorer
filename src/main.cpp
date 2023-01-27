@@ -10,6 +10,7 @@
 
 #include "ant.hpp"
 #include "exit.hpp"
+#include "prgopts.hpp"
 #include "term.hpp"
 #include "timespan.hpp"
 #include "types.hpp"
@@ -23,10 +24,11 @@ time_point current_time() {
 }
 
 void update_ui(
-  char const *const sim_name,
+  std::string const sim_name_,
   u64 const generation_target,
   ant::simulation const &sim
 ) {
+  char const *const sim_name = sim_name_.c_str();
   static usize ticks = 0;
   time_point const start_time = current_time();
 
@@ -116,32 +118,49 @@ void update_ui(
   }
 }
 
+namespace bpo = boost::program_options;
+
+template <typename Ty>
+Ty get_required_option(
+  char const *const optname,
+  bpo::variables_map const &opts
+) {
+  if (opts.count(optname) == 0) {
+    std::cerr << "missing required option --" << optname;
+    EXIT(exit_code::MISSING_REQUIRED_ARG);
+  } else {
+    return opts.at(optname).as<Ty>();
+  }
+}
+
 int main(int const argc, char const *const *const argv) {
-  if (argc != 3 + 1 /* executable pathname */) {
-    using namespace term::color;
-    printf(
-      fore::RED | back::BLACK,
-      "usage: <name> <sim_file> <generation_target> [<img_fmt>]\n"
-      "  <name> = name of simulation\n"
-      "  <sim_file> = pathname to simulation JSON file\n"
-      "  <generation_target> = uint64 in range [1, UINT64_MAX]\n"
-      // "  <img_fmt> = PGM image format, plain|raw (raw is faster)\n"
-    );
+  if (argc == 1) {
+    puts(prgopts::usage_msg());
     EXIT(exit_code::WRONG_NUM_OF_ARGS);
   }
 
-  char const
-    *const sim_name = argv[1],
-    *const sim_file_pathname = argv[2],
-    *const generation_target_str = argv[3]//,
-    // *const img_fmt_str = argv[4]
-  ;
+  // parse command line args
+  bpo::variables_map options;
+  try {
+    bpo::store(
+      bpo::parse_command_line(argc, argv, prgopts::options_descrip()),
+      options
+    );
+  } catch (std::exception const &err) {
+    std::cerr << "fatal: " << err.what() << '\n';
+    EXIT(exit_code::INVALID_ARGUMENT_SYNTAX);
+  }
+  bpo::notify(options);
+
+  std::string const sim_name = get_required_option<std::string>("name", options);
+  std::string const sim_file_pathname = get_required_option<std::string>("scenario", options);
+  u64 const generation_target = get_required_option<u64>("gentarget", options);
 
   auto const current_dir = std::filesystem::current_path();
 
   try {
     auto parse_result = ant::simulation_parse(
-      util::extract_txt_file_contents(sim_file_pathname),
+      util::extract_txt_file_contents(sim_file_pathname.c_str()),
       current_dir
     );
 
@@ -156,8 +175,6 @@ int main(int const argc, char const *const *const argv) {
       EXIT(exit_code::BAD_SIM_FILE);
     }
 
-    u64 const generation_target = std::stoull(generation_target_str);
-
     std::thread sim_thread(ant::simulation_run,
       std::ref(sim),
       sim_name,
@@ -171,7 +188,9 @@ int main(int const argc, char const *const *const argv) {
     #endif
 
     std::thread ui_update_thread(update_ui,
-      sim_name, generation_target, std::ref(sim)
+      sim_name,
+      generation_target,
+      std::ref(sim)
     );
 
     term::cursor::hide();
