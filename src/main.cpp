@@ -1,7 +1,12 @@
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <thread>
+#if _WIN32
+#include <Windows.h>
+#undef max
+#endif
 
 #include "ant.hpp"
 #include "exit.hpp"
@@ -153,7 +158,6 @@ int main(int const argc, char const *const *const argv) {
 
     u64 const generation_target = std::stoull(generation_target_str);
 
-    // TODO: set high priority
     std::thread sim_thread(ant::simulation_run,
       std::ref(sim),
       sim_name,
@@ -161,6 +165,10 @@ int main(int const argc, char const *const *const argv) {
       pgm8::format::RAW,
       current_dir
     );
+
+    #if _WIN32
+    SetPriorityClass(sim_thread.native_handle(), HIGH_PRIORITY_CLASS);
+    #endif
 
     std::thread ui_update_thread(update_ui,
       sim_name, generation_target, std::ref(sim)
@@ -170,15 +178,6 @@ int main(int const argc, char const *const *const argv) {
     ui_update_thread.join();
     sim_thread.join();
     term::cursor::show();
-
-    // if (sim.last_step_res != ant::step_result::SUCCESS) {
-    //   term::color::printf(
-    //     term::color::fore::RED | term::color::back::BLACK,
-    //     "simulation terminated early -> %s\n",
-    //     ant::step_result::to_string(sim.last_step_res)
-    //   );
-    //   ant::simulation_save(sim, sim_name, current_path, pgm8::format::RAW);
-    // }
 
     EXIT(exit_code::SUCCESS);
 
