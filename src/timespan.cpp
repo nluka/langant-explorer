@@ -2,17 +2,19 @@
 
 #include "timespan.hpp"
 
-timespan timespan_calculate(time_t secs) {
+timespan timespan_calculate(usize const secs) {
   usize const
     SECONDS_PER_DAY = 86400,
     SECONDS_PER_HOUR = 3600,
-    SECONDS_PER_MINUTE = 60;
+    SECONDS_PER_MINUTE = 60
+  ;
 
   usize
     days = 0,
     hours = 0,
     minutes = 0,
-    seconds = static_cast<usize>(secs);
+    seconds = secs
+  ;
 
   while (seconds >= SECONDS_PER_DAY) {
     ++days;

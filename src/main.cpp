@@ -10,6 +10,107 @@
 #include "types.hpp"
 #include "util.hpp"
 
+using namespace term::color;
+using time_point = std::chrono::steady_clock::time_point;
+
+time_point current_time() {
+  return std::chrono::high_resolution_clock::now();
+}
+
+void update_ui(
+  char const *const sim_name,
+  u64 const generation_target,
+  ant::simulation const &sim
+) {
+  static usize ticks = 0;
+  time_point const start_time = current_time();
+
+  while (true) {
+    time_point const time_now = current_time();
+
+    auto const nanos_elapsed = std::chrono::duration_cast<
+      std::chrono::nanoseconds
+    >(time_now - start_time);
+
+    double const secs_elapsed = nanos_elapsed.count() / 1'000'000'000.0;
+    u64 const gens_completed = sim.generations;
+    double const mega_gens_completed = gens_completed / 1'000'000.0;
+    double const mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed, 0.0 + DBL_EPSILON);
+    double const percent_completion = (
+      (gens_completed / static_cast<double>(generation_target)) * 100.0
+    );
+
+    u64 const gens_remaining = generation_target - gens_completed;
+    double const mega_gens_remaining = gens_remaining / 1'000'000.0;
+    double const secs_remaining = mega_gens_remaining / mega_gens_per_sec;
+
+    bool const is_simulation_done =
+      sim.last_step_res > ant::step_result::SUCCESS ||
+      gens_completed >= generation_target
+    ;
+
+    // line 1, print at beginning and end
+    if (ticks == 0 || is_simulation_done) {
+      printf(fore::CYAN | back::BLACK, "%s", sim_name);
+      printf(fore::DEFAULT | back::BLACK, " - ");
+      if (gens_remaining > 0) {
+        printf(fore::YELLOW | back::BLACK, "in progress");
+      } else {
+        printf(fore::DEFAULT | back::BLACK, "finished, %s", [&sim]() {
+          switch (sim.last_step_res) {
+            case ant::step_result::NIL : return "internal error (NIL step result)";
+            case ant::step_result::SUCCESS : return "generation target reached";
+            case ant::step_result::FAILED_AT_BOUNDARY : return "hit edge";
+            default : return "(nullptr)";
+          }
+        }());
+      }
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    } else {
+      term::cursor::move_down(1);
+    }
+
+    // line 2, print every 1/10 seconds
+    {
+      printf(
+        fore::DEFAULT | back::BLACK,
+        "[%llu / %llu] %.1lf%%",
+        gens_completed, generation_target, percent_completion
+      );
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line 3, print every 1 seconds
+    if (ticks % 10 == 0) {
+      printf(fore::DEFAULT | back::BLACK, "%.2lf Mgens/sec", mega_gens_per_sec);
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    } else {
+      term::cursor::move_down(1);
+    }
+
+    // line 4, print every 1/10 seconds
+    {
+      printf(
+        fore::DEFAULT | back::BLACK,
+        "%s elapsed",
+        timespan_to_string(timespan_calculate(static_cast<usize>(secs_elapsed))).c_str()
+      );
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    if (is_simulation_done) {
+      return;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    term::cursor::move_up(4);
+  }
+}
+
 int main(int const argc, char const *const *const argv) {
   if (argc != 3 + 1 /* executable pathname */) {
     using namespace term::color;
@@ -25,18 +126,18 @@ int main(int const argc, char const *const *const argv) {
   }
 
   char const
-    *const name = argv[1],
+    *const sim_name = argv[1],
     *const sim_file_pathname = argv[2],
     *const generation_target_str = argv[3]//,
     // *const img_fmt_str = argv[4]
   ;
 
-  auto const current_path = std::filesystem::current_path();
+  auto const current_dir = std::filesystem::current_path();
 
   try {
     auto parse_result = ant::simulation_parse(
       util::extract_txt_file_contents(sim_file_pathname),
-      current_path
+      current_dir
     );
 
     ant::simulation &sim = parse_result.first;
@@ -53,99 +154,47 @@ int main(int const argc, char const *const *const argv) {
     u64 const generation_target = std::stoull(generation_target_str);
 
     // TODO: set high priority
-    std::thread sim_thread([&sim, name, generation_target, &current_path]() {
-      ant::simulation_run(
-        sim,
-        name,
-        generation_target,
-        pgm8::format::RAW,
-        current_path
-      );
-    });
+    std::thread sim_thread(ant::simulation_run,
+      std::ref(sim),
+      sim_name,
+      generation_target,
+      pgm8::format::RAW,
+      current_dir
+    );
 
-    auto const update_ui = [name, generation_target, &sim]() {
-      term::cursor::hide();
+    std::thread ui_update_thread(update_ui,
+      sim_name, generation_target, std::ref(sim)
+    );
 
-      static usize ticks = 0;
-
-      time_t const start_time = time(nullptr);
-
-      while (true) {
-        time_t const time_now = time(nullptr);
-        usize const secs_elapsed = time_now - start_time;
-
-        auto const gens_thus_far = sim.generations;
-        double const mega_gens_thus_far = gens_thus_far / 1'000'000.0;
-        double const mega_gens_per_sec = mega_gens_thus_far / std::max(secs_elapsed, 1llu);
-        double const percent_completion = (gens_thus_far / (double)generation_target) * 100.0;
-
-        auto const gens_remaining = generation_target - gens_thus_far;
-        double const mega_gens_remaining = gens_remaining / 1'000'000.0;
-        double const secs_remaining = mega_gens_remaining / mega_gens_per_sec;
-
-        // update every second
-        {
-          term::clear_curr_line();
-          term::color::printf(term::color::fore::CYAN | term::color::back::BLACK, "%s ", name);
-          printf(
-            "%llu / %llu generations (%.1lf%%), %.2lf Mgens/sec\n",
-            gens_thus_far, generation_target, percent_completion, mega_gens_per_sec
-          );
-        }
-
-        // update 10 times per second
-        {
-          term::clear_curr_line();
-          printf(
-            "%s elapsed, estimated %s remaining\n",
-            timespan_to_string(timespan_calculate(secs_elapsed)).c_str(),
-            timespan_to_string(timespan_calculate(static_cast<time_t>(secs_remaining))).c_str()
-          );
-        }
-
-        if (
-          sim.last_step_res > ant::step_result::SUCCESS ||
-          gens_thus_far >= generation_target
-        ) {
-          break;
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        term::cursor::move_up(2);
-      }
-
-      term::cursor::show();
-    };
-
-    std::thread ui_update_thread(update_ui);
-
+    term::cursor::hide();
     ui_update_thread.join();
     sim_thread.join();
+    term::cursor::show();
 
-    if (sim.last_step_res != ant::step_result::SUCCESS) {
-      term::color::printf(
-        term::color::fore::RED | term::color::back::BLACK,
-        "simulation terminated early -> %s\n",
-        ant::step_result::to_string(sim.last_step_res)
-      );
-      ant::simulation_save(sim, name, current_path, pgm8::format::RAW);
-    }
+    // if (sim.last_step_res != ant::step_result::SUCCESS) {
+    //   term::color::printf(
+    //     term::color::fore::RED | term::color::back::BLACK,
+    //     "simulation terminated early -> %s\n",
+    //     ant::step_result::to_string(sim.last_step_res)
+    //   );
+    //   ant::simulation_save(sim, sim_name, current_path, pgm8::format::RAW);
+    // }
 
     EXIT(exit_code::SUCCESS);
 
   } catch (std::invalid_argument const &err) {
 
-    term::color::printf(term::color::fore::RED, "fatal: %s", err.what());
+    printf(fore::RED | back::BLACK, "fatal: %s\n", err.what());
     EXIT(exit_code::BAD_ARG_VALUE);
 
   } catch (std::runtime_error const &err) {
 
-    term::color::printf(term::color::fore::RED, "fatal: %s", err.what());
+    printf(fore::RED | back::BLACK, "fatal: %s\n", err.what());
     EXIT(exit_code::GENERIC_ERROR);
 
   } catch (...) {
 
-    term::color::printf(term::color::fore::RED, "fatal: unknown error occurred");
+    printf(fore::RED | back::BLACK, "fatal: unknown error occurred\n");
     EXIT(exit_code::UNKNOWN_ERROR);
 
   }
