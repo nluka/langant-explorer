@@ -3,10 +3,6 @@
 #include <filesystem>
 #include <iostream>
 #include <thread>
-#if _WIN32
-#include <Windows.h>
-#undef max
-#endif
 
 #include "ant.hpp"
 #include "exit.hpp"
@@ -15,6 +11,11 @@
 #include "timespan.hpp"
 #include "types.hpp"
 #include "util.hpp"
+
+#ifdef MICROSOFT_COMPILER
+# include <Windows.h>
+# undef max
+#endif
 
 using namespace term::color;
 using time_point = std::chrono::steady_clock::time_point;
@@ -34,22 +35,15 @@ void update_ui(
 
   while (true) {
     time_point const time_now = current_time();
-
-    auto const nanos_elapsed = std::chrono::duration_cast<
-      std::chrono::nanoseconds
-    >(time_now - start_time);
-
-    double const secs_elapsed = nanos_elapsed.count() / 1'000'000'000.0;
+    auto const nanos_elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(time_now - start_time);
+    f64 const secs_elapsed = nanos_elapsed.count() / 1'000'000'000.0;
     u64 const gens_completed = sim.generations;
-    double const mega_gens_completed = gens_completed / 1'000'000.0;
-    double const mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed, 0.0 + DBL_EPSILON);
-    double const percent_completion = (
-      (gens_completed / static_cast<double>(generation_target)) * 100.0
-    );
-
+    f64 const mega_gens_completed = gens_completed / 1'000'000.0;
+    f64 const mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed, 0.0 + DBL_EPSILON);
+    f64 const percent_completion = ((gens_completed / static_cast<f64>(generation_target)) * 100.0);
     u64 const gens_remaining = generation_target - gens_completed;
-    double const mega_gens_remaining = gens_remaining / 1'000'000.0;
-    double const secs_remaining = mega_gens_remaining / mega_gens_per_sec;
+    f64 const mega_gens_remaining = gens_remaining / 1'000'000.0;
+    f64 const secs_remaining = mega_gens_remaining / mega_gens_per_sec;
 
     bool const is_simulation_done =
       sim.last_step_res > ant::step_result::SUCCESS ||
@@ -82,8 +76,8 @@ void update_ui(
     {
       printf(
         fore::DEFAULT | back::BLACK,
-        "[%llu / %llu] %.1lf%%",
-        gens_completed, generation_target, percent_completion
+        "%llu generations, %.1lf%%",
+        gens_completed, percent_completion
       );
       term::clear_to_end_of_line();
       putc('\n', stdout);
@@ -127,7 +121,7 @@ Ty get_required_option(
 ) {
   if (opts.count(optname) == 0) {
     std::cerr << "missing required option --" << optname;
-    EXIT(exit_code::MISSING_REQUIRED_ARG);
+    EXIT(exit_code::MISSING_REQUIRED_OPTION);
   } else {
     return opts.at(optname).as<Ty>();
   }
@@ -136,7 +130,7 @@ Ty get_required_option(
 int main(int const argc, char const *const *const argv) {
   if (argc == 1) {
     puts(prgopts::usage_msg());
-    EXIT(exit_code::WRONG_NUM_OF_ARGS);
+    EXIT(exit_code::MISSING_REQUIRED_OPTION);
   }
 
   // parse command line args
@@ -148,7 +142,7 @@ int main(int const argc, char const *const *const argv) {
     );
   } catch (std::exception const &err) {
     std::cerr << "fatal: " << err.what() << '\n';
-    EXIT(exit_code::INVALID_ARGUMENT_SYNTAX);
+    EXIT(exit_code::INVALID_OPTION_SYNTAX);
   }
   bpo::notify(options);
 
@@ -156,12 +150,29 @@ int main(int const argc, char const *const *const argv) {
   std::string const sim_file_pathname = get_required_option<std::string>("scenario", options);
   u64 const generation_target = get_required_option<u64>("gentarget", options);
 
-  auto const current_dir = std::filesystem::current_path();
+  pgm8::format const img_fmt = [&options]() {
+    if (options.count("imgfmt") == 0) {
+      return pgm8::format::RAW;
+    } else {
+      std::string const fmt = options.at("imgfmt").as<std::string>();
+      if (fmt == "rawPGM") {
+        return pgm8::format::RAW;
+      } else if (fmt == "plainPGM") {
+        return pgm8::format::PLAIN;
+      } else {
+        return pgm8::format::NIL;
+      }
+    }
+  }();
+  if (img_fmt == pgm8::format::NIL) {
+    std::cerr << "fatal: invalid --imgfmt, must be rawPGM|plainPGM\n";
+    EXIT(exit_code::BAD_OPTION_VALUE);
+  }
 
   try {
     auto parse_result = ant::simulation_parse(
       util::extract_txt_file_contents(sim_file_pathname.c_str()),
-      current_dir
+      std::filesystem::current_path()
     );
 
     ant::simulation &sim = parse_result.first;
@@ -172,18 +183,18 @@ int main(int const argc, char const *const *const argv) {
       printf(fore::RED | back::BLACK, "fatal: malformed simulation file (%zu errors)\n", errors.size());
       for (auto const &err : errors)
         printf(fore::RED | back::BLACK, "  %s\n", err.c_str());
-      EXIT(exit_code::BAD_SIM_FILE);
+      EXIT(exit_code::BAD_SCENARIO);
     }
 
     std::thread sim_thread(ant::simulation_run,
       std::ref(sim),
       sim_name,
       generation_target,
-      pgm8::format::RAW,
-      current_dir
+      img_fmt,
+      std::filesystem::current_path()
     );
 
-    #if _WIN32
+    #ifdef MICROSOFT_COMPILER
     SetPriorityClass(sim_thread.native_handle(), HIGH_PRIORITY_CLASS);
     #endif
 
@@ -203,7 +214,7 @@ int main(int const argc, char const *const *const argv) {
   } catch (std::invalid_argument const &err) {
 
     printf(fore::RED | back::BLACK, "fatal: %s\n", err.what());
-    EXIT(exit_code::BAD_ARG_VALUE);
+    EXIT(exit_code::BAD_OPTION_VALUE);
 
   } catch (std::runtime_error const &err) {
 
