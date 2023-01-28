@@ -10,6 +10,9 @@
 #include "json.hpp"
 #include "util.hpp"
 
+using json_t = nlohmann::json;
+namespace fs = std::filesystem;
+
 static
 std::string error(char const *const fmt, ...) {
   static char buffer[1024] { 0 };
@@ -23,19 +26,14 @@ std::string error(char const *const fmt, ...) {
 }
 
 static
-u8 compute_maxval(
-  u8 const *const arr,
-  usize const width,
-  usize const height
-) {
-  auto const *max = &arr[0];
-  usize const len = width * height;
-  for (usize i = 1; i < len; ++i) {
-    if (arr[i] > *max) {
-      max = &arr[i];
+u8 deduce_maxval(std::array<ant::rule, 256> rules) {
+  u8 maxval = 0;
+  for (usize i = 1; i < rules.size(); ++i) {
+    if (rules[i].turn_dir != ant::turn_direction::NIL) {
+      maxval = static_cast<u8>(i);
     }
   }
-  return *max;
+  return maxval;
 }
 
 char const *ant::orientation::to_string(i8 const orient) {
@@ -91,6 +89,7 @@ bool ant::rule::operator!=(ant::rule const &other) const noexcept {
 }
 
 namespace ant {
+  // define ostream insertion operator for the rule struct, for ntest
   std::ostream &operator<<(std::ostream &os, ant::rule const &rule) {
     os << "(r=" << std::to_string(rule.replacement_shade)
       << ", d=" << ant::turn_direction::to_string(rule.turn_dir) << ')';
@@ -163,23 +162,6 @@ ant::step_result::type ant::simulation_step_forward(simulation &sim) {
   }
 }
 
-using json_t = nlohmann::json;
-
-// The .what() string of a nlohmann::json exception has the format:
-// "[json.exception.x.y] explanation" where x is a class name and y is a positive integer.
-//                       ^ This function extracts a string starting from exactly this point.
-template <typename Ty>
-char const *nlohmann_json_extract_sentence(Ty const &except) {
-  auto const from_first_space = std::strchr(except.what(), ' ');
-  if (from_first_space == nullptr) {
-    throw std::runtime_error("unable to find first space in nlohmann.json exception string");
-  } else {
-    return from_first_space + 1; // trim off leading space
-  }
-}
-
-namespace fs = std::filesystem;
-
 void ant::simulation_save(
   simulation const &sim,
   const char *const name,
@@ -219,7 +201,6 @@ void ant::simulation_save(
     json["ant_col"] = sim.ant_col;
     json["ant_row"] = sim.ant_row;
     json["ant_orientation"] = ant::orientation::to_string(sim.ant_orientation);
-    json["save_interval"] = sim.save_interval;
 
     for (usize shade = 0; shade < sim.rules.size(); ++shade) {
       auto const &rule = sim.rules[shade];
@@ -232,12 +213,6 @@ void ant::simulation_save(
       }
     }
     json["rules"] = rules_json;
-
-    for (usize i = 0; i < sim.num_save_points; ++i) {
-      save_points_json.push_back(sim.save_points[i]);
-    }
-    std::reverse(save_points_json.begin(), save_points_json.end());
-    json["save_points"] = save_points_json;
 
     sim_file << json.dump(2);
   }
@@ -255,8 +230,7 @@ void ant::simulation_save(
     img_props.set_format(fmt);
     img_props.set_width(static_cast<u16>(sim.grid_width));
     img_props.set_height(static_cast<u16>(sim.grid_height));
-    // TODO: don't compute_maxval, deduce maxval from sim.rules instead
-    img_props.set_maxval(compute_maxval(sim.grid, sim.grid_width, sim.grid_height));
+    img_props.set_maxval(deduce_maxval(sim.rules));
 
     pgm8::write(img_file, img_props, sim.grid);
   }
@@ -276,7 +250,7 @@ bool try_to_parse_and_set_uint(
   try {
     val = json[property].get<uintmax_t>();
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `%s` -> %s", property, nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `%s` -> %s", property, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -313,7 +287,7 @@ bool try_to_parse_and_set_enum(
   try {
     parsed_text = json[property].get<std::string>();
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `%s` -> %s", property, nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `%s` -> %s", property, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -389,7 +363,7 @@ bool try_to_parse_and_set_rule(
     }
 
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `rules` -> [%zu].shade %s", index, nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `rules` -> [%zu].shade %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -409,7 +383,7 @@ bool try_to_parse_and_set_rule(
     replacement = rule["replacement"].get<u8>();
 
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `rules` -> [%zu].replacement %s", index, nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `rules` -> [%zu].replacement %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -428,7 +402,7 @@ bool try_to_parse_and_set_rule(
     }
 
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `rules` -> [%zu].turn %s", index, nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `rules` -> [%zu].turn %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -453,7 +427,7 @@ bool try_to_parse_and_set_save_point(
   try {
     val = save_point.get<u64>();
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `save_points` -> [%zu] %s", index, nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `save_points` -> [%zu] %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -471,7 +445,7 @@ bool try_to_parse_and_set_rules(
   try {
     rules = json["rules"].get<json_t::array_t>();
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `rules` -> %s", nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `rules` -> %s", util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -508,19 +482,19 @@ bool try_to_parse_and_set_rules(
       return false;
     }
 
-    // usize num_non_zero_occurences = 0, num_non_two_occurences = 0;
-    // for (auto const occurencesOfShade : shade_occurences) {
-    //   if (occurencesOfShade != 0) {
-    //     ++num_non_zero_occurences;
-    //     if (occurencesOfShade != 2)
-    //       ++num_non_two_occurences;
-    //   }
-    // }
+    usize num_non_zero_occurences = 0, num_non_two_occurences = 0;
+    for (auto const occurencesOfShade : shade_occurences) {
+      if (occurencesOfShade != 0) {
+        ++num_non_zero_occurences;
+        if (occurencesOfShade != 2)
+          ++num_non_two_occurences;
+      }
+    }
 
-    // if (num_non_zero_occurences < 2 || num_non_two_occurences > 0) {
-    //   emplace_err("invalid `rules` -> don't form a closed chain");
-    //   return false;
-    // }
+    if (num_non_zero_occurences < 2 || num_non_two_occurences > 0) {
+      emplace_err("invalid `rules` -> don't form a closed chain");
+      return false;
+    }
   }
 
   sim.rules = parsed_rules;
@@ -537,7 +511,7 @@ bool try_to_parse_and_set_save_points(
   try {
     save_points = json["save_points"].get<json_t::array_t>();
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `save_points` -> %s", nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `save_points` -> %s", util::nlohmann_json_extract_sentence(except)));
   }
 
   usize const num_save_points_specified = save_points.size();
@@ -606,7 +580,7 @@ bool try_to_parse_and_set_grid_state(
   try {
     grid_state = json["grid_state"].get<std::string>();
   } catch (json_t::basic_json::type_error const &except) {
-    emplace_err(error("invalid `grid_state` -> %s", nlohmann_json_extract_sentence(except)));
+    emplace_err(error("invalid `grid_state` -> %s", util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -714,7 +688,7 @@ ant::simulation_parse_result_t ant::simulation_parse(
   try {
     json = json_t::parse(str);
   } catch (json_t::basic_json::parse_error const &except) {
-    emplace_err(error("%s", nlohmann_json_extract_sentence(except)));
+    emplace_err(error("%s", util::nlohmann_json_extract_sentence(except)));
     return { sim, errors };
   } catch (...) {
     emplace_err("unexpected error whilst trying to parse simulation");
@@ -729,8 +703,8 @@ ant::simulation_parse_result_t ant::simulation_parse(
   auto const validate_property_set = [&json, &emplace_err, &err](
     char const *const key
   ) {
-    usize const occurences = json.count(key);
-    if (occurences == 0) {
+    usize const num_occurences = json.count(key);
+    if (num_occurences == 0) {
       emplace_err(error("`%s` not set", key));
       return false;
     } else {
@@ -741,17 +715,17 @@ ant::simulation_parse_result_t ant::simulation_parse(
   {
     bool good = true;
 
-    good &= validate_property_set("generations");
-    good &= validate_property_set("last_step_result");
-    good &= validate_property_set("grid_width");
-    good &= validate_property_set("grid_height");
-    good &= validate_property_set("grid_state");
-    good &= validate_property_set("ant_col");
-    good &= validate_property_set("ant_row");
-    good &= validate_property_set("ant_orientation");
-    good &= validate_property_set("rules");
-    good &= validate_property_set("save_interval");
-    good &= validate_property_set("save_points");
+    good = good && validate_property_set("generations");
+    good = good && validate_property_set("last_step_result");
+    good = good && validate_property_set("grid_width");
+    good = good && validate_property_set("grid_height");
+    good = good && validate_property_set("grid_state");
+    good = good && validate_property_set("ant_col");
+    good = good && validate_property_set("ant_row");
+    good = good && validate_property_set("ant_orientation");
+    good = good && validate_property_set("rules");
+    good = good && validate_property_set("save_interval");
+    good = good && validate_property_set("save_points");
 
     if (!good) {
       // if any properties not set, stop parsing
@@ -815,9 +789,7 @@ ant::simulation_parse_result_t ant::simulation_parse(
   }
 
   [[maybe_unused]]
-  bool const save_interval_parse_success = try_to_parse_and_set_uint<
-    u64
-  >(
+  bool const save_interval_parse_success = try_to_parse_and_set_uint<u64>(
     json, "save_interval", sim.save_interval,
     0, UINT_FAST64_MAX,
     emplace_err
@@ -860,13 +832,30 @@ ant::simulation_parse_result_t ant::simulation_parse(
   return { sim, errors };
 }
 
+template <typename Ty>
+usize idx_of_smallest(Ty const *const values, usize const num_values) {
+  assert(num_values > 0);
+  assert(values != nullptr);
+
+  usize min_idx = 0;
+  for (usize i = 1; i < num_values; ++i) {
+    if (values[i] < values[min_idx]) {
+      min_idx = i;
+    }
+  }
+
+  return min_idx;
+}
+
 void ant::simulation_run(
   simulation &sim,
   std::string name,
   u64 const generation_target,
   pgm8::format const img_fmt,
-  fs::path const &save_dir
+  fs::path const &save_dir,
+  bool const save_final_state
 ) {
+  // sort save_points in descending order, so we can pop them off the back
   std::sort(
     sim.save_points.begin(),
     sim.save_points.begin() + sim.num_save_points,
@@ -874,53 +863,72 @@ void ant::simulation_run(
   );
 
   usize num_save_points_left = sim.num_save_points;
+  u64 last_saved_gen = UINT64_MAX;
 
-  if (sim.save_interval == 0) { // no save interval
+  while (true) {
+    // the most generations we could perform before we overflow sim.generations
+    u64 const max_dist = UINT64_MAX - sim.generations;
 
-    while (true) {
+    u64 const dist_to_next_save_interval =
+      sim.save_interval == 0
+        ? max_dist
+        : sim.save_interval - (sim.generations % sim.save_interval)
+    ;
+
+    u64 const dist_to_next_save_point =
+      num_save_points_left > 0
+        ? sim.save_points[num_save_points_left - 1] - sim.generations
+        : max_dist
+    ;
+
+    u64 const dist_to_gen_target = generation_target - sim.generations;
+
+    std::array<u64, 3> const distances {
+      dist_to_next_save_interval,
+      dist_to_next_save_point,
+      dist_to_gen_target,
+    };
+
+    enum stop_reason : usize {
+      SAVE_INTERVAL = 0,
+      SAVE_POINT,
+      GENERATION_TARGET,
+    };
+
+    struct stop {
+      u64 distance;
+      stop_reason reason;
+    };
+
+    stop next_stop;
+    usize const idx_of_smallest_dist = idx_of_smallest(distances.data(), distances.size());
+    next_stop.distance = distances[idx_of_smallest_dist];
+    next_stop.reason = static_cast<stop_reason>(idx_of_smallest_dist);
+
+    if (next_stop.reason == stop_reason::SAVE_POINT) {
+      --num_save_points_left;
+    }
+
+    for (usize i = 0; i < next_stop.distance; ++i) {
       sim.last_step_res = simulation_step_forward(sim);
-
-      if (sim.last_step_res != step_result::SUCCESS) [[unlikely]] {
-        break;
-      }
-
-      ++sim.generations;
-
-      if (
-        num_save_points_left > 0 &&
-        sim.generations == sim.save_points[(num_save_points_left--) - 1]
-      ) [[unlikely]] {
-        simulation_save(sim, name.c_str(), save_dir, img_fmt);
-      }
-
-      if (sim.generations == generation_target) [[unlikely]] {
-        break;
+      if (sim.last_step_res == step_result::SUCCESS) [[likely]] {
+        ++sim.generations;
+      } else [[unlikely]] {
+        goto done;
       }
     }
-  } else { // with save interval
 
-    while (true) {
-      sim.last_step_res = simulation_step_forward(sim);
-
-      if (sim.last_step_res != step_result::SUCCESS) [[unlikely]] {
-        break;
-      }
-
-      ++sim.generations;
-
-      if (sim.generations % sim.save_interval == 0) [[unlikely]] {
-        simulation_save(sim, name.c_str(), save_dir, img_fmt);
-      } else if (
-        num_save_points_left > 0 &&
-        sim.generations == sim.save_points[num_save_points_left - 1]
-      ) [[unlikely]] {
-        simulation_save(sim, name.c_str(), save_dir, img_fmt);
-        --num_save_points_left;
-      }
-
-      if (sim.generations == generation_target) [[unlikely]] {
-        break;
-      }
+    if (next_stop.reason != stop_reason::GENERATION_TARGET) {
+      simulation_save(sim, name.c_str(), save_dir, img_fmt);
+      last_saved_gen = sim.generations;
+    } else {
+      goto done;
     }
+  }
+  done:
+
+  bool const final_state_already_saved = last_saved_gen == sim.generations;
+  if (save_final_state && !final_state_already_saved) {
+    simulation_save(sim, name.c_str(), save_dir, img_fmt);
   }
 }

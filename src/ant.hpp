@@ -99,7 +99,8 @@ void simulation_run(
   std::string name,
   u64 generation_target,
   pgm8::format img_fmt,
-  std::filesystem::path const &save_dir
+  std::filesystem::path const &save_dir,
+  bool save_final_state = false
 );
 
 } // namespace ant

@@ -14,9 +14,10 @@
 
 #ifdef MICROSOFT_COMPILER
 # include <Windows.h>
-# undef max
+# undef max // because it conflicts with std::max
 #endif
 
+namespace bpo = boost::program_options;
 using namespace term::color;
 using time_point = std::chrono::steady_clock::time_point;
 
@@ -112,8 +113,6 @@ void update_ui(
   }
 }
 
-namespace bpo = boost::program_options;
-
 template <typename Ty>
 Ty get_required_option(
   char const *const optname,
@@ -179,7 +178,6 @@ int main(int const argc, char const *const *const argv) {
     std::vector<std::string> const &errors = parse_result.second;
 
     if (!errors.empty()) {
-      using namespace term::color;
       printf(fore::RED | back::BLACK, "fatal: malformed simulation file (%zu errors)\n", errors.size());
       for (auto const &err : errors)
         printf(fore::RED | back::BLACK, "  %s\n", err.c_str());
@@ -191,7 +189,8 @@ int main(int const argc, char const *const *const argv) {
       sim_name,
       generation_target,
       img_fmt,
-      std::filesystem::current_path()
+      std::filesystem::current_path(),
+      options.count("savefinalstate") > 0
     );
 
     #ifdef MICROSOFT_COMPILER

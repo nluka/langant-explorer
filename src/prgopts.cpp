@@ -26,6 +26,7 @@ bpo::options_description prgopts::options_descrip() {
     ("scenario", bpo::value<std::string>(), empty_desc)
     ("gentarget", bpo::value<usize>(), empty_desc)
     ("imgfmt", bpo::value<std::string>(), empty_desc)
+    ("savefinalstate", empty_desc)
   ;
 
   return desc;

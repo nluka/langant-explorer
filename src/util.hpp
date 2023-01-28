@@ -26,11 +26,7 @@ bool in_range_incl_excl(Ty const val, Ty const min, Ty const max) {
   return val >= min && val < max;
 }
 
-u16 byteswap_u16(u16 val);
-u32 byteswap_u32(u32 val);
-
 std::fstream open_file(char const *pathname, int flags);
-std::vector<char> extract_bin_file_contents(char const *pathname);
 std::string extract_txt_file_contents(char const *pathname);
 
 // Returns the size of a static (stack-allocated) C-style array at compile time.
@@ -41,20 +37,18 @@ usize lengthof(ElemTy (&)[Length]) {
   return Length;
 }
 
-template <typename ElemTy>
-bool vector_cmp(std::vector<ElemTy> const &a, std::vector<ElemTy> const &b) {
-  if (a.size() != b.size())
-    return false;
-
-  for (usize i = 0; i < a.size(); ++i)
-    if (a[i] != b[i])
-      return false;
-
-  return true;
+// The .what() string of a nlohmann::json exception has the format:
+// "[json.exception.x.y] explanation" where x is a class name and y is a positive integer.
+//                       ^ This function extracts a string starting from exactly this point.
+template <typename Ty>
+char const *nlohmann_json_extract_sentence(Ty const &except) {
+  auto const from_first_space = std::strchr(except.what(), ' ');
+  if (from_first_space == nullptr) {
+    throw std::runtime_error("unable to find first space in nlohmann.json exception string");
+  } else {
+    return from_first_space + 1; // trim off leading space
+  }
 }
-
-std::string format_file_size(usize size);
-void format_file_size(usize size, char *out, usize out_size);
 
 } // namespace util
 
