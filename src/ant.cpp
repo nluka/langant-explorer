@@ -715,17 +715,17 @@ ant::simulation_parse_result_t ant::simulation_parse(
   {
     bool good = true;
 
-    good = good && validate_property_set("generations");
-    good = good && validate_property_set("last_step_result");
-    good = good && validate_property_set("grid_width");
-    good = good && validate_property_set("grid_height");
-    good = good && validate_property_set("grid_state");
-    good = good && validate_property_set("ant_col");
-    good = good && validate_property_set("ant_row");
-    good = good && validate_property_set("ant_orientation");
-    good = good && validate_property_set("rules");
-    good = good && validate_property_set("save_interval");
-    good = good && validate_property_set("save_points");
+    good &= validate_property_set("generations");
+    good &= validate_property_set("last_step_result");
+    good &= validate_property_set("grid_width");
+    good &= validate_property_set("grid_height");
+    good &= validate_property_set("grid_state");
+    good &= validate_property_set("ant_col");
+    good &= validate_property_set("ant_row");
+    good &= validate_property_set("ant_orientation");
+    good &= validate_property_set("rules");
+    good &= validate_property_set("save_interval");
+    good &= validate_property_set("save_points");
 
     if (!good) {
       // if any properties not set, stop parsing

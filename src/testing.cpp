@@ -380,9 +380,10 @@ int main() {
         expected_json["ant_col"] == actual_json["ant_col"] &&
         expected_json["ant_row"] == actual_json["ant_row"] &&
         expected_json["ant_orientation"] == actual_json["ant_orientation"] &&
-        expected_json["rules"].get<json_t::array_t>() == actual_json["rules"].get<json_t::array_t>() &&
-        expected_json["save_points"].get<json_t::array_t>() == actual_json["save_points"].get<json_t::array_t>() &&
-        expected_json["save_interval"] == actual_json["save_interval"]
+        expected_json["rules"].get<json_t::array_t>() == actual_json["rules"].get<json_t::array_t>()
+        // the following 2 properties are no longer emitted by ant::simulation_save...
+        // expected_json["save_points"].get<json_t::array_t>() == actual_json["save_points"].get<json_t::array_t>() &&
+        // expected_json["save_interval"] == actual_json["save_interval"]
       ;
 
       std::string const expected_img = util::extract_txt_file_contents(

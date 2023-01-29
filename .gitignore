@@ -16,3 +16,6 @@ out
 ant-simulator-lite/testing/report.md
 ant-simulator-lite/testing/*.expected
 ant-simulator-lite/testing/*.actual
+
+# testing
+ant-simulator-lite/testing/run_with_save_points/*.actual*
