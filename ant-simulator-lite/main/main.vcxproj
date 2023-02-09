@@ -171,21 +171,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\ant.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
-    <ClCompile Include="..\..\src\ntest.cpp" />
     <ClCompile Include="..\..\src\pgm8.cpp" />
     <ClCompile Include="..\..\src\prgopts.cpp" />
+    <ClCompile Include="..\..\src\simulation.cpp" />
     <ClCompile Include="..\..\src\term.cpp" />
     <ClCompile Include="..\..\src\timespan.cpp" />
     <ClCompile Include="..\..\src\util.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\ant.hpp" />
     <ClInclude Include="..\..\src\exit.hpp" />
-    <ClInclude Include="..\..\src\ntest.hpp" />
+    <ClInclude Include="..\..\src\json.hpp" />
     <ClInclude Include="..\..\src\pgm8.hpp" />
     <ClInclude Include="..\..\src\prgopts.hpp" />
+    <ClInclude Include="..\..\src\simulation.hpp" />
     <ClInclude Include="..\..\src\term.hpp" />
     <ClInclude Include="..\..\src\timespan.hpp" />
     <ClInclude Include="..\..\src\util.hpp" />

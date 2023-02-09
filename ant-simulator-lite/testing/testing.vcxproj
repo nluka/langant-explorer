@@ -167,12 +167,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\ant.cpp" />
     <ClCompile Include="..\..\src\ntest.cpp" />
     <ClCompile Include="..\..\src\pgm8.cpp" />
+    <ClCompile Include="..\..\src\simulation.cpp" />
     <ClCompile Include="..\..\src\term.cpp" />
     <ClCompile Include="..\..\src\testing.cpp" />
     <ClCompile Include="..\..\src\util.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\json.hpp" />
+    <ClInclude Include="..\..\src\ntest.hpp" />
+    <ClInclude Include="..\..\src\pgm8.hpp" />
+    <ClInclude Include="..\..\src\simulation.hpp" />
+    <ClInclude Include="..\..\src\types.hpp" />
+    <ClInclude Include="..\..\src\util.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

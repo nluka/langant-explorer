@@ -10,7 +10,5 @@
   "rules": [
     { "shade": 0, "replacement": 1, "turn": "R" },
     { "shade": 1, "replacement": 0, "turn": "L" }
-  ],
-  "save_points": [3, 50],
-  "save_interval": 16
+  ]
 }

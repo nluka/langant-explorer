@@ -29,10 +29,13 @@ typedef uint64_t u64;
 
 typedef size_t usize;
 
-typedef float f32;
 static_assert(sizeof(float) == 4);
+typedef float f32;
 
 static_assert(sizeof(double) == 8);
 typedef double f64;
+
+static_assert(sizeof(bool) == 1);
+typedef bool b8;
 
 #endif // TYPES_HPP
