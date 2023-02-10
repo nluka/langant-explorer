@@ -1,7 +1,9 @@
 #ifndef NLUKA_PGM8_HPP
 #define NLUKA_PGM8_HPP
 
+#pragma warning(push, 0)
 #include <fstream>
+#pragma warning(pop)
 
 // Module for reading and writing 8-bit PGM images.
 namespace pgm8 {

@@ -1,20 +1,15 @@
+#pragma warning(push, 0)
 #include <sstream>
+#pragma warning(pop)
 
 #include "timespan.hpp"
 
-timespan timespan_calculate(usize const secs) {
-  usize const
-    SECONDS_PER_DAY = 86400,
-    SECONDS_PER_HOUR = 3600,
-    SECONDS_PER_MINUTE = 60
-  ;
+timespan
+timespan_calculate(usize const secs)
+{
+  usize const SECONDS_PER_DAY = 86400, SECONDS_PER_HOUR = 3600, SECONDS_PER_MINUTE = 60;
 
-  usize
-    days = 0,
-    hours = 0,
-    minutes = 0,
-    seconds = secs
-  ;
+  usize days = 0, hours = 0, minutes = 0, seconds = secs;
 
   while (seconds >= SECONDS_PER_DAY) {
     ++days;
@@ -34,7 +29,9 @@ timespan timespan_calculate(usize const secs) {
   return { days, hours, minutes, seconds };
 }
 
-std::string timespan_to_string(timespan const &ts) {
+std::string
+timespan_to_string(timespan const &ts)
+{
   std::stringstream ss;
 
   if (ts.days > 0) {

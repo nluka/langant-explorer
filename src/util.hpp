@@ -1,12 +1,14 @@
 #ifndef UTIL_HPP
 #define UTIL_HPP
 
+#pragma warning(push, 0)
 #include <cstdint>
 #include <fstream>
 #include <string>
 #include <vector>
+#pragma warning(pop)
 
-#include "types.hpp"
+#include "primitives.hpp"
 
 namespace util {
 

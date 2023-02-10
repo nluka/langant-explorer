@@ -1,6 +1,8 @@
+#pragma warning(push, 0)
 #include <cstdarg>
 #include <stdio.h>
 #include <sstream>
+#pragma warning(pop)
 
 #include "term.hpp"
 

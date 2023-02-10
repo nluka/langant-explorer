@@ -1,11 +1,13 @@
 #ifndef TIMESPAN_HPP
 #define TIMESPAN_HPP
 
+#pragma warning(push, 0)
 #include <cstdlib>
-#include <string>
 #include <ctime>
+#include <string>
+#pragma warning(pop)
 
-#include "types.hpp"
+#include "primitives.hpp"
 
 struct timespan {
   usize days, hours, minutes, seconds;

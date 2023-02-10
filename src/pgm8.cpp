@@ -1,5 +1,7 @@
+#pragma warning(push, 0)
 #include <string>
 #include <sstream>
+#pragma warning(pop)
 
 #include "pgm8.hpp"
 
