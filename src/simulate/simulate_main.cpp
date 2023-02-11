@@ -20,6 +20,7 @@
 #include "simulation.hpp"
 
 namespace bpo = boost::program_options;
+namespace fs = std::filesystem;
 using namespace term::color;
 using time_point = std::chrono::steady_clock::time_point;
 using util::strvec_t;
@@ -224,6 +225,12 @@ int main(int const argc, char const *const *const argv)
     }
   }();
 
+  std::string const save_dir = get_optional_arg<std::string>("savedir", args).value_or("");
+  if (save_dir != "" && !fs::is_directory(save_dir)) {
+    printf(err_style, "fatal: --savedir \"%s\" is not a directory\n", save_dir.c_str());
+    die(exit_code::BAD_ARGUMENT_VALUE);
+  }
+
   u64 const save_interval = get_optional_arg<u64>("saveinterval", args).value_or(0ui64);
   b8 const save_final_state = get_flag_arg("savefinalstate", args);
 
@@ -235,7 +242,7 @@ int main(int const argc, char const *const *const argv)
     save_points,
     save_interval,
     img_fmt,
-    std::filesystem::current_path(),
+    save_dir,
     save_final_state
   );
 
