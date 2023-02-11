@@ -1,0 +1,14 @@
+{
+  "generation": 3,
+  "last_step_result": "success",
+  "grid_width": 7,
+  "grid_height": 8,
+  "grid_state": "RL.expect(3).pgm",
+  "ant_col": 2,
+  "ant_row": 3,
+  "ant_orientation": "east",
+  "rules": [
+    { "on": 0, "replace_with": 1, "turn": "R" },
+    { "on": 1, "replace_with": 0, "turn": "L" }
+  ]
+}

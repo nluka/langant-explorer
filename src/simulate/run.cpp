@@ -219,6 +219,6 @@ simulation::step_result::value_type simulation::attempt_step_forward(simulation:
     state.ant_row = next_row;
     return step_result::SUCCESS;
   } else [[unlikely]] {
-    return step_result::FAILED_AT_BOUNDARY;
+    return step_result::HIT_EDGE;
   }
 }

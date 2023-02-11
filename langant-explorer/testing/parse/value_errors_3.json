@@ -1,0 +1,13 @@
+{
+  "generation": 10,
+  "last_step_result": "success",
+  "grid_width": 0,
+  "grid_height": 0,
+  "grid_state": "non_existent_file",
+  "ant_col": 0,
+  "ant_row": 0,
+  "ant_orientation": "east",
+  "rules": [{ "on": 255, "replace_with": 256, "turn": "L" }],
+  "save_interval": 9223372036854775806,
+  "save_points": [10, 20, 30]
+}

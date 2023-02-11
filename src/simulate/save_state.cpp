@@ -32,10 +32,10 @@ void simulation::save_state(
     throw std::runtime_error(make_str("\"%s\" is not a directory", dir.string().c_str()));
   }
 
-  std::string const name_with_gen = make_str("%s(%zu).json", name, state.generation);
+  std::string const name_with_gen = make_str("%s(%zu)", name, state.generation);
 
   std::filesystem::path p(dir);
-  p /= name_with_gen;
+  p /= name_with_gen + ".json";
 
   {
     std::ofstream cfg_file(p);
@@ -57,8 +57,8 @@ void simulation::save_state(
     for (usize shade = 0; shade < state.rules.size(); ++shade) {
       auto const &rule = state.rules[shade];
       if (rule.turn_dir != simulation::turn_direction::NIL) {
-        temp["shade"] = shade;
-        temp["replacement"] = rule.replacement_shade;
+        temp["on"] = shade;
+        temp["replace_with"] = rule.replacement_shade;
         temp["turn"] = turn_direction::to_string(rule.turn_dir);
         rules_json.push_back(temp);
         temp.clear();

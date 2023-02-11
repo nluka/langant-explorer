@@ -47,7 +47,9 @@ Ty get_required_arg(char const *const argname, bpo::variables_map const &args)
 }
 
 template <typename Ty>
-std::optional<Ty> get_optional_arg(char const *const argname, bpo::variables_map const &args)
+std::optional<Ty> get_optional_arg(
+  char const *const argname,
+  bpo::variables_map const &args)
 {
   if (args.count(argname) == 0) {
     return std::nullopt;
@@ -93,8 +95,8 @@ void update_ui(
             case simulation::step_result::NIL:
               return "internal error (NIL step result)";
             case simulation::step_result::SUCCESS:
-              return "generation target reached";
-            case simulation::step_result::FAILED_AT_BOUNDARY:
+              return "generation limit reached";
+            case simulation::step_result::HIT_EDGE:
               return "tried to step off grid";
             default:
               return "(nullptr)";
@@ -223,6 +225,7 @@ int main(int const argc, char const *const *const argv)
   }();
 
   u64 const save_interval = get_optional_arg<u64>("saveinterval", args).value_or(0ui64);
+  b8 const save_final_state = get_flag_arg("savefinalstate", args);
 
   std::thread sim_thread(
     simulation::run,
@@ -233,7 +236,7 @@ int main(int const argc, char const *const *const argv)
     save_interval,
     img_fmt,
     std::filesystem::current_path(),
-    get_flag_arg("savefinalstate", args)
+    save_final_state
   );
 
 #ifdef _WIN32

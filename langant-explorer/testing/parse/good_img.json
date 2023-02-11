@@ -1,0 +1,17 @@
+{
+  "generation": 0,
+  "last_step_result": "nil",
+  "grid_width": 5,
+  "grid_height": 5,
+  "grid_state": "good_img.pgm",
+  "ant_col": 2,
+  "ant_row": 2,
+  "ant_orientation": "west",
+  "rules": [
+    { "on": 0, "replace_with": 1, "turn": "L" },
+    { "on": 1, "replace_with": 2, "turn": "N" },
+    { "on": 2, "replace_with": 0, "turn": "R" }
+  ],
+  "save_interval": 0,
+  "save_points": []
+}

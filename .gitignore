@@ -9,13 +9,12 @@ out
 # files
 *.exe
 *.pdb
-*.json
-*.pgm
 
-# ntest
-ant-simulator-lite/testing/report.md
-ant-simulator-lite/testing/*.expected
-ant-simulator-lite/testing/*.actual
+langant-explorer/simulate/*.json
+langant-explorer/simulate/*.pgm
 
 # testing
-ant-simulator-lite/testing/run_with_save_points/*.actual*
+langant-explorer/testing/report.md
+langant-explorer/testing/*.expected
+langant-explorer/testing/*.actual
+langant-explorer/testing/run/*.actual*

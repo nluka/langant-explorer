@@ -46,8 +46,8 @@ char const *simulation::step_result::to_string(
       return "nil";
     case step_result::SUCCESS:
       return "success";
-    case step_result::FAILED_AT_BOUNDARY:
-      return "failed_at_boundary";
+    case step_result::HIT_EDGE:
+      return "hit_edge";
     default:
       throw std::runtime_error("step_result::to_string failed - bad value");
   }

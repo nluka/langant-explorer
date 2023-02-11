@@ -63,7 +63,7 @@ int main()
     assert_parse(
       {}, // state
       { // errors
-        "invalid `generations` -> type must be number, but is string",
+        "invalid `generation` -> type must be number, but is string",
         "invalid `grid_width` -> type must be number, but is object",
         "invalid `grid_height` -> type must be number, but is array",
         "invalid `ant_col` -> type must be number, but is null",
@@ -79,7 +79,7 @@ int main()
     assert_parse(
       {}, // state
       { // errors
-        "invalid `generations` -> type must be number, but is null",
+        "invalid `generation` -> type must be number, but is null",
         "invalid `grid_width` -> type must be number, but is array",
         "invalid `grid_height` -> type must be number, but is object",
         "invalid `ant_col` -> type must be number, but is string",
@@ -95,7 +95,7 @@ int main()
     assert_parse(
       {}, // state
       { // errors
-        "`generations` not set",
+        "`generation` not set",
         "`last_step_result` not set",
         "`grid_width` not set",
         "`grid_height` not set",
@@ -111,14 +111,14 @@ int main()
     assert_parse(
       {}, // state
       { // errors
-        "invalid `generations` -> not an unsigned integer",
+        "invalid `generation` -> not an unsigned integer",
         "invalid `grid_width` -> not an unsigned integer",
         "invalid `grid_height` -> not an unsigned integer",
         "invalid `ant_col` -> not an unsigned integer",
         "invalid `ant_row` -> not an unsigned integer",
         "invalid `last_step_result` -> not one of nil|success|failed_at_boundary",
         "invalid `ant_orientation` -> not one of north|east|south|west",
-        "invalid `rules` -> [0].shade is not an unsigned integer",
+        "invalid `rules` -> [0].on is not an unsigned integer",
         "invalid `grid_state` -> cannot be blank",
       },
       "value_errors_0.json"
@@ -133,8 +133,8 @@ int main()
         "invalid `ant_row` -> cannot be > 65535",
         "invalid `last_step_result` -> not one of nil|success|failed_at_boundary",
         "invalid `ant_orientation` -> not one of north|east|south|west",
-        "invalid `rules` -> [0].shade is > 255",
-        "invalid `grid_state` -> fill value cannot be negative",
+        "invalid `rules` -> [0].on is > 255",
+        "invalid `grid_state` -> fill shade cannot be negative",
       },
       "value_errors_1.json"
     );
@@ -154,8 +154,8 @@ int main()
       { // errors
         "invalid `ant_col` -> not in grid x-axis [0, 65535)",
         "invalid `ant_row` -> not in grid y-axis [0, 65535)",
-        "invalid `rules` -> [0].replacement is not an unsigned integer",
-        "invalid `grid_state` -> fill value must be <= 255",
+        "invalid `rules` -> [0].replace_with is not an unsigned integer",
+        "invalid `grid_state` -> fill shade must be <= 255",
       },
       "value_errors_2.json"
     );
@@ -175,7 +175,7 @@ int main()
       { // errors
         "invalid `grid_width` -> not in range [1, 65535]",
         "invalid `grid_height` -> not in range [1, 65535]",
-        "invalid `rules` -> [0].replacement is > 255",
+        "invalid `rules` -> [0].replace_with is > 255",
         "invalid `grid_state` -> file \"non_existent_file\" does not exist",
       },
       "value_errors_3.json"
@@ -190,7 +190,7 @@ int main()
         0, // ant_row
         nullptr, // grid
         simulation::orientation::SOUTH,
-        simulation::step_result::FAILED_AT_BOUNDARY,
+        simulation::step_result::HIT_EDGE,
         {}, // rules
       },
       { // errors
@@ -209,7 +209,7 @@ int main()
         6, // ant_row
         nullptr, // grid
         simulation::orientation::WEST,
-        simulation::step_result::FAILED_AT_BOUNDARY,
+        simulation::step_result::HIT_EDGE,
         {}, // rules
       },
       { // errors
@@ -271,7 +271,7 @@ int main()
         }),
       },
       { // errors
-        "invalid `grid_state` -> fill value has no governing rule",
+        "invalid `grid_state` -> fill shade has no governing rule",
       },
       "value_errors_8.json"
     );
@@ -350,19 +350,28 @@ int main()
   {
     auto const assert_save_point = [](
       char const *const exp_json_name_cstr,
+      char const *const exp_img_name_cstr,
       char const *const act_json_name_cstr,
       std::source_location const loc = std::source_location::current())
     {
-      std::string const exp_json_pathname = std::string("run_with_save_points/") + exp_json_name_cstr;
-      std::string const act_json_pathname = std::string("run_with_save_points/") + act_json_name_cstr;
+      [[maybe_unused]] auto cwd = fs::current_path();
 
-      std::string const exp_json_str = util::extract_txt_file_contents(exp_json_pathname.c_str());
-      std::string const act_json_str = util::extract_txt_file_contents(act_json_pathname.c_str());
+      std::string const base = "run/";
 
-      json_t const exp_json = json_t::parse(exp_json_str);
-      json_t const act_json = json_t::parse(act_json_str);
+      std::string const
+        exp_json_pathname = base + exp_json_name_cstr,
+        act_json_pathname = base + act_json_name_cstr;
 
-      b8 match = exp_json["generations"] == act_json["generations"] &&
+      std::string const
+        exp_json_str = util::extract_txt_file_contents(exp_json_pathname.c_str()),
+        act_json_str = util::extract_txt_file_contents(act_json_pathname.c_str());
+
+      json_t const
+        exp_json = json_t::parse(exp_json_str),
+        act_json = json_t::parse(act_json_str);
+
+      b8 match =
+        exp_json["generation"] == act_json["generation"] &&
         exp_json["last_step_result"] == act_json["last_step_result"] &&
         exp_json["grid_width"] == act_json["grid_width"] &&
         exp_json["grid_height"] == act_json["grid_height"] &&
@@ -370,26 +379,25 @@ int main()
         exp_json["ant_orientation"] == act_json["ant_orientation"] &&
         exp_json["rules"].get<json_t::array_t>() == act_json["rules"].get<json_t::array_t>();
 
-      std::string const expected_img = util::extract_txt_file_contents(
-        (std::string("run_with_save_points/") + exp_json["grid_state"].get<std::string>()).c_str()
-      );
-      std::string const actual_img = util::extract_txt_file_contents(
-        (std::string("run_with_save_points/") + act_json["grid_state"].get<std::string>()).c_str()
-      );
+      std::string const act_img_pathname = base + act_json["grid_state"].get<std::string>();
+
+      std::string const
+        expected_img = util::extract_txt_file_contents((base + exp_img_name_cstr).c_str()),
+        actual_img = util::extract_txt_file_contents(act_img_pathname.c_str());
 
       match = match && (expected_img == actual_img);
 
       ntest::assert_bool(true, match, loc);
     };
 
-    fs::path const save_dir = fs::current_path() / "run_with_save_points";
-    std::string const json_str = util::extract_txt_file_contents("run_with_save_points/RL-init.json");
+    fs::path const save_dir = fs::current_path() / "run";
+    std::string const json_str = util::extract_txt_file_contents("run/RL-init.json");
     strvec_t errors{};
     auto state = simulation::parse_state(json_str, save_dir, errors);
 
     ntest::assert_bool(true, errors.empty());
 
-    if (!errors.empty()) {
+    if (errors.empty()) {
       simulation::run(
         state,
         "RL.actual",
@@ -401,11 +409,11 @@ int main()
         true // save_final_state
       );
 
-      assert_save_point("RL.expected(3).json", "RL.actual(3).json");
-      assert_save_point("RL.expected(16).json", "RL.actual(16).json");
-      assert_save_point("RL.expected(32).json", "RL.actual(32).json");
-      assert_save_point("RL.expected(48).json", "RL.actual(48).json");
-      assert_save_point("RL.expected(50).json", "RL.actual(50).json");
+      assert_save_point("RL.expect(3).json", "RL.expect(3).pgm", "RL.actual(3).json");
+      assert_save_point("RL.expect(16).json", "RL.expect(16).pgm", "RL.actual(16).json");
+      assert_save_point("RL.expect(32).json", "RL.expect(32).pgm", "RL.actual(32).json");
+      assert_save_point("RL.expect(48).json", "RL.expect(48).pgm", "RL.actual(48).json");
+      assert_save_point("RL.expect(50).json", "RL.expect(50).pgm", "RL.actual(50).json");
     }
   }
 

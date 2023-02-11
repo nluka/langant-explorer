@@ -103,13 +103,13 @@ b8 try_to_parse_and_set_rule(
     return false;
   }
 
-  if (rule.count("shade") == 0) {
-    add_err(make_str("invalid `rules` -> [%zu].shade not defined", index));
+  if (rule.count("on") == 0) {
+    add_err(make_str("invalid `rules` -> [%zu].on not defined", index));
     return false;
   }
 
-  if (rule.count("replacement") == 0) {
-    add_err(make_str("invalid `rules` -> [%zu].replacement not defined", index));
+  if (rule.count("replace_with") == 0) {
+    add_err(make_str("invalid `rules` -> [%zu].replace_with not defined", index));
     return false;
   }
 
@@ -122,15 +122,15 @@ b8 try_to_parse_and_set_rule(
   simulation::turn_direction::value_type turn_dir;
 
   try {
-    if (!rule["shade"].is_number_unsigned()) {
-      add_err(make_str("invalid `rules` -> [%zu].shade is not an unsigned integer", index));
+    if (!rule["on"].is_number_unsigned()) {
+      add_err(make_str("invalid `rules` -> [%zu].on is not an unsigned integer", index));
       return false;
     }
 
-    uintmax_t const temp = rule["shade"].get<uintmax_t>();
+    uintmax_t const temp = rule["on"].get<uintmax_t>();
 
     if (temp > UINT8_MAX) {
-      add_err(make_str("invalid `rules` -> [%zu].shade is > %" PRIu8, index, UINT8_MAX));
+      add_err(make_str("invalid `rules` -> [%zu].on is > %" PRIu8, index, UINT8_MAX));
       return false;
     }
 
@@ -138,37 +138,30 @@ b8 try_to_parse_and_set_rule(
 
     if (out[shade].turn_dir != simulation::turn_direction::NIL) {
       // rule already set
-      add_err(make_str("invalid `rules` -> more than one rule for shade %" PRIu8, UINT8_MAX));
+      add_err(make_str("invalid `rules` -> more than one rule for shade %" PRIu8, shade));
       return false;
     }
   } catch (json_t::basic_json::type_error const &except) {
-    add_err(make_str(
-      "invalid `rules` -> [%zu].shade %s", index, util::nlohmann_json_extract_sentence(except)));
+    add_err(make_str("invalid `rules` -> [%zu].on %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
   try {
-    if (!rule["replacement"].is_number_unsigned()) {
-      add_err(make_str(
-        "invalid `rules` -> [%zu].replacement is not an unsigned "
-        "integer",
-        index));
+    if (!rule["replace_with"].is_number_unsigned()) {
+      add_err(make_str("invalid `rules` -> [%zu].replace_with is not an unsigned integer", index));
       return false;
     }
 
-    uintmax_t const temp = rule["replacement"].get<uintmax_t>();
+    uintmax_t const temp = rule["replace_with"].get<uintmax_t>();
 
     if (temp > UINT8_MAX) {
-      add_err(make_str("invalid `rules` -> [%zu].replacement is > %" PRIu8, index, UINT8_MAX));
+      add_err(make_str("invalid `rules` -> [%zu].replace_with is > %" PRIu8, index, UINT8_MAX));
       return false;
     }
 
-    replacement = rule["replacement"].get<u8>();
+    replacement = rule["replace_with"].get<u8>();
   } catch (json_t::basic_json::type_error const &except) {
-    add_err(make_str(
-      "invalid `rules` -> [%zu].replacement %s",
-      index,
-      util::nlohmann_json_extract_sentence(except)));
+    add_err(make_str("invalid `rules` -> [%zu].replace_with %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -195,8 +188,8 @@ b8 try_to_parse_and_set_rule(
   return true;
 }
 
-static b8
-try_to_parse_and_set_rules(
+static
+b8 try_to_parse_and_set_rules(
   json_t const &json,
   simulation::state &state,
   std::function<void(std::string &&)> const &add_err)
@@ -261,8 +254,8 @@ try_to_parse_and_set_rules(
   return true;
 }
 
-static b8
-try_to_parse_and_set_grid_state(
+static
+b8 try_to_parse_and_set_grid_state(
   json_t const &json,
   fs::path const &dir,
   simulation::state &state,
@@ -285,7 +278,7 @@ try_to_parse_and_set_grid_state(
   }
 
   if (std::regex_match(grid_state, std::regex("^fill -{1,}[0-9]{1,}$", std::regex_constants::icase))) {
-    add_err("invalid `grid_state` -> fill value cannot be negative");
+    add_err("invalid `grid_state` -> fill shade cannot be negative");
     return false;
   }
 
@@ -294,7 +287,7 @@ try_to_parse_and_set_grid_state(
     uintmax_t const fill_val = strtoumax(num_str, nullptr, 10);
 
     if (fill_val > UINT8_MAX) {
-      add_err(make_str("invalid `grid_state` -> fill value must be <= %" PRIu8, UINT8_MAX));
+      add_err(make_str("invalid `grid_state` -> fill shade must be <= %" PRIu8, UINT8_MAX));
       return false;
     }
 
@@ -303,7 +296,7 @@ try_to_parse_and_set_grid_state(
     }
 
     if (state.rules[fill_val].turn_dir == simulation::turn_direction::NIL) {
-      add_err("invalid `grid_state` -> fill value has no governing rule");
+      add_err("invalid `grid_state` -> fill shade has no governing rule");
       return false;
     }
 
@@ -402,7 +395,7 @@ simulation::state simulation::parse_state(
 
     i8 good = true;
 
-    good &= validate_property_set("generations");
+    good &= validate_property_set("generation");
     good &= validate_property_set("last_step_result");
     good &= validate_property_set("grid_width");
     good &= validate_property_set("grid_height");
@@ -419,7 +412,7 @@ simulation::state simulation::parse_state(
   }
 
   [[maybe_unused]] b8 const generation_parse_success = try_to_parse_and_set_uint<u64>(
-    json, "generations", state.generation, 0, UINT_FAST64_MAX, add_err
+    json, "generation", state.generation, 0, UINT_FAST64_MAX, add_err
   );
 
   b8 const grid_width_parse_success = try_to_parse_and_set_uint<i32>(
@@ -458,7 +451,7 @@ simulation::state simulation::parse_state(
     {
       { "nil", simulation::step_result::NIL },
       { "success", simulation::step_result::SUCCESS },
-      { "failed_at_boundary", simulation::step_result::FAILED_AT_BOUNDARY },
+      { "failed_at_boundary", simulation::step_result::HIT_EDGE },
     },
     state.last_step_res,
     add_err

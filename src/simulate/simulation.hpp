@@ -52,7 +52,7 @@ namespace simulation
     value_type const
       NIL = -1,
       SUCCESS = 0,
-      FAILED_AT_BOUNDARY = 1;
+      HIT_EDGE = 1;
   }
 
   struct rule
