@@ -5,11 +5,17 @@
 bin
 interm*
 out
+staging
 
 # files
 *.exe
 *.pdb
 
+# gencfg
+langant-explorer/gencfg/*.json
+langant-explorer/gencfg/*.pgm
+
+# simulate
 langant-explorer/simulate/*.json
 langant-explorer/simulate/*.pgm
 

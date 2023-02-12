@@ -1,7 +1,6 @@
 #ifndef NLUKA_NTEST_HPP
 #define NLUKA_NTEST_HPP
 
-#pragma warning(push, 0)
 #include <array>
 #include <concepts>
 #include <fstream>
@@ -10,7 +9,6 @@
 #include <sstream>
 #include <string>
 #include <type_traits>
-#pragma warning(pop)
 
 namespace ntest {
 

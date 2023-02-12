@@ -1,18 +1,23 @@
 #ifndef UTIL_HPP
 #define UTIL_HPP
 
-#pragma warning(push, 0)
 #include <cstdint>
 #include <fstream>
 #include <string>
 #include <vector>
-#pragma warning(pop)
 
 #include "primitives.hpp"
 
 namespace util {
 
    typedef std::vector<std::string> strvec_t;
+
+   template <typename ExitCodeTy>
+   [[noreturn]]
+   void die(ExitCodeTy const code)
+   {
+      std::exit(static_cast<int>(code));
+   }
 
    std::string make_str(char const *const fmt, ...);
 

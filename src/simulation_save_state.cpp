@@ -1,6 +1,4 @@
-#pragma warning(push, 0)
-#include "../json.hpp"
-#pragma warning(pop)
+#include "lib/json.hpp"
 
 #include "simulation.hpp"
 
@@ -61,7 +59,7 @@ void simulation::save_state(
         temp["replace_with"] = rule.replacement_shade;
         temp["turn"] = turn_direction::to_string(rule.turn_dir);
         rules_json.push_back(temp);
-        temp.clear();
+        // temp.clear();
       }
     }
     json["rules"] = rules_json;

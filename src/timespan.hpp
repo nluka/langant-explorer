@@ -1,11 +1,9 @@
 #ifndef TIMESPAN_HPP
 #define TIMESPAN_HPP
 
-#pragma warning(push, 0)
 #include <cstdlib>
 #include <ctime>
 #include <string>
-#pragma warning(pop)
 
 #include "primitives.hpp"
 

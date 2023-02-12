@@ -1,13 +1,12 @@
-#pragma warning(push, 0)
 #include <functional>
 #include <regex>
 #include <sstream>
 #include <string>
-#include "../json.hpp"
-#pragma warning(pop)
 
-#include "../primitives.hpp"
-#include "../util.hpp"
+#include "lib/json.hpp"
+
+#include "primitives.hpp"
+#include "util.hpp"
 #include "simulation.hpp"
 
 namespace fs = std::filesystem;

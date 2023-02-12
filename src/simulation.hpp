@@ -1,17 +1,16 @@
 #ifndef SIMULATION_HPP
 #define SIMULATION_HPP
 
-#pragma warning(push, 0)
 #include <array>
 #include <cinttypes>
 #include <filesystem>
 #include <string>
 #include <vector>
-#pragma warning(pop)
 
-#include "../pgm8.hpp"
-#include "../primitives.hpp"
-#include "../util.hpp"
+#include "lib/pgm8.hpp"
+
+#include "primitives.hpp"
+#include "util.hpp"
 
 namespace simulation
 {

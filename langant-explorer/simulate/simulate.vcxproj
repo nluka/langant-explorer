@@ -18,6 +18,17 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\lib\pgm8.cpp" />
+    <ClCompile Include="..\..\src\lib\term.cpp" />
+    <ClCompile Include="..\..\src\simulate_main.cpp" />
+    <ClCompile Include="..\..\src\simulation_misc.cpp" />
+    <ClCompile Include="..\..\src\simulation_parse_state.cpp" />
+    <ClCompile Include="..\..\src\simulation_run.cpp" />
+    <ClCompile Include="..\..\src\simulation_save_state.cpp" />
+    <ClCompile Include="..\..\src\timespan.cpp" />
+    <ClCompile Include="..\..\src\util.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -33,7 +44,7 @@
     <CharacterSet>Unicode</CharacterSet>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <VCToolsVersion>14.29.30133</VCToolsVersion>
-    <EnableASAN>false</EnableASAN>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -52,7 +63,7 @@
     <CharacterSet>Unicode</CharacterSet>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
     <VCToolsVersion>14.29.30133</VCToolsVersion>
-    <EnableASAN>false</EnableASAN>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -112,6 +123,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>C:\code\boost_1_80_0\</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,6 +143,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>C:\code\boost_1_80_0\</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,6 +163,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>C:\code\boost_1_80_0\</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -169,6 +183,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>C:\code\boost_1_80_0\</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -178,29 +193,6 @@
       <AdditionalLibraryDirectories>C:\code\boost_1_80_0\stage\lib\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\src\json.hpp" />
-    <ClInclude Include="..\..\src\pgm8.hpp" />
-    <ClInclude Include="..\..\src\primitives.hpp" />
-    <ClInclude Include="..\..\src\simulate\exit.hpp" />
-    <ClInclude Include="..\..\src\simulate\prgopts.hpp" />
-    <ClInclude Include="..\..\src\simulate\simulation.hpp" />
-    <ClInclude Include="..\..\src\term.hpp" />
-    <ClInclude Include="..\..\src\timespan.hpp" />
-    <ClInclude Include="..\..\src\util.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\src\pgm8.cpp" />
-    <ClCompile Include="..\..\src\simulate\misc.cpp" />
-    <ClCompile Include="..\..\src\simulate\parse_state.cpp" />
-    <ClCompile Include="..\..\src\simulate\prgopts.cpp" />
-    <ClCompile Include="..\..\src\simulate\run.cpp" />
-    <ClCompile Include="..\..\src\simulate\save_state.cpp" />
-    <ClCompile Include="..\..\src\simulate\simulate_main.cpp" />
-    <ClCompile Include="..\..\src\term.cpp" />
-    <ClCompile Include="..\..\src\timespan.cpp" />
-    <ClCompile Include="..\..\src\util.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

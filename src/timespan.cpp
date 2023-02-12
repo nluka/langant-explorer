@@ -1,6 +1,4 @@
-#pragma warning(push, 0)
 #include <sstream>
-#pragma warning(pop)
 
 #include "timespan.hpp"
 

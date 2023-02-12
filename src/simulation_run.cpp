@@ -1,4 +1,3 @@
-#pragma warning(push, 0)
 #include <cstdarg>
 #include <cstdio>
 #include <fstream>
@@ -6,10 +5,10 @@
 #include <regex>
 #include <sstream>
 #include <unordered_map>
-#include "../json.hpp"
-#pragma warning(pop)
 
-#include "../util.hpp"
+#include "lib/json.hpp"
+
+#include "util.hpp"
 #include "simulation.hpp"
 
 namespace fs = std::filesystem;

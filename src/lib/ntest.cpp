@@ -1,4 +1,3 @@
-#pragma warning(push, 0)
 #include <chrono>
 #include <cstdarg>
 #include <cstdio>
@@ -8,7 +7,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#pragma warning(pop)
 
 #include "ntest.hpp"
 

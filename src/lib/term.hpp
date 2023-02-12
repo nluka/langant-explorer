@@ -1,5 +1,5 @@
-#ifndef CPPLIB_TERM_HPP
-#define CPPLIB_TERM_HPP
+#ifndef NLUKA_TERM_HPP
+#define NLUKA_TERM_HPP
 
 // Module for doing fancy things in the terminal via ANSI escape sequences.
 // Make sure your terminal supports ANSI escape sequences when using this module!
@@ -103,4 +103,4 @@ namespace color {
 
 } // namespace term
 
-#endif // CPPLIB_TERM_HPP
+#endif // NLUKA_TERM_HPP

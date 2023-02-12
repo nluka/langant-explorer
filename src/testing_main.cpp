@@ -1,10 +1,8 @@
-#pragma warning(push, 0)
-#include "../json.hpp"
-#pragma warning(pop)
+#include "lib/json.hpp"
+#include "lib/ntest.hpp"
 
-#include "../util.hpp"
-#include "../simulate/simulation.hpp"
-#include "ntest.hpp"
+#include "util.hpp"
+#include "simulation.hpp"
 
 namespace fs = std::filesystem;
 using json_t = nlohmann::json;

@@ -1,12 +1,11 @@
-#pragma warning(push, 0)
 #include <cstdarg>
 #include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include "json.hpp"
-#pragma warning(pop)
+
+#include "lib/json.hpp"
 
 #include "primitives.hpp"
 #include "util.hpp"
@@ -26,6 +25,7 @@ string util::make_str(char const *const fmt, ...)
   return std::string(buffer);
 }
 
+[[nodiscard]]
 fstream util::open_file(char const *const pathname, int const flags)
 {
   b8 const is_for_reading = (flags & 1) == 1;

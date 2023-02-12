@@ -1,22 +1,22 @@
-#pragma warning(push, 0)
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <thread>
+
 #ifdef _WIN32
 #  include <Windows.h>
 #  undef max // because it conflicts with std::max
 #endif
-#include "../json.hpp"
-#pragma warning(pop)
 
-#include "../primitives.hpp"
-#include "../term.hpp"
-#include "../timespan.hpp"
-#include "../util.hpp"
-#include "exit.hpp"
-#include "prgopts.hpp"
+#include <boost/program_options.hpp>
+#include "lib/json.hpp"
+#include "lib/term.hpp"
+
+#include "prgopt.hpp"
+#include "primitives.hpp"
+#include "timespan.hpp"
+#include "util.hpp"
 #include "simulation.hpp"
 
 namespace bpo = boost::program_options;
@@ -25,43 +25,73 @@ using namespace term::color;
 using time_point = std::chrono::steady_clock::time_point;
 using util::strvec_t;
 using json_t = nlohmann::json;
+using prgopt::get_required_arg;
+using prgopt::get_optional_arg;
+using prgopt::get_flag_arg;
+using util::die;
 
+enum class exit_code : int
+{
+  UNKNOWN_ERROR,
+  GENERIC_ERROR,
+  SUCCESS = 0,
+  INVALID_ARGUMENT_SYNTAX,
+  MISSING_REQUIRED_ARGUMENT,
+  BAD_ARGUMENT_VALUE,
+  FILE_NOT_FOUND,
+  FILE_OPEN_FAILED,
+  BAD_FILE,
+  BAD_CONFIG,
+};
+
+char const *usage_msg()
+{
+  return
+    "USAGE \n"
+    "  simulate <name> <cfg> <maxgen> \n"
+    "  [img_fmt] [savefinalstate] [save_points] [save_interval] [savedir] \n"
+    "REQUIRED \n"
+    "  name ............ name of simuation \n"
+    "  cfg ............. JSON file path to initial state JSON \n"
+    "  maxgen .......... generation limit, uint64, 0 = no limit \n"
+    "OPTIONAL \n"
+    "  imgfmt .......... rawPGM|plainPGM, default = rawPGM \n"
+    "  savefinalstate .. flag, guarantees final state is saved \n"
+    "  savepoints ...... generations to save, syntax -> [1,2,...] \n"
+    "  saveinterval .... non-0 uint64 \n"
+    "  savedir ......... where to emit saves \n"
+  ;
+}
+
+bpo::options_description my_boost_options()
+{
+  bpo::options_description desc("OPTIONS");
+  char const *const empty_desc = "";
+
+  desc.add_options()
+    ("name", bpo::value<std::string>(), empty_desc)
+    ("cfg", bpo::value<std::string>(), empty_desc)
+    ("maxgen", bpo::value<u64>(), empty_desc)
+    ("imgfmt", bpo::value<std::string>(), empty_desc)
+    ("savefinalstate", /* flag */ empty_desc)
+    ("savepoints", bpo::value<std::string>(), empty_desc)
+    ("saveinterval", bpo::value<u64>(), empty_desc)
+    ("savedir", bpo::value<std::string>(), empty_desc)
+  ;
+
+  return desc;
+}
+
+[[nodiscard]]
 time_point current_time()
 {
   return std::chrono::high_resolution_clock::now();
 }
 
+[[nodiscard]]
 auto nanos_between(time_point const a, time_point const b)
 {
   return std::chrono::duration_cast<std::chrono::nanoseconds>(b - a);
-}
-
-template <typename Ty>
-Ty get_required_arg(char const *const argname, bpo::variables_map const &args)
-{
-  if (args.count(argname) == 0) {
-    std::cerr << "missing required argument --" << argname;
-    die(exit_code::MISSING_REQUIRED_ARGUMENT);
-  } else {
-    return args.at(argname).as<Ty>();
-  }
-}
-
-template <typename Ty>
-std::optional<Ty> get_optional_arg(
-  char const *const argname,
-  bpo::variables_map const &args)
-{
-  if (args.count(argname) == 0) {
-    return std::nullopt;
-  } else {
-    return args.at(argname).as<Ty>();
-  }
-}
-
-b8 get_flag_arg(char const *const argname, bpo::variables_map const &args)
-{
-  return args.count(argname) > 0;
 }
 
 void update_ui(
@@ -100,7 +130,7 @@ void update_ui(
             case simulation::step_result::HIT_EDGE:
               return "tried to step off grid";
             default:
-              return "(nullptr)";
+              return "internal error (nullptr)";
           }
         }());
       }
@@ -152,25 +182,26 @@ void update_ui(
 int main(int const argc, char const *const *const argv)
 {
   if (argc == 1) {
-    puts(prgopts::usage_msg());
+    puts(usage_msg());
     die(exit_code::MISSING_REQUIRED_ARGUMENT);
   }
 
   int const err_style = fore::RED | back::BLACK;
+  int const missing_arg_ec = static_cast<int>(exit_code::MISSING_REQUIRED_ARGUMENT);
 
   // parse command line args
   bpo::variables_map args;
   try {
-    bpo::store(bpo::parse_command_line(argc, argv, prgopts::options_descrip()), args);
+    bpo::store(bpo::parse_command_line(argc, argv, my_boost_options()), args);
   } catch (std::exception const &err) {
     printf(err_style, "fatal: %s\n", err.what());
-    die(exit_code::INVALID_OPTION_SYNTAX);
+    die(exit_code::INVALID_ARGUMENT_SYNTAX);
   }
   bpo::notify(args);
 
-  std::string const sim_name = get_required_arg<std::string>("name", args);
-  std::string const sim_file_pathname = get_required_arg<std::string>("cfg", args);
-  u64 const generation_target = get_required_arg<u64>("maxgen", args);
+  std::string const sim_name = get_required_arg<std::string>("name", args, missing_arg_ec);
+  std::string const sim_file_pathname = get_required_arg<std::string>("cfg", args, missing_arg_ec);
+  u64 const generation_target = get_required_arg<u64>("maxgen", args, missing_arg_ec);
 
   pgm8::format const img_fmt = [&args]() {
     if (args.count("imgfmt") == 0) {
@@ -262,5 +293,5 @@ int main(int const argc, char const *const *const argv)
   sim_thread.join();
   term::cursor::show();
 
-  die(exit_code::SUCCESS);
+  return static_cast<int>(exit_code::SUCCESS);
 }

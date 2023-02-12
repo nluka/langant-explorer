@@ -1,9 +1,7 @@
 #ifndef PRIMITIVES_HPP
 #define PRIMITIVES_HPP
 
-#pragma warning(push, 0)
 #include <cstdint>
-#pragma warning(pop)
 
 static_assert(sizeof(int8_t) == 1);
 typedef int8_t i8;
