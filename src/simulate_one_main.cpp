@@ -48,17 +48,17 @@ char const *usage_msg()
 {
   return
     "USAGE \n"
-    "  simulate <name> <cfg> <maxgen> \n"
-    "  [img_fmt] [savefinalstate] [save_points] [save_interval] [savedir] \n"
+    "  simulate <cfg> <maxgen> \n"
+    "  [name] [imgfmt] [savefinalstate] [save_points] [save_interval] [savedir] \n"
     "REQUIRED \n"
-    "  name ............ name of simuation \n"
-    "  cfg ............. JSON file path to initial state JSON \n"
-    "  maxgen .......... generation limit, uint64, 0 = no limit \n"
+    "  cfg ............. file path of initial state JSON \n"
+    "  maxgen .......... generation limit, uint64, > 0 \n"
     "OPTIONAL \n"
+    "  name ............ name of simuation, defaults to <cfg> file name w/o extension \n"
     "  imgfmt .......... rawPGM|plainPGM, default = rawPGM \n"
     "  savefinalstate .. flag, guarantees final state is saved \n"
-    "  savepoints ...... generations to save, syntax -> [1,2,...] \n"
-    "  saveinterval .... non-0 uint64 \n"
+    "  savepoints ...... specific generations to save, JSON unsigned number array, syntax -> [1,2,...] \n"
+    "  saveinterval .... uint64, > 0 \n"
     "  savedir ......... where to emit saves \n"
   ;
 }
@@ -199,9 +199,13 @@ int main(int const argc, char const *const *const argv)
   }
   bpo::notify(args);
 
+  std::string const cfg_path = get_required_arg<std::string>("cfg", args, missing_arg_ec);
   std::string const sim_name = get_required_arg<std::string>("name", args, missing_arg_ec);
-  std::string const sim_file_pathname = get_required_arg<std::string>("cfg", args, missing_arg_ec);
   u64 const generation_target = get_required_arg<u64>("maxgen", args, missing_arg_ec);
+  if (generation_target == 0) {
+    printf(err_style, "fatal: generation target must be > 0\n");
+    die(exit_code::BAD_ARGUMENT_VALUE);
+  }
 
   pgm8::format const img_fmt = [&args]() {
     if (args.count("imgfmt") == 0) {
@@ -225,17 +229,22 @@ int main(int const argc, char const *const *const argv)
   simulation::state state;
   strvec_t errors{};
 
-  state = simulation::parse_state(
-    util::extract_txt_file_contents(sim_file_pathname.c_str()),
-    std::filesystem::current_path(),
-    errors
-  );
+  try {
+    state = simulation::parse_state(
+      util::extract_txt_file_contents(cfg_path.c_str()),
+      std::filesystem::current_path(),
+      errors
+    );
+  } catch (std::runtime_error const &except) {
+    printf(err_style, "fatal: %s\n", except.what());
+    die(exit_code::GENERIC_ERROR);
+  }
 
   if (!errors.empty()) {
-    printf(fore::RED | back::BLACK, "fatal: malformed configuration (%zu errors)\n", errors.size());
+    printf(err_style, "fatal: %zu state errors (--cfg)\n", errors.size());
 
     for (auto const &err : errors)
-      printf(fore::RED | back::BLACK, "  %s\n", err.c_str());
+      printf(err_style, "  %s\n", err.c_str());
 
     die(exit_code::BAD_CONFIG);
   }

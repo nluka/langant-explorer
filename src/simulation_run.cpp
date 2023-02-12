@@ -92,6 +92,7 @@ simulation::run(
   save_points = helpers::remove_duplicates_sorted(save_points);
 
   u64 last_saved_gen = UINT64_MAX;
+  u64 const generation_limit = generation_target == 0 ? (UINT64_MAX - 1) : generation_target;
 
   for (;;) {
     // the most generations we can perform before we overflow state.generation
@@ -103,12 +104,12 @@ simulation::run(
     u64 const dist_to_next_save_point =
       save_points.empty() ? max_dist : save_points.back() - state.generation;
 
-    u64 const dist_to_gen_target = generation_target - state.generation;
+    u64 const dist_to_gen_limit = generation_limit - state.generation;
 
     std::array<u64, 3> const distances{
       dist_to_next_save_interval,
       dist_to_next_save_point,
-      dist_to_gen_target,
+      dist_to_gen_limit,
     };
 
     enum stop_reason : usize

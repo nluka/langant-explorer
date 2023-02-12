@@ -624,11 +624,17 @@ void ntest::generate_report(char const *const name)
 
   printf("generating report \"%s\"... ", pathname.c_str());
 
-  ofs
-    << "# " << name << "\n\n"
-    << total_failed << " failed\n\n"
-    << total_passed << " passed\n\n"
-  ;
+  {
+    time_t raw_time;
+    time(&raw_time);
+
+    ofs
+      << "# " << name << "\n\n"
+      << ctime(&raw_time) << "\n\n"
+      << total_failed << " failed\n\n"
+      << total_passed << " passed\n\n"
+    ;
+  }
 
   auto const print_table_row = [&ofs](assertion const &assertion, bool const passed)
   {

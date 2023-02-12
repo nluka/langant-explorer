@@ -59,7 +59,6 @@ void simulation::save_state(
         temp["replace_with"] = rule.replacement_shade;
         temp["turn"] = turn_direction::to_string(rule.turn_dir);
         rules_json.push_back(temp);
-        // temp.clear();
       }
     }
     json["rules"] = rules_json;
