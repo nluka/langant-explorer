@@ -13,19 +13,31 @@
 using namespace std;
 using json_t = nlohmann::json;
 
+util::time_point_t util::current_time()
+{
+  return std::chrono::high_resolution_clock::now();
+}
+
+std::chrono::nanoseconds util::nanos_between(time_point_t const a, time_point_t const b)
+{
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(b - a);
+}
+
 string util::make_str(char const *const fmt, ...)
 {
-  char buffer[1024]{ 0 };
+  usize const buf_len = 1024;
+  char buffer[buf_len];
 
   va_list args;
   va_start(args, fmt);
-  vsnprintf(buffer, sizeof(buffer), fmt, args);
+  int const cnt = vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
+
+  // buffer[std::min(cnt, buf_len - 1)] = '\0';
 
   return std::string(buffer);
 }
 
-[[nodiscard]]
 fstream util::open_file(char const *const pathname, int const flags)
 {
   b8 const is_for_reading = (flags & 1) == 1;
@@ -46,7 +58,7 @@ fstream util::open_file(char const *const pathname, int const flags)
   return file;
 }
 
-string util::extract_txt_file_contents(char const *const pathname)
+string util::extract_txt_file_contents(char const *const pathname, bool const normalize_newlines)
 {
   fstream file = util::open_file(pathname, ios::in);
   auto const fileSize = filesystem::file_size(pathname);
@@ -56,8 +68,10 @@ string util::extract_txt_file_contents(char const *const pathname)
 
   getline(file, content, '\0');
 
-  // remove any \r characters
-  content.erase(remove(content.begin(), content.end(), '\r'), content.end());
+  if (normalize_newlines) {
+    // remove any \r characters
+    content.erase(remove(content.begin(), content.end(), '\r'), content.end());
+  }
 
   return content;
 }

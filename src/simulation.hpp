@@ -96,7 +96,21 @@ namespace simulation
     std::filesystem::path const &dir,
     pgm8::format img_fmt);
 
-  void run(
+  struct run_result
+  {
+    enum code : u8
+    {
+      NIL = 0,
+      REACHED_GENERATION_LIMIT,
+      HIT_EDGE,
+    };
+
+    code code = code::NIL;
+    usize num_save_points_successful = 0;
+    usize num_save_points_failed = 0;
+  };
+
+  run_result run(
     state &state,
     std::string sim_name,
     u64 generation_target,

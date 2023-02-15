@@ -76,8 +76,7 @@ namespace helpers
   regardless of `save_points` and `save_interval`. If the final state happens
   to be saved because of a save_point or the `save_interval`, a duplicate save is not made.
 */
-void
-simulation::run(
+simulation::run_result simulation::run(
   state &state,
   std::string const name,
   u64 const generation_target,
@@ -87,6 +86,8 @@ simulation::run(
   std::filesystem::path const &save_dir,
   b8 const save_final_cfg)
 {
+  run_result result{};
+
   // sort save_points in descending order, so we can pop them off the back as we complete them
   std::sort(save_points.begin(), save_points.end(), std::greater<u64>());
   save_points = helpers::remove_duplicates_sorted(save_points);
@@ -106,7 +107,7 @@ simulation::run(
 
     u64 const dist_to_gen_limit = generation_limit - state.generation;
 
-    std::array<u64, 3> const distances{
+    std::array<u64, 3> const distances {
       dist_to_next_save_interval,
       dist_to_next_save_point,
       dist_to_gen_limit,
@@ -116,7 +117,7 @@ simulation::run(
     {
       SAVE_INTERVAL = 0,
       SAVE_POINT,
-      GENERATION_TARGET,
+      GENERATION_LIMIT,
     };
 
     struct stop
@@ -125,10 +126,11 @@ simulation::run(
       stop_reason reason;
     };
 
-    stop next_stop;
     usize const idx_of_smallest_dist = helpers::idx_of_smallest(distances.data(), distances.size());
-    next_stop.distance = distances[idx_of_smallest_dist];
-    next_stop.reason = static_cast<stop_reason>(idx_of_smallest_dist);
+    stop const next_stop {
+      distances[idx_of_smallest_dist],
+      static_cast<stop_reason>(idx_of_smallest_dist),
+    };
 
     if (next_stop.reason == stop_reason::SAVE_POINT) {
       save_points.pop_back();
@@ -139,14 +141,23 @@ simulation::run(
       if (state.last_step_res == simulation::step_result::SUCCESS) [[likely]] {
         ++state.generation;
       } else [[unlikely]] {
+        result.code = run_result::code::HIT_EDGE;
         goto done;
       }
     }
 
-    if (next_stop.reason != stop_reason::GENERATION_TARGET) {
-      simulation::save_state(state, name.c_str(), save_dir, img_fmt);
+    if (next_stop.reason == stop_reason::SAVE_POINT || stop_reason::SAVE_INTERVAL) {
+      try {
+        simulation::save_state(state, name.c_str(), save_dir, img_fmt);
+        ++result.num_save_points_successful;
+      } catch (std::runtime_error const &) {
+        ++result.num_save_points_failed;
+      } catch (...) {
+        ++result.num_save_points_failed;
+      }
       last_saved_gen = state.generation;
-    } else {
+    } else { // stop_reason::GENERATION_LIMIT
+      result.code = run_result::code::REACHED_GENERATION_LIMIT;
       goto done;
     }
   }
@@ -155,8 +166,15 @@ done:
 
   b8 const final_state_already_saved = last_saved_gen == state.generation;
   if (save_final_cfg && !final_state_already_saved) {
-    simulation::save_state(state, name.c_str(), save_dir, img_fmt);
+    try {
+      simulation::save_state(state, name.c_str(), save_dir, img_fmt);
+      ++result.num_save_points_successful;
+    } catch (std::runtime_error const &) {
+      ++result.num_save_points_failed;
+    }
   }
+
+  return result;
 }
 
 simulation::step_result::value_type simulation::attempt_step_forward(simulation::state &state)

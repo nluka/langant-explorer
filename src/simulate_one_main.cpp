@@ -29,37 +29,37 @@ using prgopt::get_required_arg;
 using prgopt::get_optional_arg;
 using prgopt::get_flag_arg;
 using util::die;
+using util::time_point_t;
 
 enum class exit_code : int
 {
-  UNKNOWN_ERROR,
-  GENERIC_ERROR,
+  GENERIC_ERROR = -1,
   SUCCESS = 0,
   INVALID_ARGUMENT_SYNTAX,
   MISSING_REQUIRED_ARGUMENT,
   BAD_ARGUMENT_VALUE,
-  FILE_NOT_FOUND,
   FILE_OPEN_FAILED,
-  BAD_FILE,
-  BAD_CONFIG,
+  BAD_STATE,
 };
 
 char const *usage_msg()
 {
   return
     "USAGE \n"
-    "  simulate <cfg> <maxgen> \n"
-    "  [name] [imgfmt] [savefinalstate] [save_points] [save_interval] [savedir] \n"
+    "  simulate_one --state <path> [--maxgen <int>] \n"
+    "               [--name <name>] [--imgfmt <fmt>] [--savefinalstate] \n"
+    "               [--save_points <json_array>] [--save_interval <int>] \n"
+    "               [--savedir <path>] \n"
     "REQUIRED \n"
-    "  cfg ............. file path of initial state JSON \n"
+    "  state ........... path to initial state JSON file \n"
     "  maxgen .......... generation limit, uint64, > 0 \n"
     "OPTIONAL \n"
-    "  name ............ name of simuation, defaults to <cfg> file name w/o extension \n"
-    "  imgfmt .......... rawPGM|plainPGM, default = rawPGM \n"
-    "  savefinalstate .. flag, guarantees final state is saved \n"
-    "  savepoints ...... specific generations to save, JSON unsigned number array, syntax -> [1,2,...] \n"
-    "  saveinterval .... uint64, > 0 \n"
-    "  savedir ......... where to emit saves \n"
+    "  name ............ string, name of simuation, defaults to --state file name w/o extension \n"
+    "  imgfmt .......... string, rawPGM|plainPGM, default=rawPGM \n"
+    "  savefinalstate .. flag, guarantees final state is saved, off by default \n"
+    "  savepoints ...... JSON uint64 array, specific generations to save \n"
+    "  saveinterval .... > 0 uint64 \n"
+    "  savedir ......... path, where save files (.json, .pgm) are emitted, default=cwd \n"
   ;
 }
 
@@ -82,35 +82,25 @@ bpo::options_description my_boost_options()
   return desc;
 }
 
-[[nodiscard]]
-time_point current_time()
-{
-  return std::chrono::high_resolution_clock::now();
-}
-
-[[nodiscard]]
-auto nanos_between(time_point const a, time_point const b)
-{
-  return std::chrono::duration_cast<std::chrono::nanoseconds>(b - a);
-}
-
 void update_ui(
   std::string const sim_name,
   u64 const generation_target,
   simulation::state const &state)
 {
   static usize ticks = 0;
-  time_point const start_time = current_time();
+  time_point_t const start_time = util::current_time();
 
   for (;;) {
-    time_point const time_now = current_time();
-    u64 const nanos_elapsed = nanos_between(start_time, time_now).count();
-    f64 const secs_elapsed = nanos_elapsed / 1'000'000'000.0;
-    u64 const gens_completed = state.generation;
-    f64 const mega_gens_completed = gens_completed / 1'000'000.0;
-    f64 const mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed, 0.0 + DBL_EPSILON);
-    f64 const percent_completion = ((gens_completed / static_cast<f64>(generation_target)) * 100.0);
-    u64 const gens_remaining = generation_target - gens_completed;
+    time_point const time_now = util::current_time();
+    u64 const
+      nanos_elapsed = util::nanos_between(start_time, time_now).count(),
+      gens_completed = state.generation,
+      gens_remaining = generation_target - gens_completed;
+    f64 const
+      secs_elapsed = nanos_elapsed / 1'000'000'000.0,
+      mega_gens_completed = gens_completed / 1'000'000.0,
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed, 0.0 + DBL_EPSILON),
+      percent_completion = ((gens_completed / static_cast<f64>(generation_target)) * 100.0);
     b8 const is_simulation_done = !state.can_step_forward(generation_target);
 
     // line 1, print at beginning and end
@@ -186,8 +176,9 @@ int main(int const argc, char const *const *const argv)
     die(exit_code::MISSING_REQUIRED_ARGUMENT);
   }
 
-  int const err_style = fore::RED | back::BLACK;
-  int const missing_arg_ec = static_cast<int>(exit_code::MISSING_REQUIRED_ARGUMENT);
+  int const
+    err_style = fore::RED | back::BLACK,
+    missing_arg_ec = static_cast<int>(exit_code::MISSING_REQUIRED_ARGUMENT);
 
   // parse command line args
   bpo::variables_map args;
@@ -199,8 +190,10 @@ int main(int const argc, char const *const *const argv)
   }
   bpo::notify(args);
 
-  std::string const cfg_path = get_required_arg<std::string>("cfg", args, missing_arg_ec);
-  std::string const sim_name = get_required_arg<std::string>("name", args, missing_arg_ec);
+  std::string const
+    cfg_path = get_required_arg<std::string>("cfg", args, missing_arg_ec),
+    sim_name = get_required_arg<std::string>("name", args, missing_arg_ec);
+
   u64 const generation_target = get_required_arg<u64>("maxgen", args, missing_arg_ec);
   if (generation_target == 0) {
     printf(err_style, "fatal: generation target must be > 0\n");
@@ -231,7 +224,7 @@ int main(int const argc, char const *const *const argv)
 
   try {
     state = simulation::parse_state(
-      util::extract_txt_file_contents(cfg_path.c_str()),
+      util::extract_txt_file_contents(cfg_path.c_str(), false),
       std::filesystem::current_path(),
       errors
     );
@@ -242,11 +235,10 @@ int main(int const argc, char const *const *const argv)
 
   if (!errors.empty()) {
     printf(err_style, "fatal: %zu state errors (--cfg)\n", errors.size());
-
     for (auto const &err : errors)
       printf(err_style, "  %s\n", err.c_str());
 
-    die(exit_code::BAD_CONFIG);
+    die(exit_code::BAD_STATE);
   }
 
   auto const save_points = [&args]() -> std::vector<u64> {

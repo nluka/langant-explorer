@@ -2,15 +2,18 @@
 #define UTIL_HPP
 
 #include <cstdint>
+#include <chrono>
 #include <fstream>
+#include <filesystem>
 #include <string>
 #include <vector>
 
 #include "primitives.hpp"
 
-namespace util {
-
+namespace util
+{
    typedef std::vector<std::string> strvec_t;
+   typedef std::chrono::steady_clock::time_point time_point_t;
 
    template <typename ExitCodeTy>
    [[noreturn]]
@@ -19,20 +22,32 @@ namespace util {
       std::exit(static_cast<int>(code));
    }
 
+   [[nodiscard]]
+   time_point_t current_time();
+
+   [[nodiscard]]
+   std::chrono::nanoseconds nanos_between(time_point_t a, time_point_t b);
+
+   [[nodiscard]]
    std::string make_str(char const *const fmt, ...);
 
-   template <typename Ty>
    // returns true if `val` is in range [min, max), false otherwise.
+   template <typename Ty>
+   [[nodiscard]]
    b8 in_range_incl_excl(Ty const val, Ty const min, Ty const max)
    {
       return val >= min && val < max;
    }
 
-   std::fstream open_file(char const *pathname, int flags);
-   std::string extract_txt_file_contents(char const *pathname);
+   [[nodiscard]]
+   std::fstream open_file(char const *path, int flags);
+
+   [[nodiscard]]
+   std::string extract_txt_file_contents(char const *path, bool const normalize_newlines);
 
    // Returns the size of a static (stack-allocated) C-style array at compile time.
    template <typename ElemTy, usize Length>
+   [[nodiscard]]
    consteval usize lengthof(ElemTy (&)[Length])
    {
       return Length;
@@ -42,6 +57,7 @@ namespace util {
    // "[json.exception.x.y] explanation" where x is a class name and y is a positive integer.
    // This function extracts the explanation component.
    template <typename Ty>
+   [[nodiscard]]
    char const *nlohmann_json_extract_sentence(Ty const &except)
    {
       auto const from_first_space = std::strchr(except.what(), ' ');

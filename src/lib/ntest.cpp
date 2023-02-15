@@ -630,7 +630,7 @@ void ntest::generate_report(char const *const name)
 
     ofs
       << "# " << name << "\n\n"
-      << ctime(&raw_time) << "\n\n"
+      << ctime(&raw_time) << "\n" // only 1 \n because ctime result has 1 already
       << total_failed << " failed\n\n"
       << total_passed << " passed\n\n"
     ;

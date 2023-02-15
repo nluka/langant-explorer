@@ -10,6 +10,7 @@ staging
 # files
 *.exe
 *.pdb
+*.log
 
 # gencfg
 langant-explorer/gencfg/*.json

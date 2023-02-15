@@ -32,7 +32,8 @@ int main()
       std::source_location const loc = std::source_location::current())
     {
       std::string const json_str = util::extract_txt_file_contents(
-        (std::string("parse/") + actual_pathname).c_str()
+        (std::string("parse/") + actual_pathname).c_str(),
+        true
       );
 
       strvec_t act_errors{};
@@ -361,8 +362,8 @@ int main()
         act_json_pathname = base + act_json_name_cstr;
 
       std::string const
-        exp_json_str = util::extract_txt_file_contents(exp_json_pathname.c_str()),
-        act_json_str = util::extract_txt_file_contents(act_json_pathname.c_str());
+        exp_json_str = util::extract_txt_file_contents(exp_json_pathname.c_str(), false),
+        act_json_str = util::extract_txt_file_contents(act_json_pathname.c_str(), false);
 
       json_t const
         exp_json = json_t::parse(exp_json_str),
@@ -380,8 +381,8 @@ int main()
       std::string const act_img_pathname = base + act_json["grid_state"].get<std::string>();
 
       std::string const
-        expected_img = util::extract_txt_file_contents((base + exp_img_name_cstr).c_str()),
-        actual_img = util::extract_txt_file_contents(act_img_pathname.c_str());
+        expected_img = util::extract_txt_file_contents((base + exp_img_name_cstr).c_str(), true),
+        actual_img = util::extract_txt_file_contents(act_img_pathname.c_str(), true);
 
       match = match && (expected_img == actual_img);
 
@@ -389,7 +390,7 @@ int main()
     };
 
     fs::path const save_dir = fs::current_path() / "run";
-    std::string const json_str = util::extract_txt_file_contents("run/RL-init.json");
+    std::string const json_str = util::extract_txt_file_contents("run/RL-init.json", false);
     strvec_t errors{};
     auto state = simulation::parse_state(json_str, save_dir, errors);
 

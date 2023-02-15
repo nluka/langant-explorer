@@ -26,37 +26,33 @@ using prgopt::get_optional_arg;
 
 enum class exit_code : int
 {
-  UNKNOWN_ERROR,
-  GENERIC_ERROR,
   SUCCESS = 0,
-  INVALID_ARGUMENT_SYNTAX,
   MISSING_REQUIRED_ARGUMENT,
+  INVALID_ARGUMENT_SYNTAX,
   BAD_ARGUMENT_VALUE,
-  FILE_NOT_FOUND,
-  FILE_OPEN_FAILED,
-  BAD_FILE,
-  BAD_CONFIG,
 };
 
 char const *usage_msg()
 {
   return
+    "\n"
     "USAGE \n"
-    "  gencfg <count> <minlen> <maxlen> <gw> <gh> <gs> <ac> <ar> \n"
-    "  [td] [ao] [outdir] \n"
+    "  gencfg --count <cnt> --minlen <len> --maxlen <len> \n"
+    "         --gw <width> --gh <height> --gs <state> \n"
+    "         [option <value>] \n"
     "REQUIRED \n"
-    "  count ..... number of configurations to generate \n"
-    "  minlen .... minimum ruleset length, inclusive \n"
-    "  maxlen .... maximum ruleset length, inclusive \n"
-    "  gw ........ grid width, [1, 65535] \n"
-    "  gh ........ grid height, [1, 65535] \n"
-    "  gs ........ grid state \n"
-    "  ac ........ initial ant row, [0, gw) \n"
-    "  ar ........ initial ant row, [0, gh) \n"
+    "  --count ..... > 0 int, number of initial states to generate \n"
+    "  --minlen .... [2, 255] int, minimum ruleset length, inclusive \n"
+    "  --maxlen .... [minlen, 255] int, maximum ruleset length, inclusive \n"
+    "  --gw ........ [1, 65535] int, grid width \n"
+    "  --gh ........ [1, 65535] int, grid height \n"
+    "  --gs ........ grid state string \n"
+    "  --ac ........ [0, gw) int, ant column \n"
+    "  --ar ........ [0, gh) int, ant row \n"
     "OPTIONAL \n"
-    "  outdir .... where to emit generated JSON files, default=cwd \n"
-    "  td ........ string of possible turn direction values, default=LNR \n"
-    "  ao ........ string of possible ant orientation values, default=NESW \n"
+    "  --outdir .... path, where JSON files are emitted, default=cwd \n"
+    "  --td ........ string, possible turn direction values, default=LNR \n"
+    "  --ao ........ string, possible ant orientation values, default=NESW \n"
   ;
 }
 
@@ -203,9 +199,20 @@ int main(int const argc, char const *const *const argv)
     }
 
     if (out_dir != ".") {
-      if (!fs::exists(out_dir))
-        add_err(make_str("--outdir '%s' not found", out_dir.c_str()));
-      else if (!fs::is_directory(out_dir))
+      if (!fs::exists(out_dir)) {
+        printf(fore::YELLOW | back::BLACK, "directory '%s' not found, would you like to create it? [Y/n] ", out_dir.c_str());
+        std::string input;
+        std::cin >> input;
+        if (input.starts_with("Y")) {
+          try {
+            fs::create_directories(out_dir);
+          } catch (fs::filesystem_error const &except) {
+            printf(err_style, "unable to create directory: %s\n", except.what());
+          }
+        } else {
+          add_err(make_str("--outdir '%s' not found", out_dir.c_str()));
+        }
+      } else if (!fs::is_directory(out_dir))
         add_err(make_str("--outdir '%s' is not a directory", out_dir.c_str()));
     }
 
@@ -234,9 +241,9 @@ int main(int const argc, char const *const *const argv)
 
   fs::path file_pathname = out_dir;
   file_pathname /= "blank.json";
-  char buffer[256 + 1] { 0 };
-  json_t cfg_json, temp_json;
-  json_t::array_t rules_json;
+
+  json_t cfg_json;
+  // non-randomized state values:
   cfg_json["generation"] = 0;
   cfg_json["last_step_result"] = simulation::step_result::to_string(simulation::step_result::NIL);
   cfg_json["grid_width"] = grid_width;
@@ -248,26 +255,38 @@ int main(int const argc, char const *const *const argv)
   for (usize i = 0; i < static_cast<usize>(count); ++i) {
     {
       usize const rand_idx = dist_ant_orient(rand_num_gener);
-      char const rand_ant_orient_str[] { ant_orient_values[rand_idx], '\0' };
-      cfg_json["ant_orientation"] = rand_ant_orient_str;
+      char const rand_ant_orient_ch = ant_orient_values[rand_idx];
+      char const *orient_str = nullptr;
+      switch (toupper(rand_ant_orient_ch)) {
+        case 'N': orient_str = "north"; break;
+        case 'E': orient_str = "east"; break;
+        case 'S': orient_str = "south"; break;
+        case 'W': orient_str = "west"; break;
+      }
+      cfg_json["ant_orientation"] = orient_str;
     }
 
     usize const rules_len = static_cast<usize>(dist_rules_len(rand_num_gener));
-    // fill buffer with `len` random turn directions
+    char buffer[256 + 1] { 0 };
+
+    // fill `buffer` with `rules_len` random turn directions
     for (usize j = 0; j < rules_len; ++j) {
       usize const rand_idx = dist_turn_dir(rand_num_gener);
-      char const rand_turn_dir[] { turn_dir_values[rand_idx], '\0' };
-      buffer[j] = *rand_turn_dir;
+      char const rand_turn_dir = turn_dir_values[rand_idx];
+      buffer[j] = rand_turn_dir;
     }
     buffer[rules_len] = '\0';
 
-    auto const add_rule = [buffer, &temp_json, &rules_json](
+    json_t::array_t rules_json;
+
+    auto const add_rule = [buffer, &rules_json](
       usize const shade,
       usize const replacement,
       char const turn_dir
     ) {
       char const turn_dir_str[] { turn_dir, '\0' };
 
+      json_t temp_json;
       temp_json["on"] = shade;
       temp_json["replace_with"] = replacement;
       temp_json["turn"] = turn_dir_str;
@@ -280,9 +299,6 @@ int main(int const argc, char const *const *const argv)
     add_rule(rules_len - 1, 0, buffer[rules_len - 1]);
 
     cfg_json["rules"] = rules_json;
-
-    // std::cout << make_str("len=%zu, %s\n", rules_len, buffer);
-    // std::cout << cfg_json.dump(2) << '\n';
 
     file_pathname.replace_filename(buffer).replace_extension(".json");
     std::fstream file;
