@@ -104,8 +104,8 @@ int main(int const argc, char const *const *const argv)
   auto const grid_width = get_required_arg<i64>("gw", args, missing_arg_ec);
   auto const grid_height = get_required_arg<i64>("gh", args, missing_arg_ec);
   auto const grid_state = get_required_arg<string>("gs", args, missing_arg_ec);
-  auto const ant_row = get_required_arg<i64>("ac", args, missing_arg_ec);
-  auto const ant_col = get_required_arg<i64>("ar", args, missing_arg_ec);
+  auto const ant_col = get_required_arg<i64>("ac", args, missing_arg_ec);
+  auto const ant_row = get_required_arg<i64>("ar", args, missing_arg_ec);
 
   auto const turn_dir_values = get_optional_arg<string>("td", args).value_or("LNR");
   auto const ant_orient_values = get_optional_arg<string>("ao", args).value_or("NESW");
