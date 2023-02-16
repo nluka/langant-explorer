@@ -2,6 +2,8 @@
 
 A high-performance toolchain for finding interesting [Langton's Ant](https://en.wikipedia.org/wiki/Langton%27s_ant) outcomes.
 
+<img src="resources/preview.png" />
+
 The toolchain consists of 4 programs:
 - [gencfg](#gencfg)
   - Generates initial states within given constraints for simulation by `simulate_many` or `simulate_one`
@@ -80,11 +82,7 @@ Development starting soon.
 }
 ```
 
-### rules
-
-Must form a closed chain.
-
-For example:
+Rules must form a closed chain. For example:
 
 ```json
 // ruleset 1, valid
