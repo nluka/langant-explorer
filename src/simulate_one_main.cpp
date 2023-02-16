@@ -46,10 +46,9 @@ char const *usage_msg()
 {
   return
     "USAGE \n"
-    "  simulate_one --state <path> [--maxgen <int>] \n"
-    "               [--name <name>] [--imgfmt <fmt>] [--savefinalstate] \n"
-    "               [--save_points <json_array>] [--save_interval <int>] \n"
-    "               [--savedir <path>] \n"
+    "  simulate_one --cfg <path> --maxgen <int> [--name <name>] \n"
+    "               [--imgfmt <fmt>] [--savefinalstate] [--save_points <json_array>] \n"
+    "               [--save_interval <int>] [--savedir <path>] \n"
     "REQUIRED \n"
     "  state ........... path to initial state JSON file \n"
     "  maxgen .......... generation limit, uint64, > 0 \n"
