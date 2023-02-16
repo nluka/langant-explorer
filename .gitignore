@@ -1,7 +1,27 @@
 # directories
 .vscode
-ant-simulator-lite-vs/.vs
+.vs
+*.user
 bin
-intermediates
-logs
+interm*
 out
+staging
+
+# files
+*.exe
+*.pdb
+*.log
+
+# gencfg
+langant-explorer/gencfg/*.json
+langant-explorer/gencfg/*.pgm
+
+# simulate
+langant-explorer/simulate/*.json
+langant-explorer/simulate/*.pgm
+
+# testing
+langant-explorer/testing/report.md
+langant-explorer/testing/*.expected
+langant-explorer/testing/*.actual
+langant-explorer/testing/run/*.actual*

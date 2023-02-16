@@ -1,0 +1,13 @@
+{
+  "generation": "abc",
+  "last_step_result": 123,
+  "grid_width": {},
+  "grid_height": [1, 2, 3],
+  "grid_state": true,
+  "ant_col": null,
+  "ant_row": "abc",
+  "ant_orientation": 123,
+  "rules": {},
+  "save_interval": [1, 2, 3],
+  "save_points": false
+}

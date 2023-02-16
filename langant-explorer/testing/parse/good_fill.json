@@ -1,0 +1,16 @@
+{
+  "generation": 0,
+  "last_step_result": "nil",
+  "grid_width": 5,
+  "grid_height": 6,
+  "grid_state": "fill 0",
+  "ant_col": 2,
+  "ant_row": 3,
+  "ant_orientation": "west",
+  "rules": [
+    { "on": 0, "replace_with": 1, "turn": "L" },
+    { "on": 1, "replace_with": 0, "turn": "R" }
+  ],
+  "save_interval": 10,
+  "save_points": [15]
+}
