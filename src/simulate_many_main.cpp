@@ -33,7 +33,6 @@ using util::die;
 
 static simulation::env_config s_cfg{};
 
-// bpo::options_description options_descrip();
 std::string usage_msg();
 
 int main(int const argc, char const *const *const argv)
@@ -49,25 +48,6 @@ int main(int const argc, char const *const *const argv)
   } catch (...) {
     die("unable to parse <num_threads>");
   }
-
-  // {
-  //   bpo::variables_map var_map;
-  //   try {
-  //     bpo::store(bpo::parse_command_line(argc, argv, options_descrip()), var_map);
-  //   } catch (std::exception const &err) {
-  //     die(err.what());
-  //   }
-  //   bpo::notify(var_map);
-
-  //   if (var_map.count(OPT_THREADS_FULL) == 0) {
-  //   } else {
-  //     try {
-  //       num_threads = var_map.at(OPT_THREADS_FULL).as<usize>();
-  //     } catch (...) {
-  //       die("(--" OPT_THREADS_FULL ", -" OPT_THREADS_SHORT ") unable to parse value");
-  //     }
-  //   }
-  // }
 
   {
     std::variant<
@@ -86,7 +66,7 @@ int main(int const argc, char const *const *const argv)
 
     // some additional validation specific to this program
     if (!fs::is_directory(s_cfg.state_path)) {
-      die("(--" SIM_OPT_STATEPATH_SHORT ", -" SIM_OPT_STATEPATH_SHORT ") path is not a directory");
+      die("(--" SIM_OPT_STATEPATH_FULL ", -" SIM_OPT_STATEPATH_SHORT ") path is not a directory");
     }
   }
 
@@ -99,7 +79,7 @@ int main(int const argc, char const *const *const argv)
   );
 
   if (state_files.empty()) {
-    die("supplied --states directory has no JSON files");
+    die("(--" SIM_OPT_STATEPATH_FULL ", -" SIM_OPT_STATEPATH_SHORT ") directory contains no .json files");
   }
 
   struct named_simulation
@@ -158,12 +138,9 @@ int main(int const argc, char const *const *const argv)
   };
 
   BS::thread_pool_light t_pool(num_threads);
-
   for (auto &sim : simulations) {
-    // simulation_task(sim);
     t_pool.push_task(simulation_task, sim);
   }
-
   t_pool.wait_for_tasks();
 
   return 0;
@@ -180,9 +157,6 @@ std::string usage_msg()
     "\n"
   ;
 
-  // options_descrip().print(msg, 6);
-  // msg << '\n';
-
   simulation::env_options_descrip(
     "path to directory containing initial state .json files"
   ).print(msg, 6);
@@ -195,14 +169,3 @@ std::string usage_msg()
 
   return msg.str();
 }
-
-// bpo::options_description options_descrip()
-// {
-//   bpo::options_description desc("GENERAL OPTIONS");
-
-//   desc.add_options()
-//     (OPT_THREADS_FULL "," OPT_THREADS_SHORT, bpo::value<usize>(), "size of thread pool, > 0 uint64")
-//   ;
-
-//   return desc;
-// }

@@ -55,8 +55,8 @@ int main(int const argc, char const *const *const argv)
     s_cfg = std::move(std::get<simulation::env_config>(extract_res));
 
     // some additional validation specific to this program
-    if (!fs::is_directory(s_cfg.state_path)) {
-      die("(--" SIM_OPT_STATEPATH_SHORT ", -" SIM_OPT_STATEPATH_SHORT ") path is not a file");
+    if (!fs::is_regular_file(s_cfg.state_path)) {
+      die("(--" SIM_OPT_STATEPATH_FULL ", -" SIM_OPT_STATEPATH_SHORT ") path is not a file");
     }
   }
 

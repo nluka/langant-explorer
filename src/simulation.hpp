@@ -121,6 +121,8 @@ namespace simulation
 
   step_result::value_type attempt_step_forward(state &state);
 
+  u8 deduce_maxval_from_rules(rules_t const &rules);
+
   void save_state(
     state const &state,
     const char *name,

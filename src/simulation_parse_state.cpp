@@ -375,20 +375,14 @@ std::variant<simulation::state, errors_t> simulation::parse_state(
   } catch (json_t::basic_json::parse_error const &except) {
     add_err(make_str("%s", util::nlohmann_json_extract_sentence(except)));
     return errors;
-    // retval.emplace<1>(errors);
-    // return retval;
   } catch (...) {
     add_err("unexpected error whilst trying to parse simulation");
     return errors;
-    // retval.emplace<1>(errors);
-    // return retval;
   }
 
   if (!json.is_object()) {
     add_err("parsed simulation is not a JSON object");
     return errors;
-    // retval.emplace<1>(errors);
-    // return retval;
   }
 
   {
@@ -417,8 +411,6 @@ std::variant<simulation::state, errors_t> simulation::parse_state(
     if (!good) {
       // if any properties not set, stop parsing
       return errors;
-      // retval.emplace<1>(errors);
-      // return state;
     }
   }
 
@@ -493,10 +485,7 @@ std::variant<simulation::state, errors_t> simulation::parse_state(
 
   if (errors.empty()) {
     return state;
-    // retval.emplace<0>(state);
   } else {
     return errors;
-    // retval.emplace<1>(errors);
   }
-  // return retval;
 }

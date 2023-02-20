@@ -92,6 +92,8 @@ simulation::run_result simulation::run(
   std::sort(save_points.begin(), save_points.end(), std::greater<u64>());
   save_points = helpers::remove_duplicates_sorted(save_points);
 
+  state.maxval = deduce_maxval_from_rules(state.rules);
+
   u64 last_saved_gen = UINT64_MAX;
   u64 const generation_limit = generation_target == 0 ? (UINT64_MAX - 1) : generation_target;
 
@@ -156,6 +158,7 @@ simulation::run_result simulation::run(
         ++result.num_save_points_failed;
       }
       last_saved_gen = state.generation;
+
     } else { // stop_reason::GENERATION_LIMIT
       result.code = run_result::code::REACHED_GENERATION_LIMIT;
       goto done;
@@ -193,7 +196,7 @@ simulation::step_result::value_type simulation::attempt_step_forward(simulation:
   // update current cell shade
   state.grid[curr_cell_idx] = curr_cell_rule.replacement_shade;
 
-#if 1
+#if 0
 
   i32 next_col, next_row;
   if (state.ant_orientation == orientation::NORTH) {
@@ -220,7 +223,7 @@ simulation::step_result::value_type simulation::attempt_step_forward(simulation:
   else
     next_col = state.ant_col;
 
-  int next_row;
+  i32 next_row;
   if (state.ant_orientation == orientation::NORTH)
     next_row = state.ant_row - 1;
   else if (state.ant_orientation == orientation::SOUTH)

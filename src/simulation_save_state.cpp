@@ -6,19 +6,6 @@ namespace fs = std::filesystem;
 using json_t = nlohmann::json;
 using util::make_str;
 
-static
-u8 deduce_maxval(std::array<simulation::rule, 256> rules)
-{
-  u8 maxval = 0;
-
-  for (usize i = 1; i < rules.size(); ++i) {
-    if (rules[i].turn_dir != simulation::turn_direction::NIL)
-      maxval = static_cast<u8>(i);
-  }
-
-  return maxval;
-}
-
 void simulation::save_state(
   simulation::state const &state,
   const char *const name,
@@ -57,7 +44,7 @@ void simulation::save_state(
     img_props.set_format(fmt);
     img_props.set_width(static_cast<u16>(state.grid_width));
     img_props.set_height(static_cast<u16>(state.grid_height));
-    img_props.set_maxval(deduce_maxval(state.rules));
+    img_props.set_maxval(state.maxval);
 
     p.replace_extension(".pgm");
     std::string const img_path_str = p.string();
