@@ -1,0 +1,14 @@
+{
+  "generation": -1,
+  "last_step_result": "",
+
+  "grid_width": -1,
+  "grid_height": -1,
+  "grid_state": "",
+
+  "ant_col": -1,
+  "ant_row": -1,
+  "ant_orientation": "",
+
+  "rules": [{ "on": -1, "replace_with": 0, "turn": "L" }]
+}

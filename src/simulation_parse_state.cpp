@@ -11,8 +11,8 @@
 
 namespace fs = std::filesystem;
 using json_t = nlohmann::json;
+using util::errors_t;
 using util::make_str;
-using util::strvec_t;
 
 template <typename PropTy>
 b8 try_to_parse_and_set_uint(
@@ -167,19 +167,22 @@ b8 try_to_parse_and_set_rule(
   try {
     std::string const turn = rule["turn"].get<std::string>();
 
-    if (turn == "L") {
-      turn_dir = simulation::turn_direction::LEFT;
-    } else if (turn == "N") {
-      turn_dir = simulation::turn_direction::NO_CHANGE;
-    } else if (turn == "R") {
-      turn_dir = simulation::turn_direction::RIGHT;
-    } else {
-      add_err(make_str("invalid `rules` -> [%zu].turn is not one of L|N|R", index));
+    if (turn.empty()) {
+      add_err(make_str("invalid `rules` -> [%zu].turn is empty", index));
       return false;
     }
+    if (turn.length() > 1) {
+      add_err(make_str("invalid `rules` -> [%zu].turn not recognized", index));
+      return false;
+    }
+
+    turn_dir = simulation::turn_direction::from_char(turn.front());
+
   } catch (json_t::basic_json::type_error const &except) {
-    add_err(make_str(
-      "invalid `rules` -> [%zu].turn %s", index, util::nlohmann_json_extract_sentence(except)));
+    add_err(make_str("invalid `rules` -> [%zu].turn %s", index, util::nlohmann_json_extract_sentence(except)));
+    return false;
+  } catch (std::runtime_error const &) {
+    add_err(make_str("invalid `rules` -> [%zu].turn not recognized", index));
     return false;
   }
 
@@ -259,7 +262,7 @@ b8 try_to_parse_and_set_grid_state(
   fs::path const &dir,
   simulation::state &state,
   std::function<void(std::string &&)> const &add_err,
-  strvec_t const &errors)
+  errors_t const &errors)
 {
   std::string grid_state;
 
@@ -354,12 +357,13 @@ b8 try_to_parse_and_set_grid_state(
   }
 }
 
-simulation::state simulation::parse_state(
+std::variant<simulation::state, errors_t> simulation::parse_state(
   std::string const &str,
-  fs::path const &dir,
-  strvec_t &errors)
+  fs::path const &dir)
 {
   simulation::state state{};
+  errors_t errors{};
+  std::variant<simulation::state, errors_t> retval;
 
   auto const add_err = [&errors](std::string &&err) {
     errors.emplace_back(err);
@@ -370,15 +374,21 @@ simulation::state simulation::parse_state(
     json = json_t::parse(str);
   } catch (json_t::basic_json::parse_error const &except) {
     add_err(make_str("%s", util::nlohmann_json_extract_sentence(except)));
-    return state;
+    return errors;
+    // retval.emplace<1>(errors);
+    // return retval;
   } catch (...) {
     add_err("unexpected error whilst trying to parse simulation");
-    return state;
+    return errors;
+    // retval.emplace<1>(errors);
+    // return retval;
   }
 
   if (!json.is_object()) {
     add_err("parsed simulation is not a JSON object");
-    return state;
+    return errors;
+    // retval.emplace<1>(errors);
+    // return retval;
   }
 
   {
@@ -406,7 +416,9 @@ simulation::state simulation::parse_state(
 
     if (!good) {
       // if any properties not set, stop parsing
-      return state;
+      return errors;
+      // retval.emplace<1>(errors);
+      // return state;
     }
   }
 
@@ -448,9 +460,9 @@ simulation::state simulation::parse_state(
     json,
     "last_step_result",
     {
-      { "nil", simulation::step_result::NIL },
-      { "success", simulation::step_result::SUCCESS },
-      { "failed_at_boundary", simulation::step_result::HIT_EDGE },
+      { simulation::step_result::to_string(simulation::step_result::NIL), simulation::step_result::NIL },
+      { simulation::step_result::to_string(simulation::step_result::SUCCESS), simulation::step_result::SUCCESS },
+      { simulation::step_result::to_string(simulation::step_result::HIT_EDGE), simulation::step_result::HIT_EDGE },
     },
     state.last_step_res,
     add_err
@@ -462,10 +474,10 @@ simulation::state simulation::parse_state(
     json,
     "ant_orientation",
     {
-      { "north", simulation::orientation::NORTH },
-      { "east", simulation::orientation::EAST },
-      { "south", simulation::orientation::SOUTH },
-      { "west", simulation::orientation::WEST },
+      { simulation::orientation::to_string(simulation::orientation::NORTH), simulation::orientation::NORTH },
+      { simulation::orientation::to_string(simulation::orientation::EAST), simulation::orientation::EAST },
+      { simulation::orientation::to_string(simulation::orientation::SOUTH), simulation::orientation::SOUTH },
+      { simulation::orientation::to_string(simulation::orientation::WEST), simulation::orientation::WEST },
     },
     state.ant_orientation,
     add_err
@@ -479,5 +491,12 @@ simulation::state simulation::parse_state(
     json, dir, state, add_err, errors
   );
 
-  return state;
+  if (errors.empty()) {
+    return state;
+    // retval.emplace<0>(state);
+  } else {
+    return errors;
+    // retval.emplace<1>(errors);
+  }
+  // return retval;
 }

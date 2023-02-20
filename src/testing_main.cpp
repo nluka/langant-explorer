@@ -1,12 +1,13 @@
 #include "lib/json.hpp"
 #include "lib/ntest.hpp"
+#include "lib/regexglob.hpp"
 
 #include "util.hpp"
 #include "simulation.hpp"
 
 namespace fs = std::filesystem;
 using json_t = nlohmann::json;
-using util::strvec_t;
+using util::errors_t;
 
 simulation::rules_t generate_rules(
   std::vector<std::pair<
@@ -26,74 +27,63 @@ int main()
 
   {
     auto const assert_parse = [](
-      simulation::state const &exp_state,
-      strvec_t const &exp_errors,
-      char const *const actual_pathname,
+      std::variant<simulation::state, errors_t> const &expected,
+      char const *const state_path,
       std::source_location const loc = std::source_location::current())
     {
       std::string const json_str = util::extract_txt_file_contents(
-        (std::string("parse/") + actual_pathname).c_str(),
+        std::string("parse/") + state_path,
         true
       );
 
-      strvec_t act_errors{};
-
-      auto const act_state = simulation::parse_state(
-        json_str, (std::filesystem::current_path() / "parse"), act_errors
+      auto const parse_res = simulation::parse_state(
+        json_str, (std::filesystem::current_path() / "parse")
       );
 
-      ntest::assert_uint64(exp_state.generation, act_state.generation, loc);
-      ntest::assert_int32(exp_state.grid_width, act_state.grid_width, loc);
-      ntest::assert_int32(exp_state.grid_height, act_state.grid_height, loc);
-      ntest::assert_int32(exp_state.ant_col, act_state.ant_col, loc);
-      ntest::assert_int32(exp_state.ant_row, act_state.ant_row, loc);
-      ntest::assert_int8(exp_state.ant_orientation, act_state.ant_orientation, loc);
-      ntest::assert_stdarr(exp_state.rules, act_state.rules, loc);
-      ntest::assert_arr(
-        exp_state.grid,
-        exp_state.grid == nullptr ? 0 : static_cast<usize>(exp_state.grid_width) * exp_state.grid_height,
-        act_state.grid,
-        act_state.grid == nullptr ? 0 : static_cast<usize>(act_state.grid_width) * act_state.grid_height,
-        loc
-      );
-      ntest::assert_stdvec(exp_errors, act_errors, loc);
+      if (std::holds_alternative<simulation::state>(expected)) {
+        // we expect the parse to have been successful...
+        assert(std::holds_alternative<simulation::state>(parse_res));
+
+        auto const &expected_state = std::get<simulation::state>(expected);
+        auto const &actual_state = std::get<simulation::state>(parse_res);
+
+        ntest::assert_uint64(expected_state.generation, actual_state.generation, loc);
+        ntest::assert_int32(expected_state.grid_width, actual_state.grid_width, loc);
+        ntest::assert_int32(expected_state.grid_height, actual_state.grid_height, loc);
+        ntest::assert_int32(expected_state.ant_col, actual_state.ant_col, loc);
+        ntest::assert_int32(expected_state.ant_row, actual_state.ant_row, loc);
+        ntest::assert_int8(expected_state.ant_orientation, actual_state.ant_orientation, loc);
+        ntest::assert_stdarr(expected_state.rules, actual_state.rules, loc);
+        ntest::assert_arr(
+          expected_state.grid,
+          (
+            expected_state.grid == nullptr ? 0
+            : static_cast<usize>(expected_state.grid_width) * expected_state.grid_height
+          ),
+          actual_state.grid,
+          (
+            actual_state.grid == nullptr ? 0
+            : static_cast<usize>(actual_state.grid_width) * actual_state.grid_height
+          ),
+          loc
+        );
+
+      } else {
+        // we expect the parse to NOT have been successful...
+        assert(std::holds_alternative<errors_t>(parse_res));
+
+        errors_t const
+          &expected_errors = std::get<errors_t>(expected),
+          &actual_errors = std::get<errors_t>(parse_res);
+
+        ntest::assert_stdvec(expected_errors, actual_errors, loc);
+      }
     };
 
-    assert_parse(
-      {}, // state
-      { // errors
-        "invalid `generation` -> type must be number, but is string",
-        "invalid `grid_width` -> type must be number, but is object",
-        "invalid `grid_height` -> type must be number, but is array",
-        "invalid `ant_col` -> type must be number, but is null",
-        "invalid `ant_row` -> type must be number, but is string",
-        "invalid `last_step_result` -> type must be string, but is number",
-        "invalid `ant_orientation` -> type must be string, but is number",
-        "invalid `rules` -> type must be array, but is object",
-        "invalid `grid_state` -> type must be string, but is boolean",
-      },
-      "type_errors_0.json"
-    );
+    typedef std::variant<simulation::state, errors_t> state_or_errors_t;
 
-    assert_parse(
-      {}, // state
-      { // errors
-        "invalid `generation` -> type must be number, but is null",
-        "invalid `grid_width` -> type must be number, but is array",
-        "invalid `grid_height` -> type must be number, but is object",
-        "invalid `ant_col` -> type must be number, but is string",
-        "invalid `ant_row` -> type must be number, but is null",
-        "invalid `last_step_result` -> type must be string, but is boolean",
-        "invalid `ant_orientation` -> type must be string, but is boolean",
-        "invalid `rules` -> not an array of objects",
-        "invalid `grid_state` -> type must be string, but is number",
-      },
-      "type_errors_1.json"
-    );
-
-    assert_parse(
-      {}, // state
-      { // errors
+    {
+      errors_t expected_errors {
         "`generation` not set",
         "`last_step_result` not set",
         "`grid_width` not set",
@@ -103,316 +93,182 @@ int main()
         "`ant_row` not set",
         "`ant_orientation` not set",
         "`rules` not set",
-      },
-      "occurence_errors.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "occurence_errors.json");
+    }
 
-    assert_parse(
-      {}, // state
-      { // errors
+    {
+      errors_t expected_errors {
+        "invalid `generation` -> type must be number, but is string",
+        "invalid `grid_width` -> type must be number, but is object",
+        "invalid `grid_height` -> type must be number, but is array",
+        "invalid `ant_col` -> type must be number, but is null",
+        "invalid `ant_row` -> type must be number, but is string",
+        "invalid `last_step_result` -> type must be string, but is number",
+        "invalid `ant_orientation` -> type must be string, but is number",
+        "invalid `rules` -> type must be array, but is object",
+        "invalid `grid_state` -> type must be string, but is boolean",
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "type_errors_0.json");
+    }
+
+    {
+      errors_t expected_errors {
+        "invalid `generation` -> type must be number, but is null",
+        "invalid `grid_width` -> type must be number, but is array",
+        "invalid `grid_height` -> type must be number, but is object",
+        "invalid `ant_col` -> type must be number, but is string",
+        "invalid `ant_row` -> type must be number, but is null",
+        "invalid `last_step_result` -> type must be string, but is boolean",
+        "invalid `ant_orientation` -> type must be string, but is boolean",
+        "invalid `rules` -> not an array of objects",
+        "invalid `grid_state` -> type must be string, but is number",
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "type_errors_1.json");
+    }
+
+    {
+      errors_t expected_errors {
         "invalid `generation` -> not an unsigned integer",
         "invalid `grid_width` -> not an unsigned integer",
         "invalid `grid_height` -> not an unsigned integer",
         "invalid `ant_col` -> not an unsigned integer",
         "invalid `ant_row` -> not an unsigned integer",
-        "invalid `last_step_result` -> not one of nil|success|failed_at_boundary",
-        "invalid `ant_orientation` -> not one of north|east|south|west",
+        "invalid `last_step_result` -> not one of nil|success|hit_edge",
+        "invalid `ant_orientation` -> not one of N|E|S|W",
         "invalid `rules` -> [0].on is not an unsigned integer",
         "invalid `grid_state` -> cannot be blank",
-      },
-      "value_errors_0.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_0.json");
+    }
 
-    assert_parse(
-      {}, // state
-      { // errors
+    {
+      errors_t expected_errors {
         "invalid `grid_width` -> cannot be > 65535",
         "invalid `grid_height` -> cannot be > 65535",
         "invalid `ant_col` -> cannot be > 65535",
         "invalid `ant_row` -> cannot be > 65535",
-        "invalid `last_step_result` -> not one of nil|success|failed_at_boundary",
-        "invalid `ant_orientation` -> not one of north|east|south|west",
+        "invalid `last_step_result` -> not one of nil|success|hit_edge",
+        "invalid `ant_orientation` -> not one of N|E|S|W",
         "invalid `rules` -> [0].on is > 255",
         "invalid `grid_state` -> fill shade cannot be negative",
-      },
-      "value_errors_1.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_1.json");
+    }
 
-    assert_parse(
-      { // state
-        18446744073709551615, // generation
-        65535, // grid_width
-        65535, // grid_height
-        65535, // ant_col
-        65535, // ant_row
-        nullptr, // grid
-        simulation::orientation::NORTH,
-        simulation::step_result::NIL,
-        {}, // rules
-      },
-      { // errors
+    {
+      errors_t expected_errors {
         "invalid `ant_col` -> not in grid x-axis [0, 65535)",
         "invalid `ant_row` -> not in grid y-axis [0, 65535)",
         "invalid `rules` -> [0].replace_with is not an unsigned integer",
         "invalid `grid_state` -> fill shade must be <= 255",
-      },
-      "value_errors_2.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_2.json");
+    }
 
-    assert_parse(
-      { // state
-        10, // generation
-        0, // grid_width
-        0, // grid_height
-        0, // ant_col
-        0, // ant_row
-        nullptr, // grid
-        simulation::orientation::EAST,
-        simulation::step_result::SUCCESS,
-        {}, // rules
-      },
-      { // errors
+    {
+      errors_t expected_errors {
         "invalid `grid_width` -> not in range [1, 65535]",
         "invalid `grid_height` -> not in range [1, 65535]",
         "invalid `rules` -> [0].replace_with is > 255",
         "invalid `grid_state` -> file \"non_existent_file\" does not exist",
-      },
-      "value_errors_3.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_3.json");
+    }
 
-    assert_parse(
-      { // state
-        20, // generation
-        1, // grid_width
-        1, // grid_height
-        0, // ant_col
-        0, // ant_row
-        nullptr, // grid
-        simulation::orientation::SOUTH,
-        simulation::step_result::HIT_EDGE,
-        {}, // rules
-      },
-      { // errors
-        "invalid `rules` -> [0].turn is not one of L|N|R",
+    {
+      errors_t expected_errors {
+        "invalid `rules` -> [0].turn not recognized",
         "invalid `grid_state` -> file \"fake_file\" does not exist",
-      },
-      "value_errors_4.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_4.json");
+    }
 
-    assert_parse(
-      { // state
-        20, // generation
-        300, // grid_width
-        200, // grid_height
-        3, // ant_col
-        6, // ant_row
-        nullptr, // grid
-        simulation::orientation::WEST,
-        simulation::step_result::HIT_EDGE,
-        {}, // rules
-      },
-      { // errors
-        "invalid `rules` -> [0].turn is not one of L|N|R"
-      },
-      "value_errors_5.json"
-    );
+    {
+      errors_t expected_errors {
+        "invalid `rules` -> [0].turn is empty"
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_5.json");
+    }
 
-    assert_parse(
-      { // state
-        0, // generation
-        5, // grid_width
-        6, // grid_height
-        0, // ant_col
-        0, // ant_row
-        nullptr, // grid
-        simulation::orientation::EAST,
-        simulation::step_result::NIL,
-        {}, // rules
-      },
-      { // errors
+    {
+      errors_t expected_errors {
         "invalid `rules` -> fewer than 2 defined"
-      },
-      "value_errors_6.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_6.json");
+    }
 
-    assert_parse(
-      { // state
-        0, // generation
-        5, // grid_width
-        6, // grid_height
-        0, // ant_col
-        0, // ant_row
-        nullptr, // grid
-        simulation::orientation::EAST,
-        simulation::step_result::NIL,
-        {}, // rules
-      },
-      { // errors
+    {
+      errors_t expected_errors {
         "invalid `rules` -> don't form a closed chain",
-      },
-      "value_errors_7.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_7.json");
+    }
 
-    assert_parse(
-      { // state
-        0, // generation
-        5, // grid_width
-        6, // grid_height
-        0, // ant_col
-        0, // ant_row
-        nullptr, // grid
-        simulation::orientation::EAST,
-        simulation::step_result::NIL,
-        generate_rules({
-          // 0->1->2
-          { 0, { 1, simulation::turn_direction::LEFT } },
-          { 1, { 0, simulation::turn_direction::LEFT } },
-        }),
-      },
-      { // errors
+    {
+      errors_t expected_errors {
         "invalid `grid_state` -> fill shade has no governing rule",
-      },
-      "value_errors_8.json"
-    );
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_8.json");
+    }
 
-    assert_parse(
-      { // state
-        0, // generation
-        5, // grid_width
-        6, // grid_height
-        0, // ant_col
-        0, // ant_row
-        nullptr, // grid
-        simulation::orientation::EAST,
-        simulation::step_result::NIL,
-        {}, // rules
-      },
-      { // errors
-        "invalid `rules` -> don't form a closed chain",
-      },
-      "value_errors_9.json"
-    );
+    {
+      errors_t expected_errors {
+        "invalid `rules` -> don't form a closed chain"
+      };
+      assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_9.json");
+    }
 
     {
       u8 grid[5 * 6];
       std::fill_n(grid, 5 * 6, 0ui8);
 
-      assert_parse(
-        { // state
-          0, // generation
-          5, // grid_width
-          6, // grid_height
-          2, // ant_col
-          3, // ant_row
-          grid,
-          simulation::orientation::WEST,
-          simulation::step_result::NIL,
-          generate_rules({
-            // 0->1->2
-            { 0, { 1, simulation::turn_direction::LEFT } },
-            { 1, { 0, simulation::turn_direction::RIGHT } },
-          }),
-        },
-        {}, // errors
-        "good_fill.json"
-      );
+      simulation::state expected_state {
+        0, // generation
+        5, // grid_width
+        6, // grid_height
+        2, // ant_col
+        3, // ant_row
+        grid,
+        simulation::orientation::WEST,
+        simulation::step_result::NIL,
+        generate_rules({
+          // 0->1->2
+          { 0, { 1, simulation::turn_direction::LEFT } },
+          { 1, { 0, simulation::turn_direction::RIGHT } },
+        }),
+      };
+
+      assert_parse(state_or_errors_t(expected_state), "good_fill.json");
     }
 
     {
       u8 grid[5 * 5]{
-        0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+        0, 1, 0, 1, 0,
+        1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0,
+        1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0,
       };
 
-      assert_parse(
-        { // state
-          0, // generation
-          5, // grid_width
-          5, // grid_height
-          2, // ant_col
-          2, // ant_row
-          grid,
-          simulation::orientation::WEST,
-          simulation::step_result::NIL,
-          generate_rules({
-            // 0->1->2
-            { 0, { 1, simulation::turn_direction::LEFT } },
-            { 1, { 2, simulation::turn_direction::NO_CHANGE } },
-            { 2, { 0, simulation::turn_direction::RIGHT } },
-          }),
-        },
-        {}, // errors
-        "good_img.json"
-      );
-    }
-  }
+      simulation::state expected_state {
+        0, // generation
+        5, // grid_width
+        5, // grid_height
+        2, // ant_col
+        2, // ant_row
+        grid,
+        simulation::orientation::WEST,
+        simulation::step_result::NIL,
+        generate_rules({
+          // 0->1->2
+          { 0, { 1, simulation::turn_direction::LEFT } },
+          { 1, { 2, simulation::turn_direction::NO_CHANGE } },
+          { 2, { 0, simulation::turn_direction::RIGHT } },
+        }),
+      };
 
-  {
-    auto const assert_save_point = [](
-      char const *const exp_json_name_cstr,
-      char const *const exp_img_name_cstr,
-      char const *const act_json_name_cstr,
-      std::source_location const loc = std::source_location::current())
-    {
-      [[maybe_unused]] auto cwd = fs::current_path();
-
-      std::string const base = "run/";
-
-      std::string const
-        exp_json_pathname = base + exp_json_name_cstr,
-        act_json_pathname = base + act_json_name_cstr;
-
-      std::string const
-        exp_json_str = util::extract_txt_file_contents(exp_json_pathname.c_str(), false),
-        act_json_str = util::extract_txt_file_contents(act_json_pathname.c_str(), false);
-
-      json_t const
-        exp_json = json_t::parse(exp_json_str),
-        act_json = json_t::parse(act_json_str);
-
-      b8 match =
-        exp_json["generation"] == act_json["generation"] &&
-        exp_json["last_step_result"] == act_json["last_step_result"] &&
-        exp_json["grid_width"] == act_json["grid_width"] &&
-        exp_json["grid_height"] == act_json["grid_height"] &&
-        exp_json["ant_col"] == act_json["ant_col"] && exp_json["ant_row"] == act_json["ant_row"] &&
-        exp_json["ant_orientation"] == act_json["ant_orientation"] &&
-        exp_json["rules"].get<json_t::array_t>() == act_json["rules"].get<json_t::array_t>();
-
-      std::string const act_img_pathname = base + act_json["grid_state"].get<std::string>();
-
-      std::string const
-        expected_img = util::extract_txt_file_contents((base + exp_img_name_cstr).c_str(), true),
-        actual_img = util::extract_txt_file_contents(act_img_pathname.c_str(), true);
-
-      match = match && (expected_img == actual_img);
-
-      ntest::assert_bool(true, match, loc);
-    };
-
-    fs::path const save_dir = fs::current_path() / "run";
-    std::string const json_str = util::extract_txt_file_contents("run/RL-init.json", false);
-    strvec_t errors{};
-    auto state = simulation::parse_state(json_str, save_dir, errors);
-
-    ntest::assert_bool(true, errors.empty());
-
-    if (errors.empty()) {
-      simulation::run(
-        state,
-        "RL.actual",
-        50, // generation_target
-        { 3, 50 }, // save_points
-        16, // save_interval
-        pgm8::format::PLAIN,
-        save_dir,
-        true // save_final_state
-      );
-
-      assert_save_point("RL.expect(3).json", "RL.expect(3).pgm", "RL.actual(3).json");
-      assert_save_point("RL.expect(16).json", "RL.expect(16).pgm", "RL.actual(16).json");
-      assert_save_point("RL.expect(32).json", "RL.expect(32).pgm", "RL.actual(32).json");
-      assert_save_point("RL.expect(48).json", "RL.expect(48).pgm", "RL.actual(48).json");
-      assert_save_point("RL.expect(50).json", "RL.expect(50).pgm", "RL.actual(50).json");
+      assert_parse(state_or_errors_t(expected_state), "good_img.json");
     }
   }
 
@@ -437,6 +293,80 @@ int main()
     ntest::assert_stdvec({}, util::parse_json_array_u64("[]"));
 
     ntest::assert_stdvec({ 10, 20, 30 }, util::parse_json_array_u64("[10, 20, 30]"));
+  }
+
+  {
+    auto const assert_save_point = [](
+      char const *const exp_json_name_cstr,
+      char const *const exp_img_name_cstr,
+      char const *const act_json_name_cstr,
+      std::source_location const loc = std::source_location::current())
+    {
+      [[maybe_unused]] auto cwd = fs::current_path();
+
+      std::string const base = "run/";
+
+      std::string const
+        exp_json_pathname = base + exp_json_name_cstr,
+        act_json_pathname = base + act_json_name_cstr;
+
+      std::string const
+        exp_json_str = util::extract_txt_file_contents(exp_json_pathname, false),
+        act_json_str = util::extract_txt_file_contents(act_json_pathname, false);
+
+      json_t const
+        exp_json = json_t::parse(exp_json_str),
+        act_json = json_t::parse(act_json_str);
+
+      b8 match =
+        exp_json["generation"] == act_json["generation"] &&
+        exp_json["last_step_result"] == act_json["last_step_result"] &&
+        exp_json["grid_width"] == act_json["grid_width"] &&
+        exp_json["grid_height"] == act_json["grid_height"] &&
+        exp_json["ant_col"] == act_json["ant_col"] && exp_json["ant_row"] == act_json["ant_row"] &&
+        exp_json["ant_orientation"] == act_json["ant_orientation"] &&
+        exp_json["rules"].get<json_t::array_t>() == act_json["rules"].get<json_t::array_t>();
+
+      std::string const act_img_pathname = base + act_json["grid_state"].get<std::string>();
+
+      std::string const
+        expected_img = util::extract_txt_file_contents(base + exp_img_name_cstr, true),
+        actual_img = util::extract_txt_file_contents(act_img_pathname, true);
+
+      match = match && (expected_img == actual_img);
+
+      ntest::assert_bool(true, match, loc);
+    };
+
+    fs::path const save_dir = fs::current_path() / "run";
+    std::string const json_str = util::extract_txt_file_contents("run/RL-init.json", false);
+
+    auto parse_res = simulation::parse_state(json_str, save_dir);
+    assert(std::holds_alternative<simulation::state>(parse_res));
+
+    simulation::state &state = std::get<simulation::state>(parse_res);
+
+    auto const to_delete = regexglob::fmatch(save_dir.string().c_str(), "RL\\.actual.*");
+    for (auto const &file : to_delete) {
+      fs::remove_all(file);
+    }
+
+    simulation::run(
+      state,
+      "RL.actual",
+      50, // generation_target
+      { 3, 50 }, // save_points
+      16, // save_interval
+      pgm8::format::PLAIN,
+      save_dir,
+      true // save_final_state
+    );
+
+    assert_save_point("RL.expect(3).json", "RL.expect(3).pgm", "RL.actual(3).json");
+    assert_save_point("RL.expect(16).json", "RL.expect(16).pgm", "RL.actual(16).json");
+    assert_save_point("RL.expect(32).json", "RL.expect(32).pgm", "RL.actual(32).json");
+    assert_save_point("RL.expect(48).json", "RL.expect(48).pgm", "RL.actual(48).json");
+    assert_save_point("RL.expect(50).json", "RL.expect(50).pgm", "RL.actual(50).json");
   }
 
   ntest::generate_report("report");

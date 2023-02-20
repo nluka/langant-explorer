@@ -6,11 +6,35 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <variant>
+#include <ostream>
 
+#include <boost/program_options.hpp>
 #include "lib/pgm8.hpp"
 
 #include "primitives.hpp"
 #include "util.hpp"
+
+#define SIM_OPT_STATEPATH_FULL "statepath"
+#define SIM_OPT_STATEPATH_SHORT "i"
+
+#define SIM_OPT_GENLIM_FULL "genlim"
+#define SIM_OPT_GENLIM_SHORT "g"
+
+#define SIM_OPT_IMGFMT_FULL "imgfmt"
+#define SIM_OPT_IMGFMT_SHORT "f"
+
+#define SIM_OPT_SAVEFINALSTATE_FULL "savefinalstate"
+#define SIM_OPT_SAVEFINALSTATE_SHORT "s"
+
+#define SIM_OPT_SAVEPOINTS_FULL "savepoints"
+#define SIM_OPT_SAVEPOINTS_SHORT "p"
+
+#define SIM_OPT_SAVEINTERVAL_FULL "saveinterval"
+#define SIM_OPT_SAVEINTERVAL_SHORT "v"
+
+#define SIM_OPT_SAVEPATH_FULL "savepath"
+#define SIM_OPT_SAVEPATH_SHORT "o"
 
 namespace simulation
 {
@@ -19,7 +43,10 @@ namespace simulation
   namespace orientation
   {
     typedef i8 value_type;
+
+    value_type from_string(char const *);
     char const *to_string(value_type);
+
     value_type const
       OVERFLOW_COUNTER_CLOCKWISE = 0,
       NORTH = 1,
@@ -34,7 +61,10 @@ namespace simulation
   namespace turn_direction
   {
     typedef i8 value_type;
+
+    value_type from_char(char);
     char const *to_string(value_type);
+
     value_type const
       NIL = -2,
       LEFT = -1,
@@ -47,7 +77,9 @@ namespace simulation
   namespace step_result
   {
     typedef i8 value_type;
+
     char const *to_string(value_type);
+
     value_type const
       NIL = -1,
       SUCCESS = 0,
@@ -83,10 +115,9 @@ namespace simulation
     b8 can_step_forward(u64 generation_target = 0) const noexcept;
   };
 
-  state parse_state(
+  std::variant<state, util::errors_t> parse_state(
     std::string const &json_str,
-    std::filesystem::path const &dir,
-    util::strvec_t &errors);
+    std::filesystem::path const &dir);
 
   step_result::value_type attempt_step_forward(state &state);
 
@@ -95,6 +126,18 @@ namespace simulation
     const char *name,
     std::filesystem::path const &dir,
     pgm8::format img_fmt);
+
+  void print_state_json(
+    std::ostream &os,
+    u64 generation,
+    step_result::value_type last_step_res,
+    i32 grid_width,
+    i32 grid_height,
+    std::string const &grid_state,
+    i32 ant_col,
+    i32 ant_row,
+    orientation::value_type ant_orientation,
+    rules_t const &rules);
 
   struct run_result
   {
@@ -112,13 +155,31 @@ namespace simulation
 
   run_result run(
     state &state,
-    std::string sim_name,
+    std::string const &name,
     u64 generation_target,
     std::vector<u64> save_points,
     u64 save_interval,
     pgm8::format img_fmt,
     std::filesystem::path const &save_dir,
     b8 save_final_state);
+
+  struct env_config
+  {
+    std::filesystem::path state_path;
+    std::filesystem::path save_path;
+    std::vector<u64> save_points;
+    u64 generation_limit;
+    u64 save_interval;
+    pgm8::format img_fmt;
+    bool save_final_state;
+  };
+
+  std::variant<env_config, util::errors_t> extract_env_config(
+    int argc,
+    char const *const *argv,
+    char const *state_path_desc);
+
+  boost::program_options::options_description env_options_descrip(char const *state_path_desc);
 }
 
 #endif // SIMULATION_HPP

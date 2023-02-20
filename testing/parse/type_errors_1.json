@@ -1,0 +1,14 @@
+{
+  "generation": null,
+  "last_step_result": true,
+
+  "grid_width": [],
+  "grid_height": {},
+  "grid_state": 0,
+
+  "ant_col": "abc",
+  "ant_row": null,
+  "ant_orientation": false,
+
+  "rules": ["abc", {}, 123]
+}

@@ -1,0 +1,14 @@
+{
+  "generation": 20,
+  "last_step_result": "hit_edge",
+
+  "grid_width": 300,
+  "grid_height": 200,
+  "grid_state": "FILL 10",
+
+  "ant_col": 3,
+  "ant_row": 6,
+  "ant_orientation": "W",
+
+  "rules": [{ "on": 0, "replace_with": 1, "turn": "" }]
+}

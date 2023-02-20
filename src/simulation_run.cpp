@@ -78,7 +78,7 @@ namespace helpers
 */
 simulation::run_result simulation::run(
   state &state,
-  std::string const name,
+  std::string const &name,
   u64 const generation_target,
   std::vector<u64> save_points,
   u64 const save_interval,
@@ -146,7 +146,7 @@ simulation::run_result simulation::run(
       }
     }
 
-    if (next_stop.reason == stop_reason::SAVE_POINT || stop_reason::SAVE_INTERVAL) {
+    if (next_stop.reason == stop_reason::SAVE_POINT || next_stop.reason == stop_reason::SAVE_INTERVAL) {
       try {
         simulation::save_state(state, name.c_str(), save_dir, img_fmt);
         ++result.num_save_points_successful;

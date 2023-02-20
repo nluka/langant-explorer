@@ -52,7 +52,7 @@ void read_pixels(
 );
 
 void write(
-  std::ofstream &file,
+  std::fstream &file,
   image_properties props,
   uint8_t const *pixels
 );

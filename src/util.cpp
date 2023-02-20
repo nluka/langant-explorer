@@ -6,6 +6,7 @@
 #include <string>
 
 #include "lib/json.hpp"
+#include "lib/term.hpp"
 
 #include "primitives.hpp"
 #include "util.hpp"
@@ -38,42 +39,29 @@ string util::make_str(char const *const fmt, ...)
   return std::string(buffer);
 }
 
-fstream util::open_file(char const *const pathname, int const flags)
+[[nodiscard]] std::fstream util::open_file(
+  std::string const &path,
+ std::ios_base::openmode const flags)
 {
-  b8 const is_for_reading = (flags & 1) == 1;
-  if (is_for_reading && !filesystem::exists(pathname)) {
-    throw runtime_error(make_str("file `%s` not found", pathname));
-  }
-
-  fstream file(pathname, static_cast<ios_base::openmode>(flags));
-
-  if (!file.is_open()) {
-    throw runtime_error(make_str("unable to open file `%s`", pathname));
-  }
-
-  if (!file.good()) {
-    throw runtime_error(make_str("bad file `%s`", pathname));
-  }
-
-  return file;
+  return util::open_file(path.c_str(), flags);
 }
 
-string util::extract_txt_file_contents(char const *const pathname, bool const normalize_newlines)
+[[nodiscard]] std::fstream util::open_file(
+  char const *const path,
+  std::ios_base::openmode const flags)
 {
-  fstream file = util::open_file(pathname, ios::in);
-  auto const fileSize = filesystem::file_size(pathname);
+  b8 const is_for_reading = (flags & std::ios::in) == std::ios::in;
+  if (is_for_reading && !std::filesystem::exists(path))
+    throw "not found";
 
-  string content{};
-  content.reserve(fileSize);
+  std::fstream file(path, static_cast<std::ios_base::openmode>(flags));
 
-  getline(file, content, '\0');
+  if (!file.is_open())
+    throw "exists, but unable to open";
+  if (!file.good())
+    throw "bad state";
 
-  if (normalize_newlines) {
-    // remove any \r characters
-    content.erase(remove(content.begin(), content.end(), '\r'), content.end());
-  }
-
-  return content;
+  return file;
 }
 
 /*
@@ -99,4 +87,60 @@ vector<u64> util::parse_json_array_u64(char const *str)
   }
 
   return save_points;
+}
+
+void util::die(char const *fmt, ...)
+{
+  using namespace term::color;
+
+  term::color::set(fore::RED | back::BLACK);
+
+  printf("fatal: ");
+
+  va_list args;
+  va_start(args, fmt);
+  [[maybe_unused]] int retval = vprintf(fmt, args);
+  va_end(args);
+
+  putc('\n', stdout);
+
+  term::color::set(fore::DEFAULT | back::BLACK);
+
+  std::exit(1);
+}
+
+int util::print_err(char const *fmt, ...)
+{
+  using namespace term::color;
+
+  term::color::set(fore::RED | back::BLACK);
+
+  va_list args;
+  va_start(args, fmt);
+  int retval = vprintf(fmt, args);
+  va_end(args);
+
+  putc('\n', stdout);
+
+  term::color::set(fore::DEFAULT | back::BLACK);
+
+  return retval;
+}
+
+bool util::user_wants_to_create_dir(std::string const &path)
+{
+  using namespace term::color;
+
+  printf(
+    fore::YELLOW | back::BLACK,
+    "directory '%s' not found, would you like to create it? [y/n] ",
+    path.c_str()
+  );
+
+  std::string input;
+
+  std::cin >> input;
+
+  char const first_lower = static_cast<char>(tolower(input.front()));
+  return first_lower == 'y';
 }

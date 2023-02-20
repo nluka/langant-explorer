@@ -145,7 +145,7 @@ void pgm8::read_pixels(
 }
 
 void pgm8::write(
-  std::ofstream &file,
+  std::fstream &file,
   image_properties const props,
   uint8_t const *pixels)
 {
@@ -166,7 +166,7 @@ void pgm8::write(
     file
       << 'P' << magic_num << '\n'
       << std::to_string(width) << ' ' << std::to_string(height) << '\n'
-      << std::to_string(maxval) << '\n';
+      << std::to_string(maxval) << (fmt == format::RAW ? ' ' : '\n');
   }
 
   // pixels
