@@ -84,18 +84,19 @@ namespace util
 
    template <typename Ty>
    [[nodiscard]] std::optional<Ty> get_nonrequired_option(
-      char const *const option_name,
+      char const *const full_name,
+      char const *const short_name,
       boost::program_options::variables_map const &var_map,
       errors_t &errors)
    {
-      if (var_map.count(option_name) == 0) {
+      if (var_map.count(full_name) == 0) {
          return std::nullopt;
       }
 
       try {
-         return var_map.at(option_name).as<Ty>();
+         return var_map.at(full_name).as<Ty>();
       } catch (...) {
-         errors.emplace_back(make_str("unable to parse --%s"));
+         errors.emplace_back(make_str("(--%s , -%s) unable to parse value", full_name, short_name));
          return std::nullopt;
       }
    }

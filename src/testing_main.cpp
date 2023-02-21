@@ -81,7 +81,6 @@ int main()
     };
 
     typedef std::variant<simulation::state, errors_t> state_or_errors_t;
-
     {
       errors_t expected_errors {
         "`generation` not set",
@@ -96,7 +95,6 @@ int main()
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "occurence_errors.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `generation` -> type must be number, but is string",
@@ -111,7 +109,6 @@ int main()
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "type_errors_0.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `generation` -> type must be number, but is null",
@@ -126,7 +123,6 @@ int main()
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "type_errors_1.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `generation` -> not an unsigned integer",
@@ -141,7 +137,6 @@ int main()
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_0.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `grid_width` -> cannot be > 65535",
@@ -155,7 +150,6 @@ int main()
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_1.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `ant_col` -> not in grid x-axis [0, 65535)",
@@ -165,7 +159,6 @@ int main()
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_2.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `grid_width` -> not in range [1, 65535]",
@@ -175,7 +168,6 @@ int main()
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_3.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `rules` -> [0].turn not recognized",
@@ -183,42 +175,36 @@ int main()
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_4.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `rules` -> [0].turn is empty"
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_5.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `rules` -> fewer than 2 defined"
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_6.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `rules` -> don't form a closed chain",
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_7.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `grid_state` -> fill shade has no governing rule",
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_8.json");
     }
-
     {
       errors_t expected_errors {
         "invalid `rules` -> don't form a closed chain"
       };
       assert_parse(state_or_errors_t(std::move(expected_errors)), "value_errors_9.json");
     }
-
     {
       u8 grid[5 * 6];
       std::fill_n(grid, 5 * 6, 0ui8);
@@ -241,7 +227,6 @@ int main()
 
       assert_parse(state_or_errors_t(expected_state), "good_fill.json");
     }
-
     {
       u8 grid[5 * 5]{
         0, 1, 0, 1, 0,
@@ -369,7 +354,7 @@ int main()
     assert_save_point("RL.expect(50).json", "RL.expect(50).pgm", "RL.actual(50).json");
   }
 
-  ntest::generate_report("report");
+  ntest::generate_report("langant-explorer");
 
   return 0;
 }

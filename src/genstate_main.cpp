@@ -28,6 +28,10 @@ typedef std::uniform_int_distribution<usize> usize_distrib;
 #define OPT_OUTPATH_FULL "outpath"
 #define OPT_OUTPATH_SHORT "p"
 
+#define OPT_NAMESTYLE_FULL "namestyle"
+#define OPT_NAMESTYLE_SHORT "l"
+#define REGEX_NAMESTYLE "^(turndirecs)|(randwords,[1-9])$"
+
 #define OPT_RULESLEN_FULL "ruleslen"
 #define OPT_RULESLEN_SHORT "r"
 #define REGEX_RULESLEN "^[0-9]+,[0-9]+$"
@@ -59,6 +63,7 @@ typedef std::uniform_int_distribution<usize> usize_distrib;
 struct config
 {
   std::string
+    name_style,
     grid_state,
     turn_dir_values,
     ant_orient_values
@@ -85,6 +90,14 @@ simulation::rules_t make_random_rules(
   usize_distrib const &dist_rules_len,
   usize_distrib const &dist_turn_dir,
   std::mt19937 &num_generator);
+void get_rand_name(
+  std::string &dest,
+  std::mt19937 &num_generator,
+  std::string const &words,
+  std::vector<usize> const &newline_positions,
+  usize num_rand_words,
+  char name_word_delim);
+usize ascii_digit_to_usize(char ch);
 
 int main(int const argc, char const *const *const argv)
 {
@@ -113,6 +126,25 @@ int main(int const argc, char const *const *const argv)
   // will be reused for each generated state file
   fs::path state_path = s_cfg.out_path / "blank.json";
 
+  // only used if name_style is randwords
+  std::string words{};
+  std::vector<usize> words_newline_positions{};
+  std::string rand_fname{};
+  if (s_cfg.name_style.starts_with("randwords")) {
+    char const *const words_file_path = "words.txt";
+    try {
+      words = util::extract_txt_file_contents(words_file_path, true);
+    } catch (char const *const err) {
+      die("failed to extract '%s', %s", words_file_path, err);
+    }
+    words_newline_positions.reserve(10);
+    for (usize i = 0; i < words.length(); ++i)
+      if (words[i] == '\n')
+        words_newline_positions.push_back(i);
+  }
+
+  usize num_fname_conflicts = 0;
+
   for (usize i = 0; i < s_cfg.count; ++i) {
     simulation::orientation::value_type const rand_ant_orient = [&]() {
       usize const rand_idx = dist_ant_orient(rand_num_gener);
@@ -130,8 +162,24 @@ int main(int const argc, char const *const *const argv)
       dist_turn_dir,
       rand_num_gener);
 
-    // TODO: add option for more human friendly name
-    state_path.replace_filename(turn_dirs_buffer).replace_extension(".json");
+    if (s_cfg.name_style == "turndirecs") {
+      state_path.replace_filename(turn_dirs_buffer);
+    } else {
+      get_rand_name(
+        rand_fname,
+        rand_num_gener,
+        words,
+        words_newline_positions,
+        ascii_digit_to_usize(s_cfg.name_style.back()),
+        '_');
+      state_path.replace_filename(rand_fname);
+    }
+    state_path.replace_extension(".json");
+
+    if (fs::exists(state_path)) {
+      ++num_fname_conflicts;
+      continue;
+    }
 
     try {
       std::fstream file = util::open_file(state_path.string().c_str(), std::ios::out);
@@ -150,6 +198,10 @@ int main(int const argc, char const *const *const argv)
       print_err(except.what());
     }
   }
+
+  std::cout
+    << "generated " << (s_cfg.count - num_fname_conflicts) << " files, "
+    << num_fname_conflicts << " filename conflicts\n";
 
   return 0;
 }
@@ -188,6 +240,7 @@ bpo::options_description options_descrip()
   desc.add_options()
     (OPT_COUNT_FULL "," OPT_COUNT_SHORT, bpo::value<u64>(), "number of randomized states to generate")
     (OPT_OUTPATH_FULL "," OPT_OUTPATH_SHORT, bpo::value<std::string>(), "directory in which to save generated states (.json)")
+    (OPT_NAMESTYLE_FULL "," OPT_NAMESTYLE_SHORT, bpo::value<std::string>(), "naming style for generated state filenames, format /" REGEX_NAMESTYLE "/, default=turndirecs")
     // rules
     (OPT_RULESLEN_FULL "," OPT_RULESLEN_SHORT, bpo::value<std::string>(), "[min, max] rules length, format /" REGEX_RULESLEN "/")
     (OPT_TURNDIRECS_FULL "," OPT_TURNDIRECS_SHORT, bpo::value<std::string>(), "possible rule turn directions, format /" REGEX_TURNDIRECS "/, see notes for details")
@@ -207,6 +260,7 @@ bpo::options_description options_descrip()
 errors_t parse_config(int const argc, char const *const *const argv)
 {
   using util::get_required_option;
+  using util::get_nonrequired_option;
   using util::make_str;
 
   errors_t errors{};
@@ -220,9 +274,67 @@ errors_t parse_config(int const argc, char const *const *const argv)
   }
   bpo::notify(var_map);
 
-  // no validation for grid_state
-  s_cfg.grid_state = get_required_option<std::string>(OPT_GRIDSTATE_FULL, OPT_GRIDSTATE_SHORT, var_map, errors).value_or("");
+  {
+    auto name_style = get_nonrequired_option<std::string>(OPT_NAMESTYLE_FULL, OPT_NAMESTYLE_SHORT, var_map, errors);
+    if (name_style.has_value()) {
+      if (std::regex_match(name_style.value(), std::regex(REGEX_NAMESTYLE))) {
+        s_cfg.name_style = std::move(name_style.value());
+      } else {
+        errors.emplace_back("(--" OPT_NAMESTYLE_FULL ", -" OPT_NAMESTYLE_SHORT ") must match /" REGEX_NAMESTYLE "/");
+      }
+    } else {
+      s_cfg.name_style = "turndirecs";
+    }
+  }
+  {
+    // no validation for grid_state
+    s_cfg.grid_state = get_required_option<std::string>(OPT_GRIDSTATE_FULL, OPT_GRIDSTATE_SHORT, var_map, errors).value_or("");
+  }
+  {
+    auto turn_dirs = get_required_option<std::string>(OPT_TURNDIRECS_FULL, OPT_TURNDIRECS_SHORT, var_map, errors);
 
+    if (turn_dirs.has_value()) {
+      if (!std::regex_match(turn_dirs.value(), std::regex(REGEX_TURNDIRECS))) {
+        errors.emplace_back("(--" OPT_TURNDIRECS_FULL ", -" OPT_TURNDIRECS_SHORT ") must match /" REGEX_TURNDIRECS "/");
+      } else {
+        s_cfg.turn_dir_values = std::move(turn_dirs.value());
+      }
+    }
+  }
+  {
+    auto ant_orients = get_required_option<std::string>(OPT_ANTORIENTS_FULL, OPT_ANTORIENTS_SHORT, var_map, errors);
+
+    if (ant_orients.has_value()) {
+      if (!std::regex_match(ant_orients.value(), std::regex(REGEX_ANTORIENTS))) {
+        errors.emplace_back("(--" OPT_ANTORIENTS_FULL ", -" OPT_ANTORIENTS_SHORT ") must match /" REGEX_ANTORIENTS "/");
+      } else {
+        s_cfg.ant_orient_values = std::move(ant_orients.value());
+      }
+    }
+  }
+  {
+    auto out_path = get_required_option<std::string>(OPT_OUTPATH_FULL, OPT_OUTPATH_SHORT, var_map, errors);
+
+    if (out_path.has_value()) {
+      if (!fs::exists(out_path.value())) {
+        bool const create_dir = util::user_wants_to_create_dir(out_path.value());
+        if (create_dir) {
+          try {
+            fs::create_directories(out_path.value());
+            s_cfg.out_path = std::move(out_path.value());
+          } catch (fs::filesystem_error const &except) {
+            print_err("unable to create directory: %s", except.what());
+          }
+        } else {
+          errors.emplace_back("(--" OPT_OUTPATH_FULL ", -" OPT_OUTPATH_SHORT ") path not found");
+        }
+      } else if (!fs::is_directory(out_path.value())) {
+        errors.emplace_back("(--" OPT_OUTPATH_FULL ", -" OPT_OUTPATH_SHORT ") path is not a directory");
+      } else {
+        s_cfg.out_path = std::move(out_path.value());
+      }
+    }
+  }
   {
     auto const count = get_required_option<usize>(OPT_COUNT_FULL, OPT_COUNT_SHORT, var_map, errors);
 
@@ -234,7 +346,6 @@ errors_t parse_config(int const argc, char const *const *const argv)
       }
     }
   }
-
   {
     auto rules_len = get_required_option<std::string>(OPT_RULESLEN_FULL, OPT_RULESLEN_SHORT, var_map, errors);
 
@@ -266,7 +377,6 @@ errors_t parse_config(int const argc, char const *const *const argv)
       }
     }
   }
-
   {
     auto const grid_width = get_required_option<usize>(OPT_GRIDWIDTH_FULL, OPT_GRIDWIDTH_SHORT, var_map, errors);
     auto const ant_col = get_required_option<usize>(OPT_ANTCOL_FULL, OPT_ANTCOL_SHORT, var_map, errors);
@@ -282,7 +392,6 @@ errors_t parse_config(int const argc, char const *const *const argv)
       }
     }
   }
-
   {
     auto const grid_height = get_required_option<usize>(OPT_GRIDHEIGHT_FULL, OPT_GRIDHEIGHT_SHORT, var_map, errors);
     auto const ant_row = get_required_option<usize>(OPT_ANTROW_FULL, OPT_ANTROW_SHORT, var_map, errors);
@@ -295,54 +404,6 @@ errors_t parse_config(int const argc, char const *const *const argv)
       } else {
         s_cfg.grid_height = grid_height.value();
         s_cfg.ant_row = ant_row.value();
-      }
-    }
-  }
-
-  {
-    auto turn_dirs = get_required_option<std::string>(OPT_TURNDIRECS_FULL, OPT_TURNDIRECS_SHORT, var_map, errors);
-
-    if (turn_dirs.has_value()) {
-      if (!std::regex_match(turn_dirs.value(), std::regex(REGEX_TURNDIRECS))) {
-        errors.emplace_back("(--" OPT_TURNDIRECS_FULL ", -" OPT_TURNDIRECS_SHORT ") must match /" REGEX_TURNDIRECS "/");
-      } else {
-        s_cfg.turn_dir_values = std::move(turn_dirs.value());
-      }
-    }
-  }
-
-  {
-    auto ant_orients = get_required_option<std::string>(OPT_ANTORIENTS_FULL, OPT_ANTORIENTS_SHORT, var_map, errors);
-
-    if (ant_orients.has_value()) {
-      if (!std::regex_match(ant_orients.value(), std::regex(REGEX_ANTORIENTS))) {
-        errors.emplace_back("(--" OPT_ANTORIENTS_FULL ", -" OPT_ANTORIENTS_SHORT ") must match /" REGEX_ANTORIENTS "/");
-      } else {
-        s_cfg.ant_orient_values = std::move(ant_orients.value());
-      }
-    }
-  }
-
-  {
-    auto out_path = get_required_option<std::string>(OPT_OUTPATH_FULL, OPT_OUTPATH_SHORT, var_map, errors);
-
-    if (out_path.has_value()) {
-      if (!fs::exists(out_path.value())) {
-        bool const create_dir = util::user_wants_to_create_dir(out_path.value());
-        if (create_dir) {
-          try {
-            fs::create_directories(out_path.value());
-            s_cfg.out_path = std::move(out_path.value());
-          } catch (fs::filesystem_error const &except) {
-            print_err("unable to create directory: %s", except.what());
-          }
-        } else {
-          errors.emplace_back("(--" OPT_OUTPATH_FULL ", -" OPT_OUTPATH_SHORT ") path not found");
-        }
-      } else if (!fs::is_directory(out_path.value())) {
-        errors.emplace_back("(--" OPT_OUTPATH_FULL ", -" OPT_OUTPATH_SHORT ") path is not a directory");
-      } else {
-        s_cfg.out_path = std::move(out_path.value());
       }
     }
   }
@@ -377,4 +438,43 @@ simulation::rules_t make_random_rules(
   rules[last_rule_idx].replacement_shade = 0;
 
   return rules;
+}
+
+void get_rand_name(
+  std::string &dest,
+  std::mt19937 &num_generator,
+  std::string const &words,
+  std::vector<usize> const &newline_positions,
+  usize const num_rand_words,
+  char const name_word_delim)
+{
+  dest.clear();
+
+  auto const pick_rand_word = [&]() -> std::string_view {
+    usize_distrib const distrib(0, newline_positions.size() - 2);
+    // size-2 because we don't want to pick the very last newline
+    // since we create the view going forwards from the chosen newline
+    // to the next newline.
+
+    usize const rand_newline_idx = distrib(num_generator);
+    usize const next_newline_idx = rand_newline_idx + 1;
+
+    usize const start_pos = newline_positions[rand_newline_idx] + 1;
+    usize const count = newline_positions[next_newline_idx] - start_pos;
+
+    return { words.c_str() + start_pos, count };
+  };
+
+  for (usize i = 0; i < num_rand_words - 1; ++i) {
+    dest.append(pick_rand_word());
+    dest += name_word_delim;
+  }
+  dest.append(pick_rand_word());
+}
+
+// Converts an ASCII digit ('0'-'9') to an integer value (0-9).
+usize ascii_digit_to_usize(char const ch)
+{
+  assert(ch >= '0' && ch <= '9');
+  return static_cast<usize>(ch) - 48;
 }

@@ -86,7 +86,8 @@ b8 simulation::state::can_step_forward(u64 const generation_target) const noexce
 
 u8 simulation::deduce_maxval_from_rules(simulation::rules_t const &rules)
 {
-  for (usize i = rules.size() - 1; i > 0; --i)
-    if (rules[i].turn_dir != simulation::turn_direction::NIL)
-      return i;
+  for (u8 shade = 255ui8; shade > 0ui8; --shade)
+    if (rules[shade].turn_dir != simulation::turn_direction::NIL)
+      return shade;
+  return 0ui8;
 }

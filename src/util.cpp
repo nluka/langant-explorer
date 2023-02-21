@@ -34,8 +34,6 @@ string util::make_str(char const *const fmt, ...)
   int const cnt = vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  // buffer[std::min(cnt, buf_len - 1)] = '\0';
-
   return std::string(buffer);
 }
 
