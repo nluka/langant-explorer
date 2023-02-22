@@ -5,6 +5,7 @@
 #include <random>
 
 #include <boost/program_options.hpp>
+#include <boost/container/static_vector.hpp>
 #include "lib/json.hpp"
 #include "lib/term.hpp"
 
@@ -40,6 +41,10 @@ typedef std::uniform_int_distribution<usize> usize_distrib;
 #define OPT_TURNDIRECS_SHORT "t"
 #define REGEX_TURNDIRECS "^[lLnNrR]+$"
 
+#define OPT_SHADEORDER_FULL "shadeorder"
+#define OPT_SHADEORDER_SHORT "d"
+#define REGEX_SHADEORDER "^(asc)|(desc)|(rand)$"
+
 #define OPT_GRIDWIDTH_FULL "gridwidth"
 #define OPT_GRIDWIDTH_SHORT "w"
 
@@ -59,13 +64,13 @@ typedef std::uniform_int_distribution<usize> usize_distrib;
 #define OPT_ANTORIENTS_SHORT "o"
 #define REGEX_ANTORIENTS "^[nNeEsSwW]+$"
 
-// TODO: add color shuffle feature
 struct config
 {
   std::string
     name_style,
     grid_state,
     turn_dir_values,
+    shade_order,
     ant_orient_values
   ;
   fs::path out_path;
@@ -238,20 +243,21 @@ bpo::options_description options_descrip()
   bpo::options_description desc("REQUIRED OPTIONS");
 
   desc.add_options()
-    (OPT_COUNT_FULL "," OPT_COUNT_SHORT, bpo::value<u64>(), "number of randomized states to generate")
-    (OPT_OUTPATH_FULL "," OPT_OUTPATH_SHORT, bpo::value<std::string>(), "directory in which to save generated states (.json)")
-    (OPT_NAMESTYLE_FULL "," OPT_NAMESTYLE_SHORT, bpo::value<std::string>(), "naming style for generated state filenames, format /" REGEX_NAMESTYLE "/, default=turndirecs")
+    (OPT_COUNT_FULL "," OPT_COUNT_SHORT, bpo::value<u64>(), "Number of randomized states to generate")
+    (OPT_OUTPATH_FULL "," OPT_OUTPATH_SHORT, bpo::value<std::string>(), "Directory in which to save generated states (.json)")
+    (OPT_NAMESTYLE_FULL "," OPT_NAMESTYLE_SHORT, bpo::value<std::string>(), "Naming style for generated state filenames, format /" REGEX_NAMESTYLE "/, default=turndirecs")
     // rules
-    (OPT_RULESLEN_FULL "," OPT_RULESLEN_SHORT, bpo::value<std::string>(), "[min, max] rules length, format /" REGEX_RULESLEN "/")
-    (OPT_TURNDIRECS_FULL "," OPT_TURNDIRECS_SHORT, bpo::value<std::string>(), "possible rule turn directions, format /" REGEX_TURNDIRECS "/, see notes for details")
+    (OPT_RULESLEN_FULL "," OPT_RULESLEN_SHORT, bpo::value<std::string>(), "Rules length [min, max], format /" REGEX_RULESLEN "/")
+    (OPT_TURNDIRECS_FULL "," OPT_TURNDIRECS_SHORT, bpo::value<std::string>(), "Possible rule 'turn_dir' values, format /" REGEX_TURNDIRECS "/, see notes for details")
+    (OPT_SHADEORDER_FULL "," OPT_SHADEORDER_SHORT, bpo::value<std::string>(), "Ordering of rule shades, format /" REGEX_SHADEORDER "/, default=asc")
     // grid
-    (OPT_GRIDWIDTH_FULL "," OPT_GRIDWIDTH_SHORT, bpo::value<u64>(), "grid_width value for all generated states, [1, 65535]")
-    (OPT_GRIDHEIGHT_FULL "," OPT_GRIDHEIGHT_SHORT, bpo::value<u64>(), "grid_height value for all generated states, [1, 65535]")
-    (OPT_GRIDSTATE_FULL "," OPT_GRIDSTATE_SHORT, bpo::value<std::string>(), "grid_state for all generated states, any string")
+    (OPT_GRIDWIDTH_FULL "," OPT_GRIDWIDTH_SHORT, bpo::value<u64>(), "Value of 'grid_width' for all generated states, [1, 65535]")
+    (OPT_GRIDHEIGHT_FULL "," OPT_GRIDHEIGHT_SHORT, bpo::value<u64>(), "Value of 'grid_height' for all generated states, [1, 65535]")
+    (OPT_GRIDSTATE_FULL "," OPT_GRIDSTATE_SHORT, bpo::value<std::string>(), "Value of 'grid_state' for all generated states, any string")
     // ant
-    (OPT_ANTCOL_FULL "," OPT_ANTCOL_SHORT, bpo::value<u64>(), "ant_col value for all generated states, [0, grid_width)")
-    (OPT_ANTROW_FULL "," OPT_ANTROW_SHORT, bpo::value<u64>(), "ant_row value for all generated states, [0, grid_height)")
-    (OPT_ANTORIENTS_FULL "," OPT_ANTORIENTS_SHORT, bpo::value<std::string>(), "possible ant_orientation values, format /" REGEX_ANTORIENTS "/, see notes for details")
+    (OPT_ANTCOL_FULL "," OPT_ANTCOL_SHORT, bpo::value<u64>(), "Value of 'ant_col' for all generated states, [0, grid_width)")
+    (OPT_ANTROW_FULL "," OPT_ANTROW_SHORT, bpo::value<u64>(), "Value of 'ant_row' for all generated states, [0, grid_height)")
+    (OPT_ANTORIENTS_FULL "," OPT_ANTORIENTS_SHORT, bpo::value<std::string>(), "Possible 'ant_orientation' values, format /" REGEX_ANTORIENTS "/, see notes for details")
   ;
 
   return desc;
@@ -299,6 +305,19 @@ errors_t parse_config(int const argc, char const *const *const argv)
       } else {
         s_cfg.turn_dir_values = std::move(turn_dirs.value());
       }
+    }
+  }
+  {
+    auto shade_order = get_nonrequired_option<std::string>(OPT_SHADEORDER_FULL, OPT_SHADEORDER_SHORT, var_map, errors);
+
+    if (shade_order.has_value()) {
+      if (!std::regex_match(shade_order.value(), std::regex(REGEX_SHADEORDER))) {
+        errors.emplace_back("(--" OPT_SHADEORDER_FULL ", -" OPT_SHADEORDER_SHORT ") must match /" REGEX_SHADEORDER "/");
+      } else {
+        s_cfg.shade_order = std::move(shade_order.value());
+      }
+    } else {
+      s_cfg.shade_order = "asc";
     }
   }
   {
@@ -366,8 +385,8 @@ errors_t parse_config(int const argc, char const *const *const argv)
         usize const min = std::stoull(min_cstr);
         usize const max = std::stoull(max_cstr);
 
-        if (min < 2 || max > 255) {
-          errors.emplace_back("(--" OPT_RULESLEN_FULL ", -" OPT_RULESLEN_SHORT ") value(s) not in range [2, 255]");
+        if (min < 2 || max > 256) {
+          errors.emplace_back("(--" OPT_RULESLEN_FULL ", -" OPT_RULESLEN_SHORT ") value(s) not in range [2, 256]");
         } else if (max < min) {
           errors.emplace_back("(--" OPT_RULESLEN_FULL ", -" OPT_RULESLEN_SHORT ") max(rhs) must be >= min(lhs)");
         } else {
@@ -420,6 +439,8 @@ simulation::rules_t make_random_rules(
   simulation::rules_t rules{};
 
   usize const rules_len = dist_rules_len(num_generator);
+  assert(rules_len >= 2);
+  assert(rules_len <= 256);
 
   // fill `turn_dirs_buffer` with `rules_len` random turn directions
   for (usize i = 0; i < rules_len; ++i) {
@@ -430,12 +451,62 @@ simulation::rules_t make_random_rules(
   turn_dirs_buffer[rules_len] = '\0';
 
   usize const last_rule_idx = rules_len - 1;
-  for (usize i = 0; i < last_rule_idx; ++i) {
-    rules[i].turn_dir = simulation::turn_direction::from_char(turn_dirs_buffer[i]);
-    rules[i].replacement_shade = static_cast<u8>(i + 1);
+
+  auto const set_rule = [&](
+    usize const shade,
+    usize const replacement_shade
+  ) {
+    rules[shade].turn_dir = simulation::turn_direction::from_char(turn_dirs_buffer[shade]);
+    rules[shade].replacement_shade = static_cast<u8>(replacement_shade);
+  };
+
+  if (s_cfg.shade_order == "asc") {
+    // 0->1
+    // 1->2  0->1->2->3
+    // 2->3  ^--------'
+    // 3->0
+
+    for (usize i = 0; i < last_rule_idx; ++i)
+      set_rule(i, i + 1);
+    set_rule(last_rule_idx, 0);
+
+  } else if (s_cfg.shade_order == "desc") {
+    // 0->3
+    // 1->0  3->2->1->0
+    // 2->1  ^--------'
+    // 3->2
+
+    for (usize i = last_rule_idx; i > 0; --i)
+      set_rule(i, i - 1);
+    set_rule(0, last_rule_idx);
+
+  } else { // rand
+    boost::container::static_vector<u8, 256> remaining_shades{};
+    for (usize shade = 0; shade < rules_len; ++shade)
+      remaining_shades.push_back(static_cast<u8>(shade));
+
+    boost::container::static_vector<u8, 256> chain{};
+    // [0]->[1]->[2]->[3] ...indices
+    //  ^--------------'
+
+    for (usize i = 0; i < rules_len; ++i) {
+      usize_distrib const remaining_idx_dist(0, remaining_shades.size() - 1);
+      usize const rand_shade_idx = remaining_idx_dist(num_generator);
+      u8 const rand_shade = remaining_shades[rand_shade_idx];
+      {
+        // remove chosen shade by swapping it with the last shade, then popping
+        u8 const temp = remaining_shades.back();
+        remaining_shades.back() = rand_shade;
+        remaining_shades[rand_shade_idx] = temp;
+        remaining_shades.pop_back();
+      }
+      chain.push_back(rand_shade);
+    }
+
+    for (auto shade_it = chain.begin(); shade_it < chain.end() - 1; ++shade_it)
+      set_rule(*shade_it, *(shade_it + 1));
+    set_rule(chain.back(), chain.front());
   }
-  rules[last_rule_idx].turn_dir = simulation::turn_direction::from_char(turn_dirs_buffer[last_rule_idx]);
-  rules[last_rule_idx].replacement_shade = 0;
 
   return rules;
 }
