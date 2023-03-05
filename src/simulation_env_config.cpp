@@ -15,12 +15,12 @@ bpo::options_description simulation::env_options_description(char const *const s
 
   desc.add_options()
     (SIM_OPT_STATEPATH_FULL "," SIM_OPT_STATEPATH_SHORT, bpo::value<std::string>(), state_path_desc)
-    (SIM_OPT_GENLIM_FULL "," SIM_OPT_GENLIM_SHORT, bpo::value<u64>(), "*** generation limit, if reached the simulation will stop, > 0 uint64")
-    (SIM_OPT_IMGFMT_FULL "," SIM_OPT_IMGFMT_SHORT, bpo::value<std::string>(), "type of PGM image to produce on save, rawPGM|plainPGM, default=rawPGM")
-    (SIM_OPT_SAVEFINALSTATE_FULL "," SIM_OPT_SAVEFINALSTATE_SHORT, "flag, if set will ensure final generation is saved regardless of any save points or interval")
-    (SIM_OPT_SAVEPOINTS_FULL "," SIM_OPT_SAVEPOINTS_SHORT, bpo::value<std::string>(), "specific generations to save, JSON uint64 array")
-    (SIM_OPT_SAVEINTERVAL_FULL "," SIM_OPT_SAVEINTERVAL_SHORT, bpo::value<u64>(), "generation interval to save at, > 0 uint64")
-    (SIM_OPT_SAVEPATH_FULL "," SIM_OPT_SAVEPATH_SHORT, bpo::value<std::string>(), "*** directory in which to save state .json and .pgm files")
+    (SIM_OPT_GENLIM_FULL "," SIM_OPT_GENLIM_SHORT, bpo::value<u64>(), "*** Generation limit, if reached the simulation will stop, > 0 uint64")
+    (SIM_OPT_IMGFMT_FULL "," SIM_OPT_IMGFMT_SHORT, bpo::value<std::string>(), "Type of PGM image to produce on save, rawPGM|plainPGM, default=rawPGM")
+    (SIM_OPT_SAVEFINALSTATE_FULL "," SIM_OPT_SAVEFINALSTATE_SHORT, "Flag, if set will ensure final generation is saved regardless of any save points or interval")
+    (SIM_OPT_SAVEPOINTS_FULL "," SIM_OPT_SAVEPOINTS_SHORT, bpo::value<std::string>(), "Specific generations to save, JSON uint64 array")
+    (SIM_OPT_SAVEINTERVAL_FULL "," SIM_OPT_SAVEINTERVAL_SHORT, bpo::value<u64>(), "Generation interval to save at, > 0 uint64")
+    (SIM_OPT_SAVEPATH_FULL "," SIM_OPT_SAVEPATH_SHORT, bpo::value<std::string>(), "*** Directory in which to save state .json and .pgm files")
   ;
 
   return desc;
