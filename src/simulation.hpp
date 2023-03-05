@@ -181,7 +181,7 @@ namespace simulation
     char const *const *argv,
     char const *state_path_desc);
 
-  boost::program_options::options_description env_options_descrip(char const *state_path_desc);
+  boost::program_options::options_description env_options_description(char const *state_path_desc);
 }
 
 #endif // SIMULATION_HPP

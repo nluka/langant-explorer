@@ -37,7 +37,7 @@ std::string usage_msg();
 
 int main(int const argc, char const *const *const argv)
 {
-  if (argc == 1) {
+  if (argc < 2) {
     std::cout << usage_msg();
     std::exit(1);
   }
@@ -157,7 +157,7 @@ std::string usage_msg()
     "\n"
   ;
 
-  simulation::env_options_descrip(
+  simulation::env_options_description(
     "path to directory containing initial state .json files"
   ).print(msg, 6);
 

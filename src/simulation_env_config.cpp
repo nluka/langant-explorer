@@ -9,7 +9,7 @@ namespace bpo = boost::program_options;
 namespace fs = std::filesystem;
 using util::errors_t;
 
-bpo::options_description simulation::env_options_descrip(char const *const state_path_desc)
+bpo::options_description simulation::env_options_description(char const *const state_path_desc)
 {
   bpo::options_description desc("SIMULATION OPTIONS");
 
@@ -46,7 +46,7 @@ std::variant<
 
   bpo::variables_map var_map;
   try {
-    bpo::store(bpo::parse_command_line(argc, argv, env_options_descrip(state_path_desc)), var_map);
+    bpo::store(bpo::parse_command_line(argc, argv, env_options_description(state_path_desc)), var_map);
   } catch (std::exception const &err) {
     errors.emplace_back(err.what());
     return errors;
@@ -64,7 +64,6 @@ std::variant<
       }
     }
   }
-
   {
     auto const generation_limit = get_required_option<u64>(SIM_OPT_GENLIM_FULL, SIM_OPT_GENLIM_SHORT, var_map, errors);
 
@@ -76,9 +75,8 @@ std::variant<
       }
     }
   }
-
   {
-    auto const img_fmt = get_nonrequired_option<std::string>(SIM_OPT_IMGFMT_FULL, var_map, errors);
+    auto const img_fmt = get_nonrequired_option<std::string>(SIM_OPT_IMGFMT_FULL, SIM_OPT_IMGFMT_SHORT, var_map, errors);
 
     if (img_fmt.has_value()) {
       if (img_fmt.value() == "rawPGM") {
@@ -92,9 +90,8 @@ std::variant<
       cfg.img_fmt = pgm8::format::RAW;
     }
   }
-
   {
-    auto const save_points = get_nonrequired_option<std::string>(SIM_OPT_SAVEPOINTS_FULL, var_map, errors);
+    auto const save_points = get_nonrequired_option<std::string>(SIM_OPT_SAVEPOINTS_FULL, SIM_OPT_SAVEPOINTS_SHORT, var_map, errors);
 
     if (save_points.has_value()) {
       try {
@@ -108,7 +105,6 @@ std::variant<
       cfg.save_points = {};
     }
   }
-
   {
     auto save_path = get_required_option<std::string>(SIM_OPT_SAVEPATH_FULL, SIM_OPT_SAVEPATH_SHORT, var_map, errors);
 
@@ -120,9 +116,8 @@ std::variant<
       }
     }
   }
-
   {
-    auto const save_interval = get_nonrequired_option<u64>(SIM_OPT_SAVEINTERVAL_FULL, var_map, errors);
+    auto const save_interval = get_nonrequired_option<u64>(SIM_OPT_SAVEINTERVAL_FULL, SIM_OPT_SAVEINTERVAL_SHORT, var_map, errors);
 
     if (save_interval.has_value()) {
       cfg.save_interval = save_interval.value();
@@ -130,7 +125,6 @@ std::variant<
       cfg.save_interval = 0;
     }
   }
-
   {
     b8 const save_final_state = get_flag_option(SIM_OPT_SAVEFINALSTATE_FULL, var_map);
     cfg.save_final_state = save_final_state;

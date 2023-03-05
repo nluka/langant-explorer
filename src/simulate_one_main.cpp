@@ -5,6 +5,7 @@
 #include <iostream>
 #include <thread>
 #include <variant>
+#include <regex>
 
 #ifdef _WIN32
 #  include <Windows.h>
@@ -30,13 +31,21 @@ static simulation::env_config s_cfg{};
 static simulation::state s_sim_state{};
 
 std::string usage_msg();
-void update_ui(std::string const &name);
+void update_ui(std::string const &sim_name);
 
 int main(int const argc, char const *const *const argv)
 {
-  if (argc == 1) {
+  if (argc < 2) {
     std::cout << usage_msg();
     std::exit(1);
+  }
+
+  std::string const sim_name = argv[1];
+  {
+    char const *const name_regex_cstr = "^([a-zA-Z0-9-_]{1,})|(...)$";
+    if (!std::regex_match(sim_name, std::regex(name_regex_cstr))) {
+      die(make_str("invalid <sim_name>, doesn't match /%s/", name_regex_cstr).c_str());
+    }
   }
 
   {
@@ -75,13 +84,12 @@ int main(int const argc, char const *const *const argv)
     die("%zu state errors", errors.size());
   }
 
-  std::string const name = s_cfg.state_path.filename().string();
   s_sim_state = std::get<simulation::state>(parse_res);
 
-  std::thread sim_thread([&name]() {
+  std::thread sim_thread([&sim_name]() {
     simulation::run(
       s_sim_state,
-      name,
+      (sim_name == "..." ? s_cfg.state_path.filename().string() : sim_name),
       s_cfg.generation_limit,
       s_cfg.save_points,
       s_cfg.save_interval,
@@ -95,7 +103,7 @@ int main(int const argc, char const *const *const argv)
   SetPriorityClass(sim_thread.native_handle(), HIGH_PRIORITY_CLASS);
 #endif
 
-  std::thread ui_update_thread(update_ui, name); // function runs until simulation is finished
+  std::thread ui_update_thread(update_ui, sim_name); // function runs until simulation is finished
 
   term::cursor::hide();
   std::atexit(term::cursor::show);
@@ -112,11 +120,11 @@ std::string usage_msg()
   msg <<
     "\n"
     "USAGE: \n"
-    "  simulate_one [options] \n"
+    "  simulate_one <sim_name> [options] \n"
     "\n"
   ;
 
-  simulation::env_options_descrip(
+  simulation::env_options_description(
     "path to initial state .json file"
   ).print(msg, 6);
 
@@ -129,7 +137,7 @@ std::string usage_msg()
   return msg.str();
 }
 
-void update_ui(std::string const &name)
+void update_ui(std::string const &sim_name)
 {
   using namespace term::color;
   using util::time_point_t;
@@ -151,7 +159,7 @@ void update_ui(std::string const &name)
 
     // line 1
     {
-      printf(fore::CYAN | back::BLACK, "%s", name.c_str());
+      printf(fore::CYAN | back::BLACK, "%s", sim_name.c_str());
       printf(fore::DEFAULT | back::BLACK, " - ");
 
       if (!is_simulation_done) {

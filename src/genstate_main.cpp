@@ -88,7 +88,7 @@ struct config
 static config s_cfg{};
 
 errors_t parse_config(int const argc, char const *const *argv);
-bpo::options_description options_descrip();
+bpo::options_description options_description();
 std::string usage_msg();
 simulation::rules_t make_random_rules(
   char *turn_dirs_buffer,
@@ -222,7 +222,7 @@ std::string usage_msg()
     "\n"
   ;
 
-  options_descrip().print(msg, 6);
+  options_description().print(msg, 6);
 
   msg <<
     "\n"
@@ -238,7 +238,7 @@ std::string usage_msg()
   return msg.str();
 }
 
-bpo::options_description options_descrip()
+bpo::options_description options_description()
 {
   bpo::options_description desc("REQUIRED OPTIONS");
 
@@ -273,7 +273,7 @@ errors_t parse_config(int const argc, char const *const *const argv)
 
   bpo::variables_map var_map;
   try {
-    bpo::store(bpo::parse_command_line(argc, argv, options_descrip()), var_map);
+    bpo::store(bpo::parse_command_line(argc, argv, options_description()), var_map);
   } catch (std::exception const &err) {
     errors.emplace_back(err.what());
     return errors;
