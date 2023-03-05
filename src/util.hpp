@@ -32,7 +32,9 @@ namespace util
    [[nodiscard]] std::fstream open_file(char const *path, std::ios_base::openmode flags);
    [[nodiscard]] std::fstream open_file(std::string const &path, std::ios_base::openmode flags);
 
-   bool user_wants_to_create_dir(std::string const &path);
+   [[nodiscard]] bool get_user_choice(std::string const &prompt);
+
+   [[nodiscard]] std::vector<u64> parse_json_array_u64(char const *str);
 
    template <typename PathTy>
    [[nodiscard]] std::string extract_txt_file_contents(
@@ -129,8 +131,6 @@ namespace util
          return from_first_space + 1; // trim off leading space
       }
    }
-
-   [[nodiscard]] std::vector<u64> parse_json_array_u64(char const *str);
 
 } // namespace util
 

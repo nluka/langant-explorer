@@ -28,9 +28,6 @@ using util::errors_t;
 using util::print_err;
 using util::die;
 
-#define OPT_THREADS_FULL "threads"
-#define OPT_THREADS_SHORT "t"
-
 static simulation::env_config s_cfg{};
 
 std::string usage_msg();

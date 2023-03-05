@@ -66,23 +66,19 @@ typedef std::uniform_int_distribution<usize> usize_distrib;
 
 struct config
 {
-  std::string
-    name_style,
-    grid_state,
-    turn_dir_values,
-    shade_order,
-    ant_orient_values
-  ;
-  fs::path out_path;
-  usize
-    count,
-    rules_min_len,
-    rules_max_len,
-    grid_width,
-    grid_height,
-    ant_col,
-    ant_row
-  ;
+  usize       count;
+  usize       rules_min_len;
+  usize       rules_max_len;
+  usize       grid_width;
+  usize       grid_height;
+  usize       ant_col;
+  usize       ant_row;
+  std::string name_style;
+  std::string grid_state;
+  std::string turn_dir_values;
+  std::string shade_order;
+  std::string ant_orient_values;
+  fs::path    out_path;
 };
 
 static config s_cfg{};
@@ -106,6 +102,7 @@ usize ascii_digit_to_usize(char ch);
 
 int main(int const argc, char const *const *const argv)
 {
+  sizeof(std::vector<u64>);
   if (argc == 1) {
     std::cout << usage_msg();
     std::exit(1);
@@ -336,7 +333,9 @@ errors_t parse_config(int const argc, char const *const *const argv)
 
     if (out_path.has_value()) {
       if (!fs::exists(out_path.value())) {
-        bool const create_dir = util::user_wants_to_create_dir(out_path.value());
+        bool const create_dir = util::get_user_choice(
+          make_str("directory '%s' not found, would you like to create it?", out_path.value().c_str())
+        );
         if (create_dir) {
           try {
             fs::create_directories(out_path.value());
@@ -359,7 +358,7 @@ errors_t parse_config(int const argc, char const *const *const argv)
 
     if (count.has_value()) {
       if (count.value() < 1) {
-        errors.emplace_back("(--" OPT_COUNT_FULL ", -" OPT_COUNT_SHORT ") must > 0");
+        errors.emplace_back("(--" OPT_COUNT_FULL ", -" OPT_COUNT_SHORT ") must be > 0");
       } else {
         s_cfg.count = count.value();
       }

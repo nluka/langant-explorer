@@ -167,13 +167,13 @@ namespace simulation
 
   struct env_config
   {
+    u64                   generation_limit;
+    u64                   save_interval;
     std::filesystem::path state_path;
     std::filesystem::path save_path;
-    std::vector<u64> save_points;
-    u64 generation_limit;
-    u64 save_interval;
-    pgm8::format img_fmt;
-    bool save_final_state;
+    std::vector<u64>      save_points;
+    pgm8::format          img_fmt;
+    bool                  save_final_state;
   };
 
   std::variant<env_config, util::errors_t> extract_env_config(

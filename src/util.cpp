@@ -125,20 +125,16 @@ int util::print_err(char const *fmt, ...)
   return retval;
 }
 
-bool util::user_wants_to_create_dir(std::string const &path)
+bool util::get_user_choice(std::string const &prompt)
 {
-  using namespace term::color;
-
-  printf(
-    fore::YELLOW | back::BLACK,
-    "directory '%s' not found, would you like to create it? [y/n] ",
-    path.c_str()
-  );
+  {
+    using namespace term::color;
+    printf(fore::YELLOW | back::BLACK, "%s [y/n] ", prompt.c_str());
+  }
 
   std::string input;
-
   std::cin >> input;
 
-  char const first_lower = static_cast<char>(tolower(input.front()));
-  return first_lower == 'y';
+  char const first_input_chr_lowercase = static_cast<char>(tolower(input.front()));
+  return first_input_chr_lowercase == 'y';
 }
