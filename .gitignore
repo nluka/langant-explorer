@@ -13,7 +13,7 @@ staging
 *.log
 
 # testing
-testing/report.md
+testing/*.md
 testing/*.expected
 testing/*.actual
 testing/run/*.actual*

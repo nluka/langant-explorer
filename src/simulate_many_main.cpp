@@ -3,13 +3,13 @@
 #include <filesystem>
 #include <iostream>
 #include <thread>
+#include <atomic>
 
 #include <boost/program_options.hpp>
 #include "lib/BS_thread_pool_light.hpp"
 #include "lib/json.hpp"
 #include "lib/term.hpp"
 #include "lib/regexglob.hpp"
-#include "lib/logger.hpp"
 
 #ifdef _WIN32
 #  include <Windows.h>
@@ -20,6 +20,7 @@
 #include "timespan.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
+#include "logger.hpp"
 
 namespace fs = std::filesystem;
 namespace bpo = boost::program_options;
@@ -29,8 +30,12 @@ using util::print_err;
 using util::die;
 
 static simulation::env_config s_cfg{};
+static std::atomic<usize> s_num_simulations_done(0);
+static std::atomic<usize> s_num_simulations_in_progress(0);
+static std::atomic<usize> s_num_simulations_failed(0);
 
 std::string usage_msg();
+void update_user_interface(usize num_simulations);
 
 int main(int const argc, char const *const *const argv)
 {
@@ -45,6 +50,17 @@ int main(int const argc, char const *const *const argv)
   } catch (...) {
     die("unable to parse <num_threads>");
   }
+
+  {
+    char const *const log_path = argv[2];
+    std::ofstream log_file(log_path);
+    if (!log_file.is_open()) {
+      die("unable to open <log_path> '%s'", log_path);
+    }
+    logger::set_out_pathname(log_path);
+  }
+
+  logger::set_autoflush(true);
 
   {
     std::variant<
@@ -67,9 +83,6 @@ int main(int const argc, char const *const *const argv)
     }
   }
 
-  logger::set_out_pathname("./.log");
-  logger::set_autoflush(true);
-
   std::vector<fs::path> const state_files = regexglob::fmatch(
     s_cfg.state_path.string().c_str(),
     ".*\\.json"
@@ -88,6 +101,7 @@ int main(int const argc, char const *const *const argv)
   std::vector<named_simulation> simulations;
   simulations.reserve(state_files.size());
 
+  // parse all state files in provided path and register them for simulation
   for (auto const &state_file_path : state_files) {
     std::string const path_str = state_file_path.string();
 
@@ -109,38 +123,69 @@ int main(int const argc, char const *const *const argv)
   }
 
   auto const simulation_task = [](named_simulation &sim) {
-    using logger::event_type;
+    ++s_num_simulations_in_progress;
 
-    logger::log(event_type::INF, "%s started", sim.name.c_str());
+    try {
+      using logger::event_type;
 
-    auto const result = simulation::run(
-      sim.state,
-      sim.name,
-      s_cfg.generation_limit,
-      s_cfg.save_points,
-      s_cfg.save_interval,
-      s_cfg.img_fmt,
-      s_cfg.save_path,
-      s_cfg.save_final_state
-    );
+      logger::log(event_type::SIM_START, sim.name.c_str());
 
-    logger::log(
-      event_type::INF,
-      "%s finished, %s",
-      sim.name.c_str(),
-      (result.code == simulation::run_result::REACHED_GENERATION_LIMIT
-        ? "reached generation limit"
-        : "hit edge")
-    );
+      auto const result = simulation::run(
+        sim.state,
+        sim.name,
+        s_cfg.generation_limit,
+        s_cfg.save_points,
+        s_cfg.save_interval,
+        s_cfg.img_fmt,
+        s_cfg.save_path,
+        s_cfg.save_final_state,
+        s_cfg.log_save_points,
+        s_cfg.save_image_only
+      );
+
+      logger::log(
+        event_type::SIM_END,
+        "%s %s",
+        sim.name.c_str(),
+        (result.code == simulation::run_result::REACHED_GENERATION_LIMIT
+          ? "reached generation limit"
+          : "hit edge")
+      );
+
+      ++s_num_simulations_done;
+
+    } catch (...) {
+      ++s_num_simulations_failed;
+    }
+
+    --s_num_simulations_in_progress;
   };
 
   BS::thread_pool_light t_pool(num_threads);
   for (auto &sim : simulations) {
     t_pool.push_task(simulation_task, sim);
   }
-  t_pool.wait_for_tasks();
 
-  return 0;
+  term::cursor::hide();
+  std::atexit(term::cursor::show);
+
+  for (;;) {
+    usize const num_sims_completed = s_num_simulations_done.load();
+    usize const num_sims_failed = s_num_simulations_failed.load();
+    usize const num_sims_in_progress = s_num_simulations_in_progress.load();
+
+    printf("%zu / %zu simulations completed, %zu in progress, %zu failed\n",
+      num_sims_completed, simulations.size(), num_sims_in_progress, num_sims_failed);
+
+    if (num_sims_completed == simulations.size()) {
+      break;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    term::cursor::move_up(1);
+  }
+
+  return static_cast<int>(s_num_simulations_failed.load());
 }
 
 std::string usage_msg()
@@ -150,7 +195,7 @@ std::string usage_msg()
   msg <<
     "\n"
     "USAGE: \n"
-    "  simulate_many <num_threads> [options] \n"
+    "  simulate_many <num_threads> <log_path> [options] \n"
     "\n"
   ;
 

@@ -10,7 +10,8 @@ void simulation::save_state(
   simulation::state const &state,
   const char *const name,
   fs::path const &dir,
-  pgm8::format const fmt)
+  pgm8::format const fmt,
+  b8 const image_only)
 {
   if (!fs::is_directory(dir)) {
     throw std::runtime_error(make_str("\"%s\" is not a directory", dir.string().c_str()));
@@ -21,8 +22,9 @@ void simulation::save_state(
   std::filesystem::path p(dir);
   p /= name_with_gen + ".json";
 
-  // write state file
-  {
+  if (!image_only) {
+    // write state file
+
     std::string const state_path_str = p.string();
     std::fstream state_file = util::open_file(state_path_str, std::ios::out);
 
@@ -39,6 +41,7 @@ void simulation::save_state(
       state.rules);
   }
 
+  // write image file
   {
     pgm8::image_properties img_props;
     img_props.set_format(fmt);
@@ -86,7 +89,7 @@ void simulation::print_state_json(
     auto const print_rule = [&os](
       usize const shade,
       simulation::rule const &rule,
-      bool const comma_at_end
+      b8 const comma_at_end
     ) {
       os
         << "    { \"on\": " << shade
@@ -106,7 +109,7 @@ void simulation::print_state_json(
 
     for (usize shade = 0; shade < last_rule_idx; ++shade) {
       auto const &rule = rules[shade];
-      bool const exists = rule.turn_dir != simulation::turn_direction::NIL;
+      b8 const exists = rule.turn_dir != simulation::turn_direction::NIL;
       if (exists)
         print_rule(shade, rule, true);
     }

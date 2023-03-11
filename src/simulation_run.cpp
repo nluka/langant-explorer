@@ -10,6 +10,7 @@
 
 #include "util.hpp"
 #include "simulation.hpp"
+#include "logger.hpp"
 
 namespace fs = std::filesystem;
 
@@ -84,9 +85,26 @@ simulation::run_result simulation::run(
   u64 const save_interval,
   pgm8::format const img_fmt,
   std::filesystem::path const &save_dir,
-  b8 const save_final_cfg)
+  // u8 const run_options)
+  b8 const save_final_cfg,
+  b8 const log_save_points,
+  b8 const save_image_only)
 {
   run_result result{};
+
+  auto const do_save = [&]() {
+    try {
+      simulation::save_state(state, name.c_str(), save_dir, img_fmt, save_image_only);
+      ++result.num_save_points_successful;
+      if (log_save_points) {
+        logger::log(logger::event_type::SAVE_PNT, "%s @ %zu", name.c_str(), state.generation);
+      }
+    } catch (std::runtime_error const &) {
+      ++result.num_save_points_failed;
+    } catch (...) {
+      ++result.num_save_points_failed;
+    }
+  };
 
   // sort save_points in descending order, so we can pop them off the back as we complete them
   std::sort(save_points.begin(), save_points.end(), std::greater<u64>());
@@ -149,17 +167,9 @@ simulation::run_result simulation::run(
     }
 
     if (next_stop.reason == stop_reason::SAVE_POINT || next_stop.reason == stop_reason::SAVE_INTERVAL) {
-      try {
-        simulation::save_state(state, name.c_str(), save_dir, img_fmt);
-        ++result.num_save_points_successful;
-      } catch (std::runtime_error const &) {
-        ++result.num_save_points_failed;
-      } catch (...) {
-        ++result.num_save_points_failed;
-      }
+      do_save();
       last_saved_gen = state.generation;
-
-    } else { // stop_reason::GENERATION_LIMIT
+    } else {
       result.code = run_result::code::REACHED_GENERATION_LIMIT;
       goto done;
     }
@@ -169,12 +179,7 @@ done:
 
   b8 const final_state_already_saved = last_saved_gen == state.generation;
   if (save_final_cfg && !final_state_already_saved) {
-    try {
-      simulation::save_state(state, name.c_str(), save_dir, img_fmt);
-      ++result.num_save_points_successful;
-    } catch (std::runtime_error const &) {
-      ++result.num_save_points_failed;
-    }
+    do_save();
   }
 
   return result;

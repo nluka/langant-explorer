@@ -23,6 +23,7 @@
     <ClCompile Include="..\src\lib\pgm8.cpp" />
     <ClCompile Include="..\src\lib\regexglob.cpp" />
     <ClCompile Include="..\src\lib\term.cpp" />
+    <ClCompile Include="..\src\logger.cpp" />
     <ClCompile Include="..\src\simulation_misc.cpp" />
     <ClCompile Include="..\src\simulation_parse_state.cpp" />
     <ClCompile Include="..\src\simulation_run.cpp" />

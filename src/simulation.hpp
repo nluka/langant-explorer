@@ -36,6 +36,12 @@
 #define SIM_OPT_SAVEPATH_FULL "savepath"
 #define SIM_OPT_SAVEPATH_SHORT "o"
 
+#define SIM_OPT_SAVEIMGONLY_FULL "saveimgonly"
+#define SIM_OPT_SAVEIMGONLY_SHORT "y"
+
+#define SIM_OPT_LOGSAVEPOINTS_FULL "logsavepoints"
+#define SIM_OPT_LOGSAVEPOINTS_SHORT "l"
+
 namespace simulation
 {
   // not using an enum class because I want to do arithmetic with
@@ -127,7 +133,8 @@ namespace simulation
     state const &state,
     const char *name,
     std::filesystem::path const &dir,
-    pgm8::format img_fmt);
+    pgm8::format img_fmt,
+    b8 image_only);
 
   void print_state_json(
     std::ostream &os,
@@ -163,7 +170,9 @@ namespace simulation
     u64 save_interval,
     pgm8::format img_fmt,
     std::filesystem::path const &save_dir,
-    b8 save_final_state);
+    b8 save_final_state,
+    b8 log_save_points,
+    b8 save_image_only);
 
   struct env_config
   {
@@ -173,7 +182,9 @@ namespace simulation
     std::filesystem::path save_path;
     std::vector<u64>      save_points;
     pgm8::format          img_fmt;
-    bool                  save_final_state;
+    b8                    save_final_state;
+    b8                    log_save_points;
+    b8                    save_image_only;
   };
 
   std::variant<env_config, util::errors_t> extract_env_config(

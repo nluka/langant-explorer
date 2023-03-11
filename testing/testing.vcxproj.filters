@@ -45,5 +45,8 @@
     <ClCompile Include="..\src\lib\regexglob.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\logger.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

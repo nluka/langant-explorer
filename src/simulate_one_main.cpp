@@ -20,6 +20,7 @@
 #include "timespan.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
+#include "logger.hpp"
 
 namespace fs = std::filesystem;
 using util::errors_t;
@@ -47,6 +48,17 @@ int main(int const argc, char const *const *const argv)
       die(make_str("invalid <sim_name>, doesn't match /%s/", name_regex_cstr).c_str());
     }
   }
+
+  {
+    char const *const log_path = argv[2];
+    std::ofstream log_file(log_path);
+    if (!log_file.is_open()) {
+      die("unable to open <log_path> '%s'", log_path);
+    }
+    logger::set_out_pathname(log_path);
+  }
+
+  logger::set_autoflush(true);
 
   {
     std::variant<
@@ -86,16 +98,22 @@ int main(int const argc, char const *const *const argv)
 
   s_sim_state = std::get<simulation::state>(parse_res);
 
-  std::thread sim_thread([&sim_name]() {
+  std::string const true_sim_name = sim_name == "..."
+    ? s_cfg.state_path.filename().string()
+    : sim_name;
+
+  std::thread sim_thread([&true_sim_name]() {
     simulation::run(
       s_sim_state,
-      (sim_name == "..." ? s_cfg.state_path.filename().string() : sim_name),
+      true_sim_name,
       s_cfg.generation_limit,
       s_cfg.save_points,
       s_cfg.save_interval,
       s_cfg.img_fmt,
       s_cfg.save_path,
-      s_cfg.save_final_state
+      s_cfg.save_final_state,
+      s_cfg.log_save_points,
+      s_cfg.save_image_only
     );
   });
 
@@ -103,7 +121,7 @@ int main(int const argc, char const *const *const argv)
   SetPriorityClass(sim_thread.native_handle(), HIGH_PRIORITY_CLASS);
 #endif
 
-  std::thread ui_update_thread(update_ui, sim_name); // function runs until simulation is finished
+  std::thread ui_update_thread(update_ui, true_sim_name); // function runs until simulation is finished
 
   term::cursor::hide();
   std::atexit(term::cursor::show);
@@ -120,7 +138,7 @@ std::string usage_msg()
   msg <<
     "\n"
     "USAGE: \n"
-    "  simulate_one <sim_name> [options] \n"
+    "  simulate_one <sim_name> <log_path> [options] \n"
     "\n"
   ;
 
@@ -142,6 +160,8 @@ void update_ui(std::string const &sim_name)
   using namespace term::color;
   using util::time_point_t;
 
+  int const def_color = fore::DEFAULT | back::BLACK;
+
   time_point_t const start_time = util::current_time();
 
   for (;;) {
@@ -159,13 +179,13 @@ void update_ui(std::string const &sim_name)
 
     // line 1
     {
-      printf(fore::CYAN | back::BLACK, "%s", sim_name.c_str());
-      printf(fore::DEFAULT | back::BLACK, " - ");
+      printf(fore::CYAN | back::BLACK, "  %s", sim_name.c_str());
+      printf(def_color, " - ");
 
       if (!is_simulation_done) {
         printf(fore::YELLOW | back::BLACK, "in progress");
       } else {
-        printf(fore::DEFAULT | back::BLACK, "finished, %s", []() {
+        printf(def_color, "finished, %s", []() {
           switch (s_sim_state.last_step_res) {
             case simulation::step_result::NIL: return "internal error (NIL step result)";
             case simulation::step_result::SUCCESS: return "generation limit reached";
@@ -176,35 +196,28 @@ void update_ui(std::string const &sim_name)
       }
 
       term::clear_to_end_of_line();
-      putc('\n', stdout);
+      printf("\n");
     }
 
     // line 2
     {
-      printf(
-        fore::DEFAULT | back::BLACK,
-        "generation %llu, %.1lf%%",
-        gens_completed,
-        percent_completion);
+      printf(def_color, "  generation %llu, %.1lf%%", gens_completed, percent_completion);
       term::clear_to_end_of_line();
-      putc('\n', stdout);
+      printf("\n");
     }
 
     // line 3
     {
-      printf(fore::DEFAULT | back::BLACK, "%.2lf Mgens/sec", mega_gens_per_sec);
+      printf(def_color, "  %.2lf Mgens/sec", mega_gens_per_sec);
       term::clear_to_end_of_line();
-      putc('\n', stdout);
+      printf("\n");
     }
 
     // line 4
     {
-      printf(
-        fore::DEFAULT | back::BLACK,
-        "%s elapsed",
-        timespan_to_string(timespan_calculate(static_cast<usize>(secs_elapsed))).c_str());
+      printf(def_color, "  %s elapsed", timespan_to_string(timespan_calculate(static_cast<usize>(secs_elapsed))).c_str());
       term::clear_to_end_of_line();
-      putc('\n', stdout);
+      printf("\n");
     }
 
     if (is_simulation_done)

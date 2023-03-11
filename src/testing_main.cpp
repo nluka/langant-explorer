@@ -24,6 +24,8 @@ simulation::rules_t generate_rules(
 int main()
 {
   ntest::init();
+  ntest::config::set_max_arr_preview_len(2);
+  ntest::config::set_max_str_preview_len(10);
 
   {
     auto const assert_parse = [](
@@ -344,7 +346,9 @@ int main()
       16, // save_interval
       pgm8::format::PLAIN,
       save_dir,
-      true // save_final_state
+      true, // save_final_state
+      false, // log_save_points
+      false // save_image_only
     );
 
     assert_save_point("RL.expect(3).json", "RL.expect(3).pgm", "RL.actual(3).json");

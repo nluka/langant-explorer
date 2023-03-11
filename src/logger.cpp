@@ -1,5 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
-
 #include <chrono>
 #include <cstdarg>
 #include <fstream>
@@ -37,11 +35,11 @@ using logger::event_type;
 static
 char const *event_type_to_str(event_type const evType) {
   switch (evType) {
-    case event_type::INF: return "INFO";
-    case event_type::WRN: return "WARN";
-    case event_type::ERR: return "ERR";
-    case event_type::FTL: return "FATAL";
-    default: throw "bad event_type";
+    case event_type::SIM_START: return "SIM_START ";
+    case event_type::SAVE_PNT:  return "SAVE_POINT";
+    case event_type::SIM_END:   return "SIM_END   ";
+    case event_type::ERR:       return "ERROR     ";
+    default: throw std::runtime_error("bad event_type");
   }
 }
 
@@ -59,11 +57,17 @@ public:
   std::string stringify() const {
     std::stringstream ss{};
 
-    ss << '[' << event_type_to_str(m_type) << "] ";
+    ss << '[' << event_type_to_str(m_type) << ']' << ' ';
 
-    { // timestamp
-      std::time_t const time =
-        std::chrono::system_clock::to_time_t(m_timepoint);
+    std::time_t const time = std::chrono::system_clock::to_time_t(m_timepoint);
+
+    // timestamp
+    #if 0
+    char const *const raw_time_stamp = ctime(&time); // has a \n at the end
+    std::string_view time_stamp(raw_time_stamp, std::strlen(raw_time_stamp) - 1);
+    ss << '(' << time_stamp << ')' << ' ';
+    #else
+    {
       struct tm const *local = localtime(&time);
 
       ss << '('
@@ -76,6 +80,7 @@ public:
         << std::setw(2) << local->tm_sec
       << ") ";
     }
+    #endif
 
     ss << m_msg;
 

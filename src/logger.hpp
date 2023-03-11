@@ -20,14 +20,18 @@ void set_delim(char const *);
 void set_autoflush(bool);
 
 enum class event_type : uint8_t {
-  // Info
-  INF = 0,
-  // Warning
-  WRN,
+  // Simulation start
+  SIM_START = 0,
+
+  // Savepoint
+  SAVE_PNT,
+
+  // Simulation end
+  SIM_END,
+
   // Error
   ERR,
-  // Fatal
-  FTL,
+
   // Number of event types
   COUNT,
 };
