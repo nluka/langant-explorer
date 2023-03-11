@@ -338,6 +338,20 @@ b8 try_to_parse_and_set_grid_state(
     }
 
     usize const num_pixels = img_props.num_pixels();
+    {
+      usize const num_pixels_expected = static_cast<usize>(state.grid_width) * state.grid_height;
+      if (num_pixels != num_pixels_expected) {
+        if (state.grid_width != img_props.get_width()) {
+          add_err(make_str("dimension mismatch, image width (%zu) does not correspond to grid width (%zu)",
+            img_props.get_width(), state.grid_width));
+        }
+        if (state.grid_height != img_props.get_height()){
+          add_err(make_str("dimension mismatch, image height (%zu) does not correspond to grid height (%zu)",
+            img_props.get_height(), state.grid_height));
+        }
+        return false;
+      }
+    }
 
     try {
       state.grid = new u8[num_pixels];

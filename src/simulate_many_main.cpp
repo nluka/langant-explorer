@@ -159,6 +159,7 @@ int main(int const argc, char const *const *const argv)
     }
 
     --s_num_simulations_in_progress;
+    delete[] sim.state.grid;
   };
 
   BS::thread_pool_light t_pool(num_threads);

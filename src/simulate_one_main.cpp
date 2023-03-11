@@ -115,6 +115,8 @@ int main(int const argc, char const *const *const argv)
       s_cfg.log_save_points,
       s_cfg.save_image_only
     );
+
+    delete[] s_sim_state.grid;
   });
 
 #ifdef _WIN32
