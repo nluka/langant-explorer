@@ -162,6 +162,16 @@ int main(int const argc, char const *const *const argv)
   };
 
   BS::thread_pool_light t_pool(num_threads);
+
+#if _WIN32
+  // I would const this, but native_handle() is not a const member function for some reason
+  std::thread *threads = t_pool.get_threads_uniqueptr().get();
+
+  for (usize i = 0; i < t_pool.get_thread_count(); ++i) {
+    SetPriorityClass(threads[i].native_handle(), HIGH_PRIORITY_CLASS);
+  }
+#endif
+
   for (auto &sim : simulations) {
     t_pool.push_task(simulation_task, sim);
   }

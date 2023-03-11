@@ -199,6 +199,8 @@ public:
         waiting = false;
     }
 
+    std::unique_ptr<std::thread[]> &get_threads_uniqueptr() { return threads; };
+
 private:
     // ========================
     // Private member functions
