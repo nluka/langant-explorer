@@ -34,8 +34,7 @@ static simulation::state s_sim_state{};
 std::string usage_msg();
 void update_ui(std::string const &sim_name);
 
-int main(int const argc, char const *const *const argv)
-{
+int main(int const argc, char const *const *const argv) {
   if (argc < 2) {
     std::cout << usage_msg();
     std::exit(1);
@@ -168,14 +167,18 @@ void update_ui(std::string const &sim_name)
 
   for (;;) {
     time_point_t const time_now = util::current_time();
+    auto const time_breakdown = s_sim_state.query_activity_time_breakdown(time_now);
+
     u64 const
-      nanos_elapsed = util::nanos_between(start_time, time_now).count(),
+      total_nanos_elapsed = util::nanos_between(start_time, time_now).count(),
       gens_completed = s_sim_state.generation,
       gens_remaining = s_cfg.generation_limit - gens_completed;
     f64 const
-      secs_elapsed = nanos_elapsed / 1'000'000'000.0,
+      total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
+      secs_elapsed_iterating = time_breakdown.nanos_spent_iterating / 1'000'000'000.0,
+      secs_elapsed_saving = time_breakdown.nanos_spent_saving / 1'000'000'000.0,
       mega_gens_completed = gens_completed / 1'000'000.0,
-      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed, 0.0 + DBL_EPSILON),
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON),
       percent_completion = ((gens_completed / static_cast<f64>(s_cfg.generation_limit)) * 100.0);
     b8 const is_simulation_done = !s_sim_state.can_step_forward(s_cfg.generation_limit);
 
@@ -185,7 +188,14 @@ void update_ui(std::string const &sim_name)
       printf(def_color, " - ");
 
       if (!is_simulation_done) {
-        printf(fore::YELLOW | back::BLACK, "in progress");
+        printf(fore::YELLOW | back::BLACK, "%s", [] {
+          switch (s_sim_state.current_activity) {
+            case simulation::activity::ITERATING: return "iterating";
+            case simulation::activity::SAVING: return "saving";
+            default:
+            case simulation::activity::NIL: return "internal error (NIL current activity)";
+          }
+        }());
       } else {
         printf(def_color, "finished, %s", []() {
           switch (s_sim_state.last_step_res) {
@@ -217,7 +227,10 @@ void update_ui(std::string const &sim_name)
 
     // line 4
     {
-      printf(def_color, "  %s elapsed", timespan_to_string(timespan_calculate(static_cast<usize>(secs_elapsed))).c_str());
+      printf(def_color, "  %s elapsed (%s iterating, %s saving)",
+        timespan_to_string(timespan_calculate(static_cast<u64>(total_secs_elapsed))).c_str(),
+        timespan_to_string(timespan_calculate(static_cast<u64>(secs_elapsed_iterating))).c_str(),
+        timespan_to_string(timespan_calculate(static_cast<u64>(secs_elapsed_saving))).c_str());
       term::clear_to_end_of_line();
       printf("\n");
     }

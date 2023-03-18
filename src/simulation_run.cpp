@@ -14,69 +14,52 @@
 
 namespace fs = std::filesystem;
 
-namespace helpers
+// Removes duplicate elements from a sorted vector.
+template <typename ElemTy>
+std::vector<ElemTy> remove_duplicates_sorted(std::vector<ElemTy> const &input)
 {
-  // Finds the index of the smallest value in an array.
-  template <typename Ty>
-  usize idx_of_smallest(Ty const *const values, usize const num_values)
-  {
-    assert(num_values > 0);
-    assert(values != nullptr);
-
-    usize min_idx = 0;
-    for (usize i = 1; i < num_values; ++i) {
-      if (values[i] < values[min_idx]) {
-        min_idx = i;
-      }
-    }
-
-    return min_idx;
+  if (input.size() < 2) {
+    return input;
   }
 
-  // Removes duplicate elements from a sorted vector.
-  template <typename ElemTy>
-  std::vector<ElemTy> remove_duplicates_sorted(std::vector<ElemTy> const &input)
-  {
-    if (input.size() < 2) {
-      return input;
-    }
+  std::vector<ElemTy> output(input.size());
 
-    std::vector<ElemTy> output(input.size());
-
-    // check the first element individually
-    if (input[0] != input[1]) {
-      output.push_back(input[0]);
-    }
-
-    for (usize i = 1; i < input.size() - 1; ++i) {
-      if (input[i] != input[i - 1] && input[i] != input[i + 1]) {
-        output.push_back(input[i]);
-      }
-    }
-
-    // check the last item individually
-    if (input[input.size() - 1] != input[input.size() - 2]) {
-      output.push_back(input[input.size() - 1]);
-    }
-
-    return output;
+  // check the first element individually
+  if (input[0] != input[1]) {
+    output.push_back(input[0]);
   }
+
+  for (usize i = 1; i < input.size() - 1; ++i) {
+    if (input[i] != input[i - 1] && input[i] != input[i + 1]) {
+      output.push_back(input[i]);
+    }
+  }
+
+  // check the last item individually
+  if (input[input.size() - 1] != input[input.size() - 2]) {
+    output.push_back(input[input.size() - 1]);
+  }
+
+  return output;
 }
 
-/*
-  Runs a simulation until either the `generation_target` is reached
-  or the ant tries to step off the grid.
+// Finds the index of the smallest value in an array.
+template <typename Ty>
+usize idx_of_smallest(Ty const *const values, usize const num_values)
+{
+  assert(num_values > 0);
+  assert(values != nullptr);
 
-  `save_points` is a list of points at which to emit a save.
+  usize min_idx = 0;
+  for (usize i = 1; i < num_values; ++i) {
+    if (values[i] < values[min_idx]) {
+      min_idx = i;
+    }
+  }
 
-  `save_interval` specifies an interval to emit saves, 0 indicates no interval.
+  return min_idx;
+}
 
-  `save_dir` is where any saves (.json and image files) are emitted.
-
-  If `save_final_state` is true, the final state of the simulation is saved,
-  regardless of `save_points` and `save_interval`. If the final state happens
-  to be saved because of a save_point or the `save_interval`, a duplicate save is not made.
-*/
 simulation::run_result simulation::run(
   state &state,
   std::string const &name,
@@ -85,14 +68,23 @@ simulation::run_result simulation::run(
   u64 const save_interval,
   pgm8::format const img_fmt,
   std::filesystem::path const &save_dir,
-  // u8 const run_options)
   b8 const save_final_cfg,
   b8 const log_save_points,
   b8 const save_image_only)
 {
   run_result result{};
 
-  auto const do_save = [&]() {
+  auto const do_save = [&](activity const next_activity) {
+    state.activity_end = util::current_time();
+    {
+      u64 const iteration_duration_ns = util::nanos_between(
+        state.activity_start, state.activity_end).count();
+      state.nanos_spent_iterating += iteration_duration_ns;
+    }
+
+    state.current_activity = activity::SAVING;
+    state.activity_start = util::current_time();
+
     try {
       simulation::save_state(state, name.c_str(), save_dir, img_fmt, save_image_only);
       ++result.num_save_points_successful;
@@ -104,16 +96,28 @@ simulation::run_result simulation::run(
     } catch (...) {
       ++result.num_save_points_failed;
     }
+
+    state.activity_end = util::current_time();
+    {
+      u64 const save_duration_ns = util::nanos_between(
+        state.activity_start, state.activity_end).count();
+      state.nanos_spent_saving += save_duration_ns;
+    }
+
+    state.current_activity = next_activity;
+    state.activity_start = util::current_time();
   };
 
   // sort save_points in descending order, so we can pop them off the back as we complete them
   std::sort(save_points.begin(), save_points.end(), std::greater<u64>());
-  save_points = helpers::remove_duplicates_sorted(save_points);
-
-  state.maxval = deduce_maxval_from_rules(state.rules);
+  save_points = remove_duplicates_sorted(save_points);
 
   u64 last_saved_gen = UINT64_MAX;
   u64 const generation_limit = generation_target == 0 ? (UINT64_MAX - 1) : generation_target;
+
+  state.maxval = deduce_maxval_from_rules(state.rules);
+  state.activity_start = util::current_time();
+  state.current_activity = activity::ITERATING;
 
   for (;;) {
     // the most generations we can perform before we overflow state.generation
@@ -146,7 +150,7 @@ simulation::run_result simulation::run(
       stop_reason reason;
     };
 
-    usize const idx_of_smallest_dist = helpers::idx_of_smallest(distances.data(), distances.size());
+    usize const idx_of_smallest_dist = idx_of_smallest(distances.data(), distances.size());
     stop const next_stop {
       distances[idx_of_smallest_dist],
       static_cast<stop_reason>(idx_of_smallest_dist),
@@ -167,7 +171,7 @@ simulation::run_result simulation::run(
     }
 
     if (next_stop.reason == stop_reason::SAVE_POINT || next_stop.reason == stop_reason::SAVE_INTERVAL) {
-      do_save();
+      do_save(activity::ITERATING);
       last_saved_gen = state.generation;
     } else {
       result.code = run_result::code::REACHED_GENERATION_LIMIT;
@@ -179,13 +183,16 @@ done:
 
   b8 const final_state_already_saved = last_saved_gen == state.generation;
   if (save_final_cfg && !final_state_already_saved) {
-    do_save();
+    do_save(activity::NIL);
+  } else {
+    state.current_activity = activity::NIL;
   }
 
   return result;
 }
 
-simulation::step_result::value_type simulation::attempt_step_forward(simulation::state &state)
+simulation::step_result::value_type simulation::attempt_step_forward(
+  simulation::state &state)
 {
   usize const curr_cell_idx = (state.ant_row * state.grid_width) + state.ant_col;
   u8 const curr_cell_shade = state.grid[curr_cell_idx];

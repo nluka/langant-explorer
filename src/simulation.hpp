@@ -105,6 +105,19 @@ namespace simulation
 
   typedef std::array<rule, 256> rules_t;
 
+  enum activity : u8
+  {
+    NIL,
+    ITERATING,
+    SAVING,
+  };
+
+  struct activity_time_breakdown
+  {
+    u64 nanos_spent_iterating;
+    u64 nanos_spent_saving;
+  };
+
   struct state
   {
     u64 generation;
@@ -113,12 +126,20 @@ namespace simulation
     i32 ant_col;
     i32 ant_row;
     u8 *grid;
+    u64 nanos_spent_iterating;
+    u64 nanos_spent_saving;
+    util::time_point_t activity_start;
+    util::time_point_t activity_end;
+    activity current_activity;
     orientation::value_type ant_orientation;
     step_result::value_type last_step_res;
     rules_t rules;
     u8 maxval;
 
     b8 can_step_forward(u64 generation_target = 0) const noexcept;
+
+    activity_time_breakdown query_activity_time_breakdown(
+      util::time_point_t now = util::current_time());
   };
 
   std::variant<state, util::errors_t> parse_state(
@@ -176,15 +197,17 @@ namespace simulation
 
   struct env_config
   {
-    u64                   generation_limit;
-    u64                   save_interval;
-    std::filesystem::path state_path;
-    std::filesystem::path save_path;
-    std::vector<u64>      save_points;
-    pgm8::format          img_fmt;
-    b8                    save_final_state;
-    b8                    log_save_points;
-    b8                    save_image_only;
+    using fs_path = std::filesystem::path;
+
+    u64               generation_limit;
+    u64               save_interval;
+    fs_path           state_path;
+    fs_path           save_path;
+    std::vector<u64>  save_points;
+    pgm8::format      img_fmt;
+    b8                save_final_state;
+    b8                log_save_points;
+    b8                save_image_only;
   };
 
   std::variant<env_config, util::errors_t> extract_env_config(

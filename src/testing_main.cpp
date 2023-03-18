@@ -218,6 +218,11 @@ int main()
         2, // ant_col
         3, // ant_row
         grid,
+        0, // nanos_spent_iterating
+        0, // nanos_spent_saving
+        {}, // activity_start
+        {}, // activity_end
+        simulation::activity::NIL,
         simulation::orientation::WEST,
         simulation::step_result::NIL,
         generate_rules({
@@ -245,6 +250,11 @@ int main()
         2, // ant_col
         2, // ant_row
         grid,
+        0, // nanos_spent_iterating
+        0, // nanos_spent_saving
+        {}, // activity_start
+        {}, // activity_end
+        simulation::activity::NIL,
         simulation::orientation::WEST,
         simulation::step_result::NIL,
         generate_rules({

@@ -91,3 +91,31 @@ u8 simulation::deduce_maxval_from_rules(simulation::rules_t const &rules)
       return shade;
   return 0ui8;
 }
+
+simulation::activity_time_breakdown simulation::state::query_activity_time_breakdown(
+  util::time_point_t const now)
+{
+  if (current_activity == activity::NIL) {
+    // currently doing nothing
+    return {
+      nanos_spent_iterating,
+      nanos_spent_saving,
+    };
+  }
+
+  // we are in the middle of iterating or saving...
+
+  u64 const current_activity_duration_ns = util::nanos_between(activity_start, now).count();
+
+  if (current_activity == activity::ITERATING) {
+    return {
+      nanos_spent_iterating + current_activity_duration_ns,
+      nanos_spent_saving,
+    };
+  } else { // activity::SAVING
+    return {
+      nanos_spent_iterating,
+      nanos_spent_saving + current_activity_duration_ns,
+    };
+  }
+}
