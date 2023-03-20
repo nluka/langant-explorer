@@ -93,7 +93,7 @@ u8 simulation::deduce_maxval_from_rules(simulation::rules_t const &rules)
 }
 
 simulation::activity_time_breakdown simulation::state::query_activity_time_breakdown(
-  util::time_point_t const now)
+  util::time_point_t const now) const
 {
   if (current_activity == activity::NIL) {
     // currently doing nothing

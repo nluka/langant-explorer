@@ -30,9 +30,10 @@ using util::die;
 
 static simulation::env_config s_cfg{};
 static simulation::state s_sim_state{};
+static simulation::run_result s_sim_run_result{};
 
 std::string usage_msg();
-void update_ui(std::string const &sim_name);
+void ui_loop(std::string const &sim_name);
 
 int main(int const argc, char const *const *const argv) {
   if (argc < 2) {
@@ -102,7 +103,7 @@ int main(int const argc, char const *const *const argv) {
     : sim_name;
 
   std::thread sim_thread([&true_sim_name]() {
-    simulation::run(
+    s_sim_run_result = simulation::run(
       s_sim_state,
       true_sim_name,
       s_cfg.generation_limit,
@@ -122,11 +123,14 @@ int main(int const argc, char const *const *const argv) {
   SetPriorityClass(sim_thread.native_handle(), HIGH_PRIORITY_CLASS);
 #endif
 
-  std::thread ui_update_thread(update_ui, true_sim_name); // function runs until simulation is finished
+  // sleep for a bit so we are not dividing by tiny time elapsed values,
+  // which results in Infinity values
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   term::cursor::hide();
   std::atexit(term::cursor::show);
-  ui_update_thread.join();
+
+  ui_loop(true_sim_name); // blocks until simulation completes
   sim_thread.join();
 
   return 0;
@@ -156,12 +160,12 @@ std::string usage_msg()
   return msg.str();
 }
 
-void update_ui(std::string const &sim_name)
+void ui_loop(std::string const &sim_name)
 {
   using namespace term::color;
   using util::time_point_t;
 
-  int const def_color = fore::DEFAULT | back::BLACK;
+  std::string const horizontal_rule(sim_name.length(), '-');
 
   time_point_t const start_time = util::current_time();
 
@@ -180,65 +184,99 @@ void update_ui(std::string const &sim_name)
       mega_gens_completed = gens_completed / 1'000'000.0,
       mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON),
       percent_completion = ((gens_completed / static_cast<f64>(s_cfg.generation_limit)) * 100.0);
-    b8 const is_simulation_done = !s_sim_state.can_step_forward(s_cfg.generation_limit);
+    b8 const is_simulation_done = s_sim_run_result.code != simulation::run_result::code::NIL;
 
-    // line 1
+    // line
+    puts(horizontal_rule.c_str());
+
+    // line
     {
-      printf(fore::CYAN | back::BLACK, "  %s", sim_name.c_str());
-      printf(def_color, " - ");
+      printf("Name       : ");
+      printf(fore::CYAN | back::BLACK, "%s", sim_name.c_str());
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
 
+    // line
+    {
+      printf("Result     : ");
       if (!is_simulation_done) {
-        printf(fore::YELLOW | back::BLACK, "%s", [] {
-          switch (s_sim_state.current_activity) {
-            case simulation::activity::ITERATING: return "iterating";
-            case simulation::activity::SAVING: return "saving";
-            default:
-            case simulation::activity::NIL: return "internal error (NIL current activity)";
-          }
-        }());
+        printf("TBD");
       } else {
-        printf(def_color, "finished, %s", []() {
+        printf([] {
           switch (s_sim_state.last_step_res) {
-            case simulation::step_result::NIL: return "internal error (NIL step result)";
-            case simulation::step_result::SUCCESS: return "generation limit reached";
+            default:
+            case simulation::step_result::NIL:      return "nil step result";
+            case simulation::step_result::SUCCESS:  return "reached generation limit";
             case simulation::step_result::HIT_EDGE: return "hit edge";
-            default: return "internal error (nullptr)";
           }
         }());
       }
-
       term::clear_to_end_of_line();
-      printf("\n");
+      putc('\n', stdout);
     }
 
-    // line 2
+    // line
     {
-      printf(def_color, "  generation %llu, %.1lf%%", gens_completed, percent_completion);
+      printf("Mgens/sec  : ");
+      printf(fore::WHITE | back::MAGENTA, "%.2lf", mega_gens_per_sec);
       term::clear_to_end_of_line();
-      printf("\n");
+      putc('\n', stdout);
     }
 
-    // line 3
+    // line
     {
-      printf(def_color, "  %.2lf Mgens/sec", mega_gens_per_sec);
+      printf("Completion : ");
+      printf(fore::LIGHT_GREEN | back::BLACK, "%.1lf %%", percent_completion);
       term::clear_to_end_of_line();
-      printf("\n");
+      putc('\n', stdout);
     }
 
-    // line 4
+    // line
     {
-      printf(def_color, "  %s elapsed (%s iterating, %s saving)",
-        timespan_to_string(timespan_calculate(static_cast<u64>(total_secs_elapsed))).c_str(),
-        timespan_to_string(timespan_calculate(static_cast<u64>(secs_elapsed_iterating))).c_str(),
-        timespan_to_string(timespan_calculate(static_cast<u64>(secs_elapsed_saving))).c_str());
+      printf("Generation : %llu", gens_completed);
       term::clear_to_end_of_line();
-      printf("\n");
+      putc('\n', stdout);
     }
+
+    // line
+    {
+      printf("Elapsed    : %s", timespan_to_string(timespan_calculate(static_cast<u64>(total_secs_elapsed))).c_str());
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    {
+      printf("I/S Ratio  : %.1lf / %.1lf",
+        ( time_breakdown.nanos_spent_iterating / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0,
+        ( time_breakdown.nanos_spent_saving    / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0);
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    {
+      printf("Activity   : ");
+      printf([] {
+        switch (s_sim_state.current_activity) {
+          default:
+          case simulation::activity::NIL:       return "nil";
+          case simulation::activity::ITERATING: return "iterating";
+          case simulation::activity::SAVING:    return "saving";
+        }
+      }());
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    puts(horizontal_rule.c_str());
 
     if (is_simulation_done)
       return;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    term::cursor::move_up(4);
+    term::cursor::move_up(10);
   }
 }

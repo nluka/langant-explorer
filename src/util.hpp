@@ -36,6 +36,22 @@ namespace util
 
    [[nodiscard]] std::vector<u64> parse_json_array_u64(char const *str);
 
+   template <typename IntTy>
+   constexpr
+   [[nodiscard]] usize count_digits(IntTy n)
+   {
+      if (n == 0)
+         return 1;
+
+      usize count = 0;
+      while (n != 0) {
+         n = n / 10;
+         ++count;
+      }
+
+      return count;
+   }
+
    template <typename PathTy>
    [[nodiscard]] std::string extract_txt_file_contents(
       PathTy const &path,

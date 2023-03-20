@@ -139,7 +139,7 @@ namespace simulation
     b8 can_step_forward(u64 generation_target = 0) const noexcept;
 
     activity_time_breakdown query_activity_time_breakdown(
-      util::time_point_t now = util::current_time());
+      util::time_point_t now = util::current_time()) const;
   };
 
   std::variant<state, util::errors_t> parse_state(

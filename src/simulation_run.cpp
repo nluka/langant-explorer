@@ -74,17 +74,22 @@ simulation::run_result simulation::run(
 {
   run_result result{};
 
-  auto const do_save = [&](activity const next_activity) {
-    state.activity_end = util::current_time();
-    {
-      u64 const iteration_duration_ns = util::nanos_between(
-        state.activity_start, state.activity_end).count();
-      state.nanos_spent_iterating += iteration_duration_ns;
-    }
-
-    state.current_activity = activity::SAVING;
+  auto const begin_new_activity = [&](activity const activity) {
+    state.current_activity = activity;
+    state.activity_end = {};
     state.activity_start = util::current_time();
+  };
 
+  auto const end_curr_activity = [&]() {
+    state.activity_end = util::current_time();
+  };
+
+  auto const compute_activity_duration_ns = [&]() {
+    u64 const duration = util::nanos_between(state.activity_start, state.activity_end).count();
+    return duration;
+  };
+
+  auto const do_save = [&] {
     try {
       simulation::save_state(state, name.c_str(), save_dir, img_fmt, save_image_only);
       ++result.num_save_points_successful;
@@ -96,16 +101,6 @@ simulation::run_result simulation::run(
     } catch (...) {
       ++result.num_save_points_failed;
     }
-
-    state.activity_end = util::current_time();
-    {
-      u64 const save_duration_ns = util::nanos_between(
-        state.activity_start, state.activity_end).count();
-      state.nanos_spent_saving += save_duration_ns;
-    }
-
-    state.current_activity = next_activity;
-    state.activity_start = util::current_time();
   };
 
   // sort save_points in descending order, so we can pop them off the back as we complete them
@@ -160,19 +155,36 @@ simulation::run_result simulation::run(
       save_points.pop_back();
     }
 
-    for (usize i = 0; i < next_stop.distance; ++i) {
-      state.last_step_res = simulation::attempt_step_forward(state);
-      if (state.last_step_res == simulation::step_result::SUCCESS) [[likely]] {
-        ++state.generation;
-      } else [[unlikely]] {
+    if (next_stop.distance > 0) {
+      begin_new_activity(activity::ITERATING);
+
+      for (usize i = 0; i < next_stop.distance; ++i) {
+        state.last_step_res = simulation::attempt_step_forward(state);
+        if (state.last_step_res == simulation::step_result::SUCCESS) [[likely]] {
+          ++state.generation;
+        } else [[unlikely]] {
+          break;
+
+        }
+      }
+
+      end_curr_activity();
+      u64 const iteration_duration_ns = compute_activity_duration_ns();
+      state.nanos_spent_iterating += iteration_duration_ns;
+
+      if (state.last_step_res == simulation::step_result::HIT_EDGE) {
         result.code = run_result::code::HIT_EDGE;
         goto done;
       }
     }
 
     if (next_stop.reason == stop_reason::SAVE_POINT || next_stop.reason == stop_reason::SAVE_INTERVAL) {
-      do_save(activity::ITERATING);
+      begin_new_activity(activity::SAVING);
+      do_save();
+      end_curr_activity();
       last_saved_gen = state.generation;
+      u64 const save_duration_ns = compute_activity_duration_ns();
+      state.nanos_spent_saving += save_duration_ns;
     } else {
       result.code = run_result::code::REACHED_GENERATION_LIMIT;
       goto done;
@@ -183,10 +195,14 @@ done:
 
   b8 const final_state_already_saved = last_saved_gen == state.generation;
   if (save_final_cfg && !final_state_already_saved) {
-    do_save(activity::NIL);
-  } else {
-    state.current_activity = activity::NIL;
+    begin_new_activity(activity::SAVING);
+    do_save();
+    end_curr_activity();
+    last_saved_gen = state.generation;
+    u64 const save_duration_ns = compute_activity_duration_ns();
+    state.nanos_spent_saving += save_duration_ns;
   }
+  begin_new_activity(activity::NIL);
 
   return result;
 }

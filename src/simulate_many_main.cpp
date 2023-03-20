@@ -34,8 +34,14 @@ static std::atomic<usize> s_num_simulations_done(0);
 static std::atomic<usize> s_num_simulations_in_progress(0);
 static std::atomic<usize> s_num_simulations_failed(0);
 
+struct named_simulation
+{
+  std::string name;
+  simulation::state state;
+};
+
 std::string usage_msg();
-void update_user_interface(usize num_simulations);
+void ui_loop(std::vector<named_simulation> const &);
 
 int main(int const argc, char const *const *const argv)
 {
@@ -91,12 +97,6 @@ int main(int const argc, char const *const *const argv)
   if (state_files.empty()) {
     die("(--" SIM_OPT_STATEPATH_FULL ", -" SIM_OPT_STATEPATH_SHORT ") directory contains no .json files");
   }
-
-  struct named_simulation
-  {
-    std::string name;
-    simulation::state state;
-  };
 
   std::vector<named_simulation> simulations;
   simulations.reserve(state_files.size());
@@ -174,27 +174,17 @@ int main(int const argc, char const *const *const argv)
 #endif
 
   for (auto &sim : simulations) {
-    t_pool.push_task(simulation_task, sim);
+    t_pool.push_task(simulation_task, std::ref(sim));
   }
+
+  // sleep for a bit so we are not dividing by tiny time elapsed values,
+  // which results in Infinity values
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   term::cursor::hide();
   std::atexit(term::cursor::show);
 
-  for (;;) {
-    usize const num_sims_completed = s_num_simulations_done.load();
-    usize const num_sims_failed = s_num_simulations_failed.load();
-    usize const num_sims_in_progress = s_num_simulations_in_progress.load();
-
-    printf("%zu / %zu simulations completed, %zu in progress, %zu failed\n",
-      num_sims_completed, simulations.size(), num_sims_in_progress, num_sims_failed);
-
-    if (num_sims_completed == simulations.size()) {
-      break;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    term::cursor::move_up(1);
-  }
+  ui_loop(simulations);
 
   return static_cast<int>(s_num_simulations_failed.load());
 }
@@ -221,4 +211,102 @@ std::string usage_msg()
   ;
 
   return msg.str();
+}
+
+void ui_loop(std::vector<named_simulation> const &simulations)
+{
+  using namespace term::color;
+
+  std::string const horizontal_rule(30, '-');
+  usize const digits_in_num_simulations = util::count_digits(simulations.size());
+
+  time_point_t const start_time = util::current_time();
+
+  for (;;) {
+    time_point_t const time_now = util::current_time();
+
+    u64
+      gens_completed = 0,
+      nanos_spent_iterating = 0,
+      nanos_spent_saving = 0;
+    for (auto const &sim : simulations) {
+      gens_completed += sim.state.generation;
+      auto const time_breakdown = sim.state.query_activity_time_breakdown(time_now);
+      nanos_spent_iterating += time_breakdown.nanos_spent_iterating;
+      nanos_spent_saving += time_breakdown.nanos_spent_saving;
+    }
+
+    u64 const
+      num_sims_completed = s_num_simulations_done.load(),
+      num_sims_failed = s_num_simulations_failed.load(),
+      num_sims_in_progress = s_num_simulations_in_progress.load(),
+      total_nanos_elapsed = util::nanos_between(start_time, time_now).count();
+    f64 const
+      total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
+      secs_elapsed_iterating = nanos_spent_iterating / 1'000'000'000.0,
+      secs_elapsed_saving = nanos_spent_saving / 1'000'000'000.0,
+      mega_gens_completed = gens_completed / 1'000'000.0,
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON);
+
+    // line
+    puts(horizontal_rule.c_str());
+
+    // line
+    {
+      printf("Mgens/sec : ");
+      printf(fore::WHITE | back::MAGENTA, "%.2lf", mega_gens_per_sec);
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    {
+      printf("Completed : ");
+      printf(fore::LIGHT_GREEN | back::BLACK, "%zu", num_sims_completed);
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    {
+      printf("Active    : ");
+      printf(fore::LIGHT_YELLOW | back::BLACK, "%zu", num_sims_in_progress);
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    {
+      printf("Failed    : ");
+      printf(fore::LIGHT_RED | back::BLACK, "%zu", num_sims_failed);
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    {
+      printf("Elapsed   : %s", timespan_to_string(timespan_calculate(static_cast<u64>(total_secs_elapsed))).c_str());
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    {
+      printf("I/S Ratio : %.1lf / %.1lf",
+        ( nanos_spent_iterating / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0,
+        ( nanos_spent_saving    / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0);
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    // line
+    puts(horizontal_rule.c_str());
+
+    if (num_sims_completed == simulations.size()) {
+      break;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    term::cursor::move_up(8);
+  }
 }
