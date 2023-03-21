@@ -19,9 +19,10 @@ util::time_point_t util::current_time()
   return std::chrono::high_resolution_clock::now();
 }
 
-std::chrono::nanoseconds util::nanos_between(time_point_t const a, time_point_t const b)
+std::chrono::nanoseconds util::nanos_between(
+  time_point_t const start, time_point_t const end)
 {
-  return std::chrono::duration_cast<std::chrono::nanoseconds>(b - a);
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
 }
 
 string util::make_str(char const *const fmt, ...)
@@ -37,14 +38,14 @@ string util::make_str(char const *const fmt, ...)
   return std::string(buffer);
 }
 
-[[nodiscard]] std::fstream util::open_file(
+ std::fstream util::open_file(
   std::string const &path,
  std::ios_base::openmode const flags)
 {
   return util::open_file(path.c_str(), flags);
 }
 
-[[nodiscard]] std::fstream util::open_file(
+ std::fstream util::open_file(
   char const *const path,
   std::ios_base::openmode const flags)
 {

@@ -63,7 +63,7 @@ usize idx_of_smallest(Ty const *const values, usize const num_values)
 simulation::run_result simulation::run(
   state &state,
   std::string const &name,
-  u64 const generation_target,
+  u64 generation_limit,
   std::vector<u64> save_points,
   u64 const save_interval,
   pgm8::format const img_fmt,
@@ -108,11 +108,16 @@ simulation::run_result simulation::run(
   save_points = remove_duplicates_sorted(save_points);
 
   u64 last_saved_gen = UINT64_MAX;
-  u64 const generation_limit = generation_target == 0 ? (UINT64_MAX - 1) : generation_target;
+  if (generation_limit == 0) {
+    generation_limit = (UINT64_MAX - 1);
+  }
 
   state.maxval = deduce_maxval_from_rules(state.rules);
-  state.activity_start = util::current_time();
-  state.current_activity = activity::ITERATING;
+
+  if (state.generation >= generation_limit) {
+    result.code = run_result::code::REACHED_GENERATION_LIMIT;
+    goto done;
+  }
 
   for (;;) {
     // the most generations we can perform before we overflow state.generation
@@ -164,7 +169,6 @@ simulation::run_result simulation::run(
           ++state.generation;
         } else [[unlikely]] {
           break;
-
         }
       }
 

@@ -231,7 +231,7 @@ void ui_loop(std::vector<named_simulation> const &simulations)
       nanos_spent_saving = 0;
     for (auto const &sim : simulations) {
       gens_completed += sim.state.generation;
-      auto const time_breakdown = sim.state.query_activity_time_breakdown(time_now);
+      auto const time_breakdown = simulation::query_activity_time_breakdown(sim.state, time_now);
       nanos_spent_iterating += time_breakdown.nanos_spent_iterating;
       nanos_spent_saving += time_breakdown.nanos_spent_saving;
     }

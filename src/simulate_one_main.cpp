@@ -171,7 +171,7 @@ void ui_loop(std::string const &sim_name)
 
   for (;;) {
     time_point_t const time_now = util::current_time();
-    auto const time_breakdown = s_sim_state.query_activity_time_breakdown(time_now);
+    auto const time_breakdown = simulation::query_activity_time_breakdown(s_sim_state, time_now);
 
     u64 const
       total_nanos_elapsed = util::nanos_between(start_time, time_now).count(),

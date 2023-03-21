@@ -211,26 +211,19 @@ int main()
       u8 grid[5 * 6];
       std::fill_n(grid, 5 * 6, 0ui8);
 
-      simulation::state expected_state {
-        0, // generation
-        5, // grid_width
-        6, // grid_height
-        2, // ant_col
-        3, // ant_row
-        grid,
-        0, // nanos_spent_iterating
-        0, // nanos_spent_saving
-        {}, // activity_start
-        {}, // activity_end
-        simulation::activity::NIL,
-        simulation::orientation::WEST,
-        simulation::step_result::NIL,
-        generate_rules({
-          // 0->1->2
-          { 0, { 1, simulation::turn_direction::LEFT } },
-          { 1, { 0, simulation::turn_direction::RIGHT } },
-        }),
-      };
+      simulation::state expected_state{};
+      expected_state.generation = 0;
+      expected_state.grid_width = 5;
+      expected_state.grid_height = 6;
+      expected_state.ant_col = 2;
+      expected_state.ant_row = 3;
+      expected_state.grid = grid;
+      expected_state.ant_orientation = simulation::orientation::WEST;
+      expected_state.rules = generate_rules({
+        // 0->1->2
+        { 0, { 1, simulation::turn_direction::LEFT } },
+        { 1, { 0, simulation::turn_direction::RIGHT } },
+      }),
 
       assert_parse(state_or_errors_t(expected_state), "good_fill.json");
     }
@@ -243,27 +236,19 @@ int main()
         0, 1, 0, 1, 0,
       };
 
-      simulation::state expected_state {
-        0, // generation
-        5, // grid_width
-        5, // grid_height
-        2, // ant_col
-        2, // ant_row
-        grid,
-        0, // nanos_spent_iterating
-        0, // nanos_spent_saving
-        {}, // activity_start
-        {}, // activity_end
-        simulation::activity::NIL,
-        simulation::orientation::WEST,
-        simulation::step_result::NIL,
-        generate_rules({
-          // 0->1->2
-          { 0, { 1, simulation::turn_direction::LEFT } },
-          { 1, { 2, simulation::turn_direction::NO_CHANGE } },
-          { 2, { 0, simulation::turn_direction::RIGHT } },
-        }),
-      };
+      simulation::state expected_state{};
+      expected_state.grid_width = 5;
+      expected_state.grid_height = 5;
+      expected_state.ant_col = 2;
+      expected_state.ant_row = 2;
+      expected_state.grid = grid;
+      expected_state.ant_orientation = simulation::orientation::WEST;
+      expected_state.rules = generate_rules({
+        // 0->1->2
+        { 0, { 1, simulation::turn_direction::LEFT } },
+        { 1, { 2, simulation::turn_direction::NO_CHANGE } },
+        { 2, { 0, simulation::turn_direction::RIGHT } },
+      }),
 
       assert_parse(state_or_errors_t(expected_state), "good_img.json");
     }
@@ -351,7 +336,7 @@ int main()
     simulation::run(
       state,
       "RL.actual",
-      50, // generation_target
+      50, // generation_limit
       { 3, 50 }, // save_points
       16, // save_interval
       pgm8::format::PLAIN,

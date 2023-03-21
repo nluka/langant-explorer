@@ -121,26 +121,26 @@ namespace simulation
   struct state
   {
     u64 generation;
-    i32 grid_width;
-    i32 grid_height;
-    i32 ant_col;
-    i32 ant_row;
-    u8 *grid;
     u64 nanos_spent_iterating;
     u64 nanos_spent_saving;
     util::time_point_t activity_start;
     util::time_point_t activity_end;
+    u8 *grid;
+    i32 grid_width;
+    i32 grid_height;
+    i32 ant_col;
+    i32 ant_row;
     activity current_activity;
     orientation::value_type ant_orientation;
     step_result::value_type last_step_res;
-    rules_t rules;
     u8 maxval;
+    rules_t rules;
 
-    b8 can_step_forward(u64 generation_target = 0) const noexcept;
-
-    activity_time_breakdown query_activity_time_breakdown(
-      util::time_point_t now = util::current_time()) const;
+    b8 can_step_forward(u64 generation_limit = 0) const noexcept;
   };
+
+  activity_time_breakdown query_activity_time_breakdown(
+    state const &state, util::time_point_t now = util::current_time());
 
   std::variant<state, util::errors_t> parse_state(
     std::string const &json_str,
@@ -186,7 +186,7 @@ namespace simulation
   run_result run(
     state &state,
     std::string const &name,
-    u64 generation_target,
+    u64 generation_limit,
     std::vector<u64> save_points,
     u64 save_interval,
     pgm8::format img_fmt,
