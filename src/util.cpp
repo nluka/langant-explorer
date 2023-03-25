@@ -38,14 +38,14 @@ string util::make_str(char const *const fmt, ...)
   return std::string(buffer);
 }
 
- std::fstream util::open_file(
+std::fstream util::open_file(
   std::string const &path,
- std::ios_base::openmode const flags)
+  std::ios_base::openmode const flags)
 {
   return util::open_file(path.c_str(), flags);
 }
 
- std::fstream util::open_file(
+std::fstream util::open_file(
   char const *const path,
   std::ios_base::openmode const flags)
 {
