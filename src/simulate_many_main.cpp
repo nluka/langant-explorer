@@ -21,6 +21,7 @@
 #include "util.hpp"
 #include "simulation.hpp"
 #include "logger.hpp"
+#include "program_options.hpp"
 
 namespace fs = std::filesystem;
 namespace bpo = boost::program_options;
@@ -29,7 +30,7 @@ using util::errors_t;
 using util::print_err;
 using util::die;
 
-static simulation::env_config s_cfg{};
+static po::simulate_many_options s_options{};
 static std::atomic<usize> s_num_simulations_done(0);
 static std::atomic<usize> s_num_simulations_in_progress(0);
 static std::atomic<usize> s_num_simulations_failed(0);
@@ -40,63 +41,43 @@ struct named_simulation
   simulation::state state;
 };
 
-std::string usage_msg();
 void ui_loop(std::vector<named_simulation> const &);
 
 int main(int const argc, char const *const *const argv)
 {
   if (argc < 2) {
-    std::cout << usage_msg();
+    std::ostringstream usage_msg;
+    usage_msg <<
+      "\n"
+      "USAGE:\n"
+      "  simulate_many [options]\n"
+      "\n";
+    po::simulate_many_options_description().print(usage_msg, 6);
+    usage_msg << '\n';
+    std::cout << usage_msg.str();
     std::exit(1);
   }
 
-  u32 num_threads = 0;
-  try {
-    num_threads = std::stoul(argv[1]);
-  } catch (...) {
-    die("unable to parse <num_threads>");
-  }
-
   {
-    char const *const log_path = argv[2];
-    std::ofstream log_file(log_path);
-    if (!log_file.is_open()) {
-      die("unable to open <log_path> '%s'", log_path);
-    }
-    logger::set_out_pathname(log_path);
-  }
+    errors_t errors{};
+    po::parse_simulate_many_options(argc, argv, s_options, errors);
 
-  logger::set_autoflush(true);
-
-  {
-    std::variant<
-      simulation::env_config,
-      errors_t
-    > extract_res = simulation::extract_env_config(argc, argv, "path to directory containing initial state .json files");
-
-    if (std::holds_alternative<errors_t>(extract_res)) {
-      errors_t const &errors = std::get<errors_t>(extract_res);
+    if (!errors.empty()) {
       for (auto const &err : errors)
         print_err("%s", err.c_str());
       die("%zu configuration errors", errors.size());
     }
+  }
 
-    s_cfg = std::move(std::get<simulation::env_config>(extract_res));
-
-    // some additional validation specific to this program
-    if (!fs::is_directory(s_cfg.state_path)) {
-      die("(--" SIM_OPT_STATEPATH_FULL ", -" SIM_OPT_STATEPATH_SHORT ") path is not a directory");
-    }
+  if (s_options.log_file_path != "") {
+    logger::set_out_pathname(s_options.log_file_path);
+    logger::set_autoflush(true);
   }
 
   std::vector<fs::path> const state_files = regexglob::fmatch(
-    s_cfg.state_path.string().c_str(),
+    s_options.state_dir_path.c_str(),
     ".*\\.json"
   );
-
-  if (state_files.empty()) {
-    die("(--" SIM_OPT_STATEPATH_FULL ", -" SIM_OPT_STATEPATH_SHORT ") directory contains no .json files");
-  }
 
   std::vector<named_simulation> simulations;
   simulations.reserve(state_files.size());
@@ -105,51 +86,38 @@ int main(int const argc, char const *const *const argv)
   for (auto const &state_file_path : state_files) {
     std::string const path_str = state_file_path.string();
 
-    std::variant<simulation::state, errors_t> parse_res = simulation::parse_state(
-      util::extract_txt_file_contents(path_str, false),
-      s_cfg.state_path
-    );
+    errors_t errors{};
 
-    if (std::holds_alternative<errors_t>(parse_res)) {
-      errors_t const &errors = std::get<errors_t>(parse_res);
+    simulation::state sim_state = simulation::parse_state(
+      util::extract_txt_file_contents(path_str.c_str(), false),
+      fs::path(s_options.state_dir_path),
+      errors);
+
+    if (!errors.empty()) {
       for (auto const &err : errors)
-        print_err(err.c_str());
+        print_err("%s", err.c_str());
       die("%zu state errors", errors.size());
     }
 
     std::string name = state_file_path.filename().string();
-    simulation::state &state = std::get<simulation::state>(parse_res);
-    simulations.emplace_back(std::move(name), state);
+    simulations.emplace_back(std::move(name), sim_state);
   }
 
   auto const simulation_task = [](named_simulation &sim) {
     ++s_num_simulations_in_progress;
 
     try {
-      using logger::event_type;
-
-      logger::log(event_type::SIM_START, sim.name.c_str());
-
       auto const result = simulation::run(
         sim.state,
         sim.name,
-        s_cfg.generation_limit,
-        s_cfg.save_points,
-        s_cfg.save_interval,
-        s_cfg.img_fmt,
-        s_cfg.save_path,
-        s_cfg.save_final_state,
-        s_cfg.log_save_points,
-        s_cfg.save_image_only
-      );
-
-      logger::log(
-        event_type::SIM_END,
-        "%s %s",
-        sim.name.c_str(),
-        (result.code == simulation::run_result::REACHED_GENERATION_LIMIT
-          ? "reached generation limit"
-          : "hit edge")
+        s_options.sim.generation_limit,
+        s_options.sim.save_points,
+        s_options.sim.save_interval,
+        s_options.sim.image_format,
+        s_options.sim.save_path,
+        s_options.sim.save_final_state,
+        s_options.sim.create_logs,
+        s_options.sim.save_image_only
       );
 
       ++s_num_simulations_done;
@@ -162,7 +130,7 @@ int main(int const argc, char const *const *const argv)
     delete[] sim.state.grid;
   };
 
-  BS::thread_pool_light t_pool(num_threads);
+  BS::thread_pool_light t_pool(s_options.num_threads);
 
 #if _WIN32
   // I would const this, but native_handle() is not a const member function for some reason
@@ -189,36 +157,11 @@ int main(int const argc, char const *const *const argv)
   return static_cast<int>(s_num_simulations_failed.load());
 }
 
-std::string usage_msg()
-{
-  std::ostringstream msg;
-
-  msg <<
-    "\n"
-    "USAGE: \n"
-    "  simulate_many <num_threads> <log_path> [options] \n"
-    "\n"
-  ;
-
-  simulation::env_options_description(
-    "path to directory containing initial state .json files"
-  ).print(msg, 6);
-
-  msg <<
-    "\n"
-    "*** = required \n"
-    "\n"
-  ;
-
-  return msg.str();
-}
-
 void ui_loop(std::vector<named_simulation> const &simulations)
 {
   using namespace term::color;
 
   std::string const horizontal_rule(30, '-');
-  usize const digits_in_num_simulations = util::count_digits(simulations.size());
 
   time_point_t const start_time = util::current_time();
 

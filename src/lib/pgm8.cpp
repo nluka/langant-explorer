@@ -65,10 +65,8 @@ void pgm8::image_properties::validate() const
 
 pgm8::image_properties pgm8::read_properties(std::ifstream &file)
 {
-  if (!file.is_open())
-    throw std::runtime_error("file not open");
-  if (!file.good())
-    throw std::runtime_error("file not in good state");
+  if (!file)
+    throw std::runtime_error("file not readable");
 
   format const fmt = [&file]()
   {

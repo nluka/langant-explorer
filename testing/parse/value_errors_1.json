@@ -4,7 +4,7 @@
 
   "grid_width": 65536,
   "grid_height": 65536,
-  "grid_state": "fill -1",
+  "grid_state": "fill=-1",
 
   "ant_col": 65536,
   "ant_row": 65536,

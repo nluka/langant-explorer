@@ -4,7 +4,7 @@
 
   "grid_width": 300,
   "grid_height": 200,
-  "grid_state": "FILL 10",
+  "grid_state": "FILL=10",
 
   "ant_col": 3,
   "ant_row": 6,

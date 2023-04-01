@@ -181,8 +181,8 @@
     <ClCompile Include="..\src\lib\regexglob.cpp" />
     <ClCompile Include="..\src\lib\term.cpp" />
     <ClCompile Include="..\src\logger.cpp" />
+    <ClCompile Include="..\src\program_options.cpp" />
     <ClCompile Include="..\src\simulate_many_main.cpp" />
-    <ClCompile Include="..\src\simulation_env_config.cpp" />
     <ClCompile Include="..\src\simulation_misc.cpp" />
     <ClCompile Include="..\src\simulation_parse_state.cpp" />
     <ClCompile Include="..\src\simulation_run.cpp" />

@@ -45,10 +45,10 @@
     <ClCompile Include="..\src\lib\regexglob.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\simulation_env_config.cpp">
+    <ClCompile Include="..\src\logger.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\logger.cpp">
+    <ClCompile Include="..\src\program_options.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

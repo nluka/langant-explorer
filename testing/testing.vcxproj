@@ -24,6 +24,7 @@
     <ClCompile Include="..\src\lib\regexglob.cpp" />
     <ClCompile Include="..\src\lib\term.cpp" />
     <ClCompile Include="..\src\logger.cpp" />
+    <ClCompile Include="..\src\program_options.cpp" />
     <ClCompile Include="..\src\simulation_misc.cpp" />
     <ClCompile Include="..\src\simulation_parse_state.cpp" />
     <ClCompile Include="..\src\simulation_run.cpp" />
@@ -102,13 +103,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>.\</OutDir>
-    <IntDir>.\interm\</IntDir>
+    <IntDir>.\interm1\</IntDir>
     <TargetName>testing_debug</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>.\</OutDir>
-    <IntDir>.\interm\</IntDir>
+    <IntDir>.\interm2\</IntDir>
     <TargetName>testing_release</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

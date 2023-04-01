@@ -55,12 +55,16 @@ std::fstream util::open_file(
 
   std::fstream file(path, static_cast<std::ios_base::openmode>(flags));
 
-  if (!file.is_open())
+  if (!file)
     throw "exists, but unable to open";
-  if (!file.good())
-    throw "bad state";
 
   return file;
+}
+
+b8 util::file_is_openable(std::string const &path)
+{
+  std::ofstream file(path.c_str(), std::ios::app);
+  return file ? true : false;
 }
 
 /*
@@ -126,7 +130,7 @@ int util::print_err(char const *fmt, ...)
   return retval;
 }
 
-bool util::get_user_choice(std::string const &prompt)
+b8 util::get_user_choice(std::string const &prompt)
 {
   {
     using namespace term::color;

@@ -34,19 +34,23 @@ namespace util
 
   std::fstream open_file(char const *path, std::ios_base::openmode flags);
   std::fstream open_file(std::string const &path, std::ios_base::openmode flags);
+  b8 file_is_openable(std::string const &path);
 
-  bool get_user_choice(std::string const &prompt);
+  b8 get_user_choice(std::string const &prompt);
 
   std::vector<u64> parse_json_array_u64(char const *str);
 
   template <typename IntTy>
   constexpr
-  usize count_digits(IntTy n)
+  u8 count_digits(IntTy n)
   {
+    // who knows, maybe there will be 128 or 256 bit integers in the future...
+    static_assert(sizeof(IntTy) <= 8);
+
     if (n == 0)
       return 1;
 
-    usize count = 0;
+    u8 count = 0;
     while (n != 0) {
       n = n / 10;
       ++count;
@@ -58,7 +62,7 @@ namespace util
   template <typename PathTy>
   std::string extract_txt_file_contents(
     PathTy const &path,
-    bool const normalize_newlines)
+    b8 const normalize_newlines)
   {
     std::fstream file = util::open_file(path, std::ios::in);
     auto const file_size = std::filesystem::file_size(path);
@@ -83,51 +87,12 @@ namespace util
     return val >= min && val < max;
   }
 
+  // Converts an ASCII digit ('0'-'9') to an integer value (0-9).
   template <typename Ty>
-  std::optional<Ty> get_required_option(
-    char const *const full_name,
-    char const *const short_name,
-    boost::program_options::variables_map const &var_map,
-    errors_t &errors)
+  Ty ascii_digit_to(char const ch)
   {
-    if (var_map.count(full_name) == 0) {
-      errors.emplace_back(make_str("(--%s, -%s) required option missing", full_name, short_name));
-      return std::nullopt;
-    }
-
-    try {
-      return var_map.at(full_name).as<Ty>();
-    } catch (...) {
-      errors.emplace_back(make_str("(--%s, -%s) unable to parse value", full_name, short_name));
-      return std::nullopt;
-    }
-  }
-
-  template <typename Ty>
-  std::optional<Ty> get_nonrequired_option(
-    char const *const full_name,
-    char const *const short_name,
-    boost::program_options::variables_map const &var_map,
-    errors_t &errors)
-  {
-    if (var_map.count(full_name) == 0) {
-      return std::nullopt;
-    }
-
-    try {
-      return var_map.at(full_name).as<Ty>();
-    } catch (...) {
-      errors.emplace_back(make_str("(--%s , -%s) unable to parse value", full_name, short_name));
-      return std::nullopt;
-    }
-  }
-
-  inline
-  b8 get_flag_option(
-    char const *const option_name,
-    boost::program_options::variables_map const &var_map)
-  {
-    return var_map.count(option_name) > 0;
+    assert(ch >= '0' && ch <= '9');
+    return static_cast<Ty>(ch) - 48;
   }
 
   // Returns the size of a static (stack-allocated) C-style array at compile time.

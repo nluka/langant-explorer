@@ -12,7 +12,6 @@
 #  undef max // because it conflicts with std::max
 #endif
 
-#include <boost/program_options.hpp>
 #include "lib/json.hpp"
 #include "lib/term.hpp"
 
@@ -21,6 +20,7 @@
 #include "util.hpp"
 #include "simulation.hpp"
 #include "logger.hpp"
+#include "program_options.hpp"
 
 namespace fs = std::filesystem;
 using util::errors_t;
@@ -28,93 +28,73 @@ using util::make_str;
 using util::print_err;
 using util::die;
 
-static simulation::env_config s_cfg{};
+static po::simulate_one_options s_options{};
 static simulation::state s_sim_state{};
 static simulation::run_result s_sim_run_result{};
 
-std::string usage_msg();
 void ui_loop(std::string const &sim_name);
 
 int main(int const argc, char const *const *const argv) {
   if (argc < 2) {
-    std::cout << usage_msg();
+    std::ostringstream usage_msg;
+    usage_msg <<
+      "\n"
+      "USAGE:\n"
+      "  simulate_one [options]\n"
+      "\n";
+    po::simulate_one_options_description().print(usage_msg, 6);
+    usage_msg << '\n';
+    std::cout << usage_msg.str();
     std::exit(1);
   }
 
-  std::string const sim_name = argv[1];
   {
-    char const *const name_regex_cstr = "^([a-zA-Z0-9-_]{1,})|(...)$";
-    if (!std::regex_match(sim_name, std::regex(name_regex_cstr))) {
-      die(make_str("invalid <sim_name>, doesn't match /%s/", name_regex_cstr).c_str());
-    }
-  }
+    errors_t errors{};
+    po::parse_simulate_one_options(argc, argv, s_options, errors);
 
-  {
-    char const *const log_path = argv[2];
-    std::ofstream log_file(log_path);
-    if (!log_file.is_open()) {
-      die("unable to open <log_path> '%s'", log_path);
-    }
-    logger::set_out_pathname(log_path);
-  }
-
-  logger::set_autoflush(true);
-
-  {
-    std::variant<
-      simulation::env_config,
-      errors_t
-    > extract_res = simulation::extract_env_config(argc, argv, "path to initial state .json file");
-
-    if (std::holds_alternative<errors_t>(extract_res)) {
-      errors_t const &errors = std::get<errors_t>(extract_res);
+    if (!errors.empty()) {
       for (auto const &err : errors)
         print_err("%s", err.c_str());
       die("%zu configuration errors", errors.size());
     }
+  }
 
-    s_cfg = std::move(std::get<simulation::env_config>(extract_res));
+  if (s_options.log_file_path != "") {
+    logger::set_out_pathname(s_options.log_file_path);
+    logger::set_autoflush(true);
+  }
 
-    // some additional validation specific to this program
-    if (!fs::is_regular_file(s_cfg.state_path)) {
-      die("(--" SIM_OPT_STATEPATH_FULL ", -" SIM_OPT_STATEPATH_SHORT ") path is not a file");
+  {
+    errors_t errors{};
+
+    s_sim_state = simulation::parse_state(
+      util::extract_txt_file_contents(s_options.state_file_path, false),
+      std::filesystem::current_path(),
+      errors);
+
+    if (!errors.empty()) {
+      for (auto const &err : errors)
+        print_err("%s", err.c_str());
+      die("%zu state errors", errors.size());
     }
   }
 
-  std::variant<
-    simulation::state,
-    errors_t
-  > parse_res = simulation::parse_state(
-    util::extract_txt_file_contents(s_cfg.state_path.string(), false),
-    std::filesystem::current_path()
-  );
-
-  if (std::holds_alternative<errors_t>(parse_res)) {
-    errors_t const &errors = std::get<errors_t>(parse_res);
-    for (auto const &err : errors)
-      print_err(err.c_str());
-    die("%zu state errors", errors.size());
-  }
-
-  s_sim_state = std::get<simulation::state>(parse_res);
-
-  std::string const true_sim_name = sim_name == "..."
-    ? s_cfg.state_path.filename().string()
-    : sim_name;
+  std::string const &true_sim_name = s_options.name == ""
+    ? s_options.state_file_path
+    : s_options.name;
 
   std::thread sim_thread([&true_sim_name]() {
     s_sim_run_result = simulation::run(
       s_sim_state,
       true_sim_name,
-      s_cfg.generation_limit,
-      s_cfg.save_points,
-      s_cfg.save_interval,
-      s_cfg.img_fmt,
-      s_cfg.save_path,
-      s_cfg.save_final_state,
-      s_cfg.log_save_points,
-      s_cfg.save_image_only
-    );
+      s_options.sim.generation_limit,
+      s_options.sim.save_points,
+      s_options.sim.save_interval,
+      s_options.sim.image_format,
+      s_options.sim.save_path,
+      s_options.sim.save_final_state,
+      s_options.sim.create_logs,
+      s_options.sim.save_image_only);
 
     delete[] s_sim_state.grid;
   });
@@ -123,10 +103,6 @@ int main(int const argc, char const *const *const argv) {
   SetPriorityClass(sim_thread.native_handle(), HIGH_PRIORITY_CLASS);
 #endif
 
-  // sleep for a bit so we are not dividing by tiny time elapsed values,
-  // which results in Infinity values
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
   term::cursor::hide();
   std::atexit(term::cursor::show);
 
@@ -134,30 +110,6 @@ int main(int const argc, char const *const *const argv) {
   sim_thread.join();
 
   return 0;
-}
-
-std::string usage_msg()
-{
-  std::ostringstream msg;
-
-  msg <<
-    "\n"
-    "USAGE: \n"
-    "  simulate_one <sim_name> <log_path> [options] \n"
-    "\n"
-  ;
-
-  simulation::env_options_description(
-    "path to initial state .json file"
-  ).print(msg, 6);
-
-  msg <<
-    "\n"
-    "*** = required \n"
-    "\n"
-  ;
-
-  return msg.str();
 }
 
 void ui_loop(std::string const &sim_name)
@@ -176,14 +128,15 @@ void ui_loop(std::string const &sim_name)
     u64 const
       total_nanos_elapsed = util::nanos_between(start_time, time_now).count(),
       gens_completed = s_sim_state.generation,
-      gens_remaining = s_cfg.generation_limit - gens_completed;
+      gens_remaining = s_options.sim.generation_limit - gens_completed;
     f64 const
       total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
       secs_elapsed_iterating = time_breakdown.nanos_spent_iterating / 1'000'000'000.0,
       secs_elapsed_saving = time_breakdown.nanos_spent_saving / 1'000'000'000.0,
       mega_gens_completed = gens_completed / 1'000'000.0,
       mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON),
-      percent_completion = ((gens_completed / static_cast<f64>(s_cfg.generation_limit)) * 100.0);
+      // TODO: fix inf bug
+      percent_completion = ((gens_completed / static_cast<f64>(s_options.sim.generation_limit)) * 100.0);
     b8 const is_simulation_done = s_sim_run_result.code != simulation::run_result::code::NIL;
 
     // line

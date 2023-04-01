@@ -5,7 +5,7 @@ A high-performance toolchain for finding interesting [Langton's Ant](https://en.
 <img src="resources/preview.png" />
 
 The toolchain consists of 4 programs:
-- [genstate](#genstate)
+- [make_states](#make_states)
   - Generates initial states within given constraints for simulation by `simulate_many` or `simulate_one`
 - [make_image](#make_image)
   - Creates customizable PGM images for seeding initial grid states
@@ -15,52 +15,58 @@ The toolchain consists of 4 programs:
 - [simulate_many](#simulate_many)
   - Similar to `simulate_one`, but runs a batch of independent simulations in a thread pool
   - Simulations share a generation limit, save points, and save interval, but not state
-- [analyze](#analyze)
-  - Used to programatically find interesting states
 
-## genstate
-
-Used to generate states for [simulate_one](#simulate).
+## make_states
 
 ```text
 USAGE:
-  genstate [options]
+  make_states [options]
 
-REQUIRED OPTIONS:
-  -n [ --count ] arg
-      Number of randomized states to generate
-  -p [ --outpath ] arg
-      Directory in which to save generated states (.json)
-  -l [ --namestyle ] arg
-      Naming style for generated state filenames, format
-      /^(turndirecs)|(randwords,[1-9])$/, default=turndirecs
-  -r [ --ruleslen ] arg
-      Rules length [min, max], format /^[0-9]+,[0-9]+$/
-  -t [ --turndirecs ] arg
-      Possible rule 'turn_dir' values, format /^[lLnNrR]+$/, see notes for
-      details
-  -d [ --shadeorder ] arg
-      Ordering of rule shades, format /^(asc)|(desc)|(rand)$/, default=asc
-  -w [ --gridwidth ] arg
-      Value of 'grid_width' for all generated states, [1, 65535]
-  -h [ --gridheight ] arg
-      Value of 'grid_height' for all generated states, [1, 65535]
-  -g [ --gridstate ] arg
-      Value of 'grid_state' for all generated states, any string
-  -x [ --antcol ] arg
-      Value of 'ant_col' for all generated states, [0, grid_width)
-  -y [ --antrow ] arg
-      Value of 'ant_row' for all generated states, [0, grid_height)
-  -o [ --antorients ] arg
-      Possible 'ant_orientation' values, format /^[nNeEsSwW]+$/, see notes for
-      details
-
-NOTES:
-  For option -o [ --antorients ], the value must match /^[nNeEsSwW]+$/.
-  If an orientation is repeated, it is more likely to occur.
-  For example: NNNEESW means N has a 3/7 chance, E has a 2/7 chance,
-  and S|W have a 1/7 chance of being randomly selected.
-  The same concept applies for -t [ --turndirecs ], but the value must match /^[lLnNrR]+$/.
+Options:
+  -N [ --count ] arg
+      Number of randomized states to generate.
+  -o [ --out_dir_path ] arg
+      Output directory for JSON state files.
+  -c [ --create_dirs ]
+      Create --out_dir_path and parent directories if not present, off by
+      default.
+  -w [ --grid_width ] arg
+      Value of 'grid_width' for all generated states, [1, 65535].
+  -h [ --grid_height ] arg
+      Value of 'grid_height' for all generated states, [1, 65535].
+  -x [ --ant_col ] arg
+      Value of 'ant_col' for all generated states, [0, grid_width).
+  -y [ --ant_row ] arg
+      Value of 'ant_row' for all generated states, [0, grid_height).
+  -m [ --min_num_rules ] arg
+      Minimum number of rules for generated states, inclusive, default=2.
+  -M [ --max_num_rules ] arg
+      Maximum number of rules for generated states, inclusive, default=256.
+  -g [ --grid_state ] arg
+      Value of 'grid_state' for all generated states, any string,
+      default='fill=0'.
+  -s [ --shade_order ] arg
+      Ordering of rule shades, asc|desc|rand, default=asc
+  -n [ --name_mode ] arg
+      The method used for naming generated JSON state files,
+      /^(turndirecs)|(randwords,[1-9])|(alpha,[1-9])$/. 'alpha,N' will generate
+      a string of N random letters, e.g. 'aHCgt'. 'turndirecs' will use the
+      chain of turn directions, e.g. 'LRLN'. 'randword,N' will use N random
+      words from --word_file_path separated by underscores, e.g. 'w1_w2_w3'.
+  -W [ --word_file_path ] arg
+      Path of file whose content starts with a newline, followed by
+      newline-separated words, and ends with a newline, e.g. '\nW1\nW2\n'. Only
+      necessary when --name_mode is 'randwords,N'.
+  -t [ --turn_directions ] arg
+      Possible rule 'turn_dir' values, /^[lLnNrR]+$/, default=LR. Values are
+      chosen randomly from this list, so having repeat values makes them more
+      likely to occur. For instance, 'LLLRRN' results in a 3/6 chance for L,
+      2/6 chance for R, and 1/6 chance for N.
+  -O [ --ant_orientations ] arg
+      Possible 'ant_orientation' values, /^[nNeEsSwW]+$/, default=NESW. Values
+      are chosen randomly from this list, so having repeat values makes them
+      more likely to occur. For instance, 'NNNEES' results in a 3/6 chance for
+      N, 2/6 chance for E, 1/6 chance for S, and 0/6 chance for W.
 ```
 
 ## make_image
@@ -69,80 +75,88 @@ NOTES:
 USAGE:
   make_image [options]
 
-REQUIRED OPTIONS:
-  -f [ --fmt ] arg
-      Image type, format /^(rawPGM)|(plainPGM)$/
-  -p [ --outpath ] arg
-      Path of output image file
+Options:
+  -o [ --out_file_path ] arg
+      Output PGM file path.
+  -f [ --format ] arg
+      PGM image format, raw|plain.
   -c [ --content ] arg
-      Type of image content, format /^(noise)|(fill=[0-9]{1,3})$/
+      Type of image content, /^(noise)|(fill=[0-9]{1,3})$/.
   -w [ --width ] arg
-      Image width, [1, 65535]
+      Image width, [1, 65535].
   -h [ --height ] arg
-      Image height, [1, 65535]
+      Image height, [1, 65535].
   -m [ --maxval ] arg
-      Maximum pixel value, [1, 255]
+      Maximum pixel value, [1, 255].
 ```
 
 ## simulate_one
 
-Used to run simulations generated by [genstate](#genstate). Simulation states can be saved at any point as a JSON file + PGM image.
-
 ```text
 USAGE:
-  simulate_one <sim_name> [options]
+  simulate_one [options]
 
-SIMULATION OPTIONS:
-  -i [ --statepath ] arg
-      path to initial state .json file
-  -g [ --genlim ] arg
-      *** Generation limit, if reached the simulation will stop, > 0 uint64
-  -f [ --imgfmt ] arg
-      Type of PGM image to produce on save, rawPGM|plainPGM, default=rawPGM
-  -s [ --savefinalstate ]
-      Flag, if set will ensure final generation is saved regardless of any save
-      points or interval
-  -p [ --savepoints ] arg
-      Specific generations to save, JSON uint64 array
-  -v [ --saveinterval ] arg
-      Generation interval to save at, > 0 uint64
-  -o [ --savepath ] arg
-      *** Directory in which to save state .json and .pgm files
+General options:
+  -N [ --name ] arg
+      Name of simulation, if unspecified state_file_path filename is used.
+  -S [ --state_file_path ] arg
+      JSON file containing initial state.
+  -L [ --log_file_path ] arg
+      Log file path.
 
-*** = required
+Simulation options:
+  -g [ --generation_limit ] arg
+      Generation limit, if reached the simulation will stop, 0 means max
+      uint64.
+  -f [ --image_format ] arg
+      PGM image format for saves, raw|plain.
+  -l [ --log_saves ]
+      Create a log entry when a save is made.
+  -o [ --save_path ] arg
+      Directory in which to save state JSON and PGM files.
+  -y [ --save_image_only ]
+      Do not emit JSON files when saving state.
+  -s [ --save_final_state ]
+      Ensures final state is saved regardless of save points or interval.
+  -p [ --save_points ] arg
+      Specific generations (points) to save.
+  -v [ --save_interval ] arg
+      Generation interval at which to save.
 ```
 
 ## simulate_many
 
-Used to run a batch of simulations generated by [genstate](#genstate). Simulation states can be saved at any point. Simulations are run in parallel using a job system to saturate all CPU cores.
-
 ```text
 USAGE:
-  simulate_many <num_threads> [options]
+  simulate_many [options]
 
-SIMULATION OPTIONS:
-  -i [ --statepath ] arg
-      path to directory containing initial state .json files
-  -g [ --genlim ] arg
-      *** Generation limit, if reached the simulation will stop, > 0 uint64
-  -f [ --imgfmt ] arg
-      Type of PGM image to produce on save, rawPGM|plainPGM, default=rawPGM
-  -s [ --savefinalstate ]
-      Flag, if set will ensure final generation is saved regardless of any save
-      points or interval
-  -p [ --savepoints ] arg
-      Specific generations to save, JSON uint64 array
-  -v [ --saveinterval ] arg
-      Generation interval to save at, > 0 uint64
-  -o [ --savepath ] arg
-      *** Directory in which to save state .json and .pgm files
+General options:
+  -T [ --num_threads ] arg
+      Number of threads in thread pool.
+  -S [ --state_dir_path ] arg
+      Path to directory containing initial JSON state files.
+  -L [ --log_file_path ] arg
+      Log file path.
 
-*** = required
+Simulation options:
+  -g [ --generation_limit ] arg
+      Generation limit, if reached the simulation will stop, 0 means max
+      uint64.
+  -f [ --image_format ] arg
+      PGM image format for saves, raw|plain.
+  -l [ --log_saves ]
+      Create a log entry when a save is made.
+  -o [ --save_path ] arg
+      Directory in which to save state JSON and PGM files.
+  -y [ --save_image_only ]
+      Do not emit JSON files when saving state.
+  -s [ --save_final_state ]
+      Ensures final state is saved regardless of save points or interval.
+  -p [ --save_points ] arg
+      Specific generations (points) to save.
+  -v [ --save_interval ] arg
+      Generation interval at which to save.
 ```
-
-## analyze
-
-Development starting soon.
 
 ## State Format
 
@@ -201,5 +215,5 @@ Visualized:
 
 ## Third Party Libraries Used
 
-- [Boost 1.80.0](https://www.boost.org/users/history/version_1_80_0.html) program_options
+- [Boost 1.80.0](https://www.boost.org/users/history/version_1_80_0.html) (modules: program_options, container)
 - [bshoshany/thread-pool](https://github.com/bshoshany/thread-pool)

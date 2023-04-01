@@ -69,9 +69,15 @@ simulation::run_result simulation::run(
   pgm8::format const img_fmt,
   std::filesystem::path const &save_dir,
   b8 const save_final_cfg,
-  b8 const log_save_points,
+  b8 const create_logs,
   b8 const save_image_only)
 {
+  using logger::event_type;
+
+  if (create_logs) {
+    logger::log(event_type::SIM_START, name.c_str());
+  }
+
   run_result result{};
 
   auto const begin_new_activity = [&](activity const activity) {
@@ -93,7 +99,7 @@ simulation::run_result simulation::run(
     try {
       simulation::save_state(state, name.c_str(), save_dir, img_fmt, save_image_only);
       ++result.num_save_points_successful;
-      if (log_save_points) {
+      if (create_logs) {
         logger::log(logger::event_type::SAVE_PNT, "%s @ %zu", name.c_str(), state.generation);
       }
     } catch (std::runtime_error const &) {
@@ -207,6 +213,16 @@ done:
     state.nanos_spent_saving += save_duration_ns;
   }
   begin_new_activity(activity::NIL);
+
+  if (create_logs) {
+    logger::log(
+      event_type::SIM_END,
+      "%s %s",
+      name.c_str(),
+      (result.code == simulation::run_result::REACHED_GENERATION_LIMIT
+        ? "reached generation limit"
+        : "hit edge"));
+  }
 
   return result;
 }

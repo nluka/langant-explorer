@@ -119,3 +119,8 @@ simulation::activity_time_breakdown simulation::query_activity_time_breakdown(
     };
   }
 }
+
+usize simulation::state::num_pixels() const noexcept
+{
+  return static_cast<usize>(this->grid_width) * this->grid_height;
+}

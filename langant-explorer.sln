@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.32602.291
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testing", "testing\testing.vcxproj", "{F67856B3-D845-4A9B-BD11-01AEF6FC100C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "genstate", "genstate\genstate.vcxproj", "{3CAE4C18-9EAC-4084-AC6B-83DA60957D5D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "make_states", "make_states\make_states.vcxproj", "{3CAE4C18-9EAC-4084-AC6B-83DA60957D5D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "simulate_one", "simulate_one\simulate_one.vcxproj", "{1EFC91BD-96F0-4699-B424-FE9FAF2FD34C}"
 EndProject

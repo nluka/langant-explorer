@@ -95,7 +95,7 @@ static std::mutex s_eventsMutex{};
 
 static
 void assert_file_opened(std::ofstream const &file) {
-  if (!file.is_open()) {
+  if (!file) {
     std::stringstream ss{};
     ss << "failed to open file `" << s_outPathname << '`';
     throw ss.str();

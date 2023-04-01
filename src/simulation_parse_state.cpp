@@ -279,13 +279,16 @@ b8 try_to_parse_and_set_grid_state(
     return false;
   }
 
-  if (std::regex_match(grid_state, std::regex("^fill -{1,}[0-9]{1,}$", std::regex_constants::icase))) {
+  if (std::regex_match(grid_state, std::regex("^fill=-{1,}[0-9]{1,}$", std::regex_constants::icase))) {
     add_err("invalid `grid_state` -> fill shade cannot be negative");
     return false;
   }
 
-  if (std::regex_match(grid_state, std::regex("^fill [0-9]{1,}$", std::regex_constants::icase))) {
-    char const *const num_str = grid_state.c_str() + 4;
+  if (std::regex_match(grid_state, std::regex("^fill=[0-9]{1,}$", std::regex_constants::icase))) {
+    auto const equals_pos = grid_state.find_first_of('=');
+    assert(equals_pos != std::string::npos);
+
+    char const *const num_str = grid_state.c_str() + equals_pos + 1;
     uintmax_t const fill_val = strtoumax(num_str, nullptr, 10);
 
     if (fill_val > UINT8_MAX) {
@@ -323,8 +326,8 @@ b8 try_to_parse_and_set_grid_state(
       return false;
     }
 
-    std::ifstream file(img_path);
-    if (!file.is_open()) {
+    std::ifstream file(img_path, std::ios::binary);
+    if (!file) {
       add_err(make_str("unable to open file \"%s\"", grid_state.c_str()));
       return false;
     }
@@ -371,14 +374,11 @@ b8 try_to_parse_and_set_grid_state(
   }
 }
 
-std::variant<simulation::state, errors_t> simulation::parse_state(
+simulation::state simulation::parse_state(
   std::string const &str,
-  fs::path const &dir)
+  fs::path const &dir,
+  errors_t &errors)
 {
-  simulation::state state{};
-  errors_t errors{};
-  std::variant<simulation::state, errors_t> retval;
-
   auto const add_err = [&errors](std::string &&err) {
     errors.emplace_back(err);
   };
@@ -388,15 +388,15 @@ std::variant<simulation::state, errors_t> simulation::parse_state(
     json = json_t::parse(str);
   } catch (json_t::basic_json::parse_error const &except) {
     add_err(make_str("%s", util::nlohmann_json_extract_sentence(except)));
-    return errors;
+    return {};
   } catch (...) {
     add_err("unexpected error whilst trying to parse simulation");
-    return errors;
+    return {};
   }
 
   if (!json.is_object()) {
     add_err("parsed simulation is not a JSON object");
-    return errors;
+    return {};
   }
 
   {
@@ -424,9 +424,11 @@ std::variant<simulation::state, errors_t> simulation::parse_state(
 
     if (!good) {
       // if any properties not set, stop parsing
-      return errors;
+      return {};
     }
   }
+
+  simulation::state state{};
 
   [[maybe_unused]] b8 const generation_parse_success = try_to_parse_and_set_uint<u64>(
     json, "generation", state.generation, 0, UINT_FAST64_MAX, add_err
@@ -449,13 +451,13 @@ std::variant<simulation::state, errors_t> simulation::parse_state(
   );
 
   if (grid_width_parse_success && (state.grid_width < 1 || state.grid_width > UINT16_MAX)) {
-    add_err(make_str("invalid `grid_width` -> not in range [1, %" PRIu16 "]", UINT16_MAX));
+    add_err(make_str("invalid `grid_width` -> must be in range [1, %" PRIu16 "]", UINT16_MAX));
   } else if (ant_col_parse_success && !util::in_range_incl_excl(state.ant_col, 0, state.grid_width)) {
     add_err(make_str("invalid `ant_col` -> not in grid x-axis [0, %d)", state.grid_width));
   }
 
   if (grid_height_parse_success && (state.grid_height < 1 || state.grid_height > UINT16_MAX)) {
-    add_err(make_str("invalid `grid_height` -> not in range [1, %" PRIu16 "]", UINT16_MAX));
+    add_err(make_str("invalid `grid_height` -> must be in range [1, %" PRIu16 "]", UINT16_MAX));
   } else if (ant_row_parse_success && !util::in_range_incl_excl(state.ant_row, 0, state.grid_height)) {
     add_err(make_str("invalid `ant_row` -> not in grid y-axis [0, %d)", state.grid_width));
   }
@@ -500,6 +502,6 @@ std::variant<simulation::state, errors_t> simulation::parse_state(
   if (errors.empty()) {
     return state;
   } else {
-    return errors;
+    return {};
   }
 }

@@ -115,7 +115,7 @@ void ntest::internal::throw_if_file_not_open(
   fstream const &file,
   char const *const pathname)
 {
-  if (!file.is_open())
+  if (!file)
   {
     stringstream err{};
     err << "failed to open file \"" << pathname << '"';
