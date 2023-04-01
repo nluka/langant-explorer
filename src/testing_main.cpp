@@ -28,9 +28,15 @@ simulation::rules_t generate_rules(
 
 int main()
 {
-  ntest::init();
-  ntest::config::set_max_arr_preview_len(2);
+  ntest::config::set_max_arr_preview_len(1);
   ntest::config::set_max_str_preview_len(10);
+
+  {
+    auto const res = ntest::init();
+    std::cout
+      << res.num_files_removed << " residual files removed, "
+      << res.num_files_removed << " files failed to be removed\n";
+  }
 
   #if 1 // simulation::parse_state
   {
@@ -1317,8 +1323,8 @@ int main()
     # error "unsupported platform"
     #endif
 
-    ntest::generate_report(report_name);
+    auto const res = ntest::generate_report(report_name);
+    std::cout << res.num_fails << " failed, " << res.num_passes << " passed\n";
+    return static_cast<int>(res.num_fails);
   }
-
-  return 0;
 }

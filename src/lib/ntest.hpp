@@ -9,12 +9,11 @@
 #include <sstream>
 #include <string>
 #include <type_traits>
+#include <filesystem>
 
 namespace ntest {
 
 namespace config {
-
-  void set_output_path(char const *);
 
   void set_max_str_preview_len(size_t);
 
@@ -45,13 +44,15 @@ namespace concepts {
 
 namespace internal {
 
-  char const *const preview_style();
+  std::string escape(std::string const &);
+
+  char const *preview_style();
 
   size_t max_str_preview_len();
 
   size_t max_arr_preview_len();
 
-  std::string generate_file_pathname(std::source_location const &, char const *extension);
+  std::string make_stringified_file_path(std::source_location const &, char const *extension);
 
   void throw_if_file_not_open(std::fstream const &, char const *pathname);
 
@@ -131,45 +132,47 @@ namespace internal {
     size_t const size,
     std::stringstream &ss)
   {
-    ss << "sz=" << size;
+    std::stringstream serial{};
+
+    serial << "sz=" << size;
 
     if (size == 0)
       return;
 
-    ss << " __[__ ";
+    serial << " __[__ ";
 
     size_t const max_len = std::min(size, ntest::internal::max_arr_preview_len());
     for (size_t i = 0; i < max_len; ++i)
     {
-      ss << "<span style='" << internal::preview_style() << "' title='index " << i << "'>";
+      serial << "<span style='" << internal::preview_style() << "' title='index " << i << "'>";
       if constexpr (std::is_integral_v<Ty>)
       {
         // some integrals like uint8_t are treated strangely by ostream insertion,
         // so casting must be done
         if constexpr (std::is_unsigned_v<Ty>)
-          ss << static_cast<uintmax_t>(arr[i]);
+          serial << static_cast<uintmax_t>(arr[i]);
         else
-          ss << static_cast<intmax_t>(arr[i]);
+          serial << static_cast<intmax_t>(arr[i]);
       }
       else
       {
-        ss << arr[i];
+        serial << arr[i];
       }
-      ss << "</span>, ";
+      serial << "</span>, ";
     }
 
     if (size > max_len)
     {
-      ss << " *... " << (size - max_len) << " more* ";
+      serial << " *... " << (size - max_len) << " more* ";
     }
-    ss << "__]__";
+    serial << "__]__";
+
+    ss << ntest::internal::escape(serial.str());
   }
 
   std::string beautify_typeid_name(char const *name);
 
 } // namespace internal
-
-void init();
 
 void assert_bool(
   bool expected,
@@ -295,8 +298,8 @@ void assert_arr(
   else // failed
   {
     std::string const
-      expected_pathname = internal::generate_file_pathname(loc, "expected"),
-      actual_pathname = internal::generate_file_pathname(loc, "actual");
+      expected_pathname = internal::make_stringified_file_path(loc, "expected"),
+      actual_pathname = internal::make_stringified_file_path(loc, "actual");
 
     ntest::internal::write_arr_to_file(expected_pathname, expected, expected_size);
     ntest::internal::write_arr_to_file(actual_pathname, actual, actual_size);
@@ -333,8 +336,8 @@ void assert_stdvec(
   else // failed
   {
     std::string const
-      expected_pathname = internal::generate_file_pathname(loc, "expected"),
-      actual_pathname = internal::generate_file_pathname(loc, "actual");
+      expected_pathname = internal::make_stringified_file_path(loc, "expected"),
+      actual_pathname = internal::make_stringified_file_path(loc, "actual");
 
     ntest::internal::write_arr_to_file(expected_pathname, expected.data(), expected.size());
     ntest::internal::write_arr_to_file(actual_pathname, actual.data(), actual.size());
@@ -371,8 +374,8 @@ void assert_stdarr(
   else // failed
   {
     std::string const
-      expected_pathname = internal::generate_file_pathname(loc, "expected"),
-      actual_pathname = internal::generate_file_pathname(loc, "actual");
+      expected_pathname = internal::make_stringified_file_path(loc, "expected"),
+      actual_pathname = internal::make_stringified_file_path(loc, "actual");
 
     ntest::internal::write_arr_to_file(expected_pathname, expected.data(), expected.size());
     ntest::internal::write_arr_to_file(actual_pathname, actual.data(), actual.size());
@@ -483,7 +486,21 @@ requires concepts::derives_from_std_exception<ExceptTy>
   return what_str;
 }
 
-void generate_report(char const *name);
+struct init_result
+{
+  size_t num_files_removed;
+  size_t num_files_failed_to_remove;
+};
+
+init_result init(bool remove_residual_files = true);
+
+struct report_result
+{
+  size_t num_passes;
+  size_t num_fails;
+};
+
+report_result generate_report(char const *name);
 
 size_t pass_count();
 
