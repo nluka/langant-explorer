@@ -42,13 +42,13 @@
     <ClCompile Include="..\src\simulation_save_state.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\lib\regexglob.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\logger.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\program_options.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\lib\fregex.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

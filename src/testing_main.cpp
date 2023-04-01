@@ -1,6 +1,6 @@
 #include "lib/json.hpp"
 #include "lib/ntest.hpp"
-#include "lib/regexglob.hpp"
+#include "lib/fregex.hpp"
 
 #include "util.hpp"
 #include "simulation.hpp"
@@ -315,7 +315,7 @@ int main()
 
     assert(errors.empty());
 
-    auto const to_delete = regexglob::fmatch(save_dir.string().c_str(), "RL\\.actual.*");
+    auto const to_delete = fregex::find(save_dir.string().c_str(), "RL\\.actual.*");
     for (auto const &file : to_delete) {
       fs::remove_all(file);
     }
