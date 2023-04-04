@@ -9,7 +9,7 @@
 #include "lib/BS_thread_pool_light.hpp"
 #include "lib/json.hpp"
 #include "lib/term.hpp"
-#include "lib/regexglob.hpp"
+#include "lib/fregex.hpp"
 
 #ifdef _WIN32
 #  include <Windows.h>
@@ -74,7 +74,7 @@ int main(int const argc, char const *const *const argv)
     logger::set_autoflush(true);
   }
 
-  std::vector<fs::path> const state_files = regexglob::fmatch(
+  std::vector<fs::path> const state_files = fregex::find(
     s_options.state_dir_path.c_str(),
     ".*\\.json"
   );
@@ -173,7 +173,7 @@ void ui_loop(std::vector<named_simulation> const &simulations)
       nanos_spent_iterating = 0,
       nanos_spent_saving = 0;
     for (auto const &sim : simulations) {
-      gens_completed += sim.state.generation;
+      gens_completed += sim.state.generations_completed();
       auto const time_breakdown = simulation::query_activity_time_breakdown(sim.state, time_now);
       nanos_spent_iterating += time_breakdown.nanos_spent_iterating;
       nanos_spent_saving += time_breakdown.nanos_spent_saving;

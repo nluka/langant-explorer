@@ -16,14 +16,25 @@
 
 namespace util
 {
-  typedef std::vector<std::string> errors_t;
-  typedef std::chrono::steady_clock::time_point time_point_t;
-
   template <typename Ty>
   using ascending_order = std::less<Ty>;
 
-  time_point_t current_time();
+  typedef std::vector<std::string> errors_t;
 
+  struct time_span
+  {
+    time_span(u64 seconds_elapsed);
+    std::string to_string() const noexcept;
+
+    private:
+      u64 days;
+      u64 hours;
+      u64 minutes;
+      u64 seconds;
+  };
+
+  typedef std::chrono::steady_clock::time_point time_point_t;
+  time_point_t current_time();
   std::chrono::nanoseconds nanos_between(time_point_t start, time_point_t end);
 
   std::string make_str(char const *fmt, ...);

@@ -1,6 +1,6 @@
 {
-  "generation": 0,
-  "last_step_result": "nil",
+  "generation": 1000,
+  "last_step_result": "hit_edge",
 
   "grid_width": 5,
   "grid_height": 5,

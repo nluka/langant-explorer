@@ -27,9 +27,6 @@
     <ClCompile Include="..\src\simulation_save_state.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\timespan.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\util.cpp">
       <Filter>src</Filter>
     </ClCompile>

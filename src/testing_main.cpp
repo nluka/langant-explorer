@@ -60,6 +60,7 @@ int main()
       if (!expected_errors.empty()) {
         ntest::assert_stdvec(expected_errors, actual_errors, loc);
       } else {
+        ntest::assert_uint64(expected_state.start_generation, actual_state.start_generation, loc);
         ntest::assert_uint64(expected_state.generation, actual_state.generation, loc);
         ntest::assert_int32(expected_state.grid_width, actual_state.grid_width, loc);
         ntest::assert_int32(expected_state.grid_height, actual_state.grid_height, loc);
@@ -191,7 +192,6 @@ int main()
       std::fill_n(grid, 5 * 6, 0ui8);
 
       simulation::state expected_state{};
-      expected_state.generation = 0;
       expected_state.grid_width = 5;
       expected_state.grid_height = 6;
       expected_state.ant_col = 2;
@@ -208,7 +208,7 @@ int main()
     }
 
     {
-      u8 grid[5 * 5]{
+      u8 grid[5 * 5] {
         0, 1, 0, 1, 0,
         1, 0, 1, 0, 1,
         0, 1, 0, 1, 0,
@@ -217,6 +217,9 @@ int main()
       };
 
       simulation::state expected_state{};
+      expected_state.start_generation = 1000;
+      expected_state.generation = 1000;
+      expected_state.last_step_res = simulation::step_result::HIT_EDGE;
       expected_state.grid_width = 5;
       expected_state.grid_height = 5;
       expected_state.ant_col = 2;
@@ -308,36 +311,135 @@ int main()
     };
 
     fs::path const save_dir = fs::current_path() / "run";
-    std::string const json_str = util::extract_txt_file_contents("run/RL-init.json", false);
-
     errors_t errors{};
-    simulation::state state = simulation::parse_state(json_str, save_dir, errors);
 
-    assert(errors.empty());
+    // starting from generation 0, plain image
+    {
+      std::string const json_str = util::extract_txt_file_contents("run/RL-init.json", false);
+      simulation::state state = simulation::parse_state(json_str, save_dir, errors);
+      assert(errors.empty());
 
-    auto const to_delete = fregex::find(save_dir.string().c_str(), "RL\\.actual.*");
-    for (auto const &file : to_delete) {
-      fs::remove_all(file);
+      {
+        auto const to_delete = fregex::find(save_dir.string().c_str(), "RL_plain\\.actual.*");
+        for (auto const &file : to_delete) {
+          fs::remove_all(file);
+        }
+      }
+
+      simulation::run(
+        state,
+        "RL_plain.actual",
+        50, // generation_limit
+        { 3, 50 }, // save_points
+        16, // save_interval
+        pgm8::format::PLAIN,
+        save_dir,
+        true, // save_final_state
+        false, // create_logs
+        false // save_image_only
+      );
+
+      assert_save_point("RL_plain.expect(3).json",  "RL_plain.expect(3).pgm",  "RL_plain.actual(3).json");
+      assert_save_point("RL_plain.expect(16).json", "RL_plain.expect(16).pgm", "RL_plain.actual(16).json");
+      assert_save_point("RL_plain.expect(32).json", "RL_plain.expect(32).pgm", "RL_plain.actual(32).json");
+      assert_save_point("RL_plain.expect(48).json", "RL_plain.expect(48).pgm", "RL_plain.actual(48).json");
+      assert_save_point("RL_plain.expect(50).json", "RL_plain.expect(50).pgm", "RL_plain.actual(50).json");
     }
 
-    simulation::run(
-      state,
-      "RL.actual",
-      50, // generation_limit
-      { 3, 50 }, // save_points
-      16, // save_interval
-      pgm8::format::PLAIN,
-      save_dir,
-      true, // save_final_state
-      false, // create_logs
-      false // save_image_only
-    );
+    // starting from generation 16, plain image
+    {
+      std::string const json_str = util::extract_txt_file_contents("run/RL_plain.expect(16).json", false);
+      simulation::state state = simulation::parse_state(json_str, save_dir, errors);
+      assert(errors.empty());
 
-    assert_save_point("RL.expect(3).json",  "RL.expect(3).pgm",  "RL.actual(3).json");
-    assert_save_point("RL.expect(16).json", "RL.expect(16).pgm", "RL.actual(16).json");
-    assert_save_point("RL.expect(32).json", "RL.expect(32).pgm", "RL.actual(32).json");
-    assert_save_point("RL.expect(48).json", "RL.expect(48).pgm", "RL.actual(48).json");
-    assert_save_point("RL.expect(50).json", "RL.expect(50).pgm", "RL.actual(50).json");
+      {
+        auto const to_delete = fregex::find(save_dir.string().c_str(), "RL_plain_from16\\.actual.*");
+        for (auto const &file : to_delete) {
+          fs::remove_all(file);
+        }
+      }
+
+      simulation::run(
+        state,
+        "RL_plain_from16.actual",
+        50, // generation_limit
+        { 3, 50 }, // save_points
+        16, // save_interval
+        pgm8::format::PLAIN,
+        save_dir,
+        true, // save_final_state
+        false, // create_logs
+        false // save_image_only
+      );
+
+      assert_save_point("RL_plain.expect(32).json", "RL_plain.expect(32).pgm", "RL_plain_from16.actual(32).json");
+      assert_save_point("RL_plain.expect(48).json", "RL_plain.expect(48).pgm", "RL_plain_from16.actual(48).json");
+      assert_save_point("RL_plain.expect(50).json", "RL_plain.expect(50).pgm", "RL_plain_from16.actual(50).json");
+    }
+
+    // starting from generation 0, raw image
+    {
+      std::string const json_str = util::extract_txt_file_contents("run/RL-init.json", false);
+      simulation::state state = simulation::parse_state(json_str, save_dir, errors);
+      assert(errors.empty());
+
+      {
+        auto const to_delete = fregex::find(save_dir.string().c_str(), "RL_raw\\.actual.*");
+        for (auto const &file : to_delete) {
+          fs::remove_all(file);
+        }
+      }
+
+      simulation::run(
+        state,
+        "RL_raw.actual",
+        50, // generation_limit
+        { 3, 50 }, // save_points
+        16, // save_interval
+        pgm8::format::RAW,
+        save_dir,
+        true, // save_final_state
+        false, // create_logs
+        false // save_image_only
+      );
+
+      assert_save_point("RL_raw.expect(3).json",  "RL_raw.expect(3).pgm",  "RL_raw.actual(3).json");
+      assert_save_point("RL_raw.expect(16).json", "RL_raw.expect(16).pgm", "RL_raw.actual(16).json");
+      assert_save_point("RL_raw.expect(32).json", "RL_raw.expect(32).pgm", "RL_raw.actual(32).json");
+      assert_save_point("RL_raw.expect(48).json", "RL_raw.expect(48).pgm", "RL_raw.actual(48).json");
+      assert_save_point("RL_raw.expect(50).json", "RL_raw.expect(50).pgm", "RL_raw.actual(50).json");
+    }
+
+    // starting from generation 16, raw image
+    {
+      std::string const json_str = util::extract_txt_file_contents("run/RL_raw.expect(16).json", false);
+      simulation::state state = simulation::parse_state(json_str, save_dir, errors);
+      assert(errors.empty());
+
+      {
+        auto const to_delete = fregex::find(save_dir.string().c_str(), "RL_raw_from16\\.actual.*");
+        for (auto const &file : to_delete) {
+          fs::remove_all(file);
+        }
+      }
+
+      simulation::run(
+        state,
+        "RL_raw_from16.actual",
+        50, // generation_limit
+        { 3, 50 }, // save_points
+        16, // save_interval
+        pgm8::format::RAW,
+        save_dir,
+        true, // save_final_state
+        false, // create_logs
+        false // save_image_only
+      );
+
+      assert_save_point("RL_raw.expect(32).json", "RL_raw.expect(32).pgm", "RL_raw_from16.actual(32).json");
+      assert_save_point("RL_raw.expect(48).json", "RL_raw.expect(48).pgm", "RL_raw_from16.actual(48).json");
+      assert_save_point("RL_raw.expect(50).json", "RL_raw.expect(50).pgm", "RL_raw_from16.actual(50).json");
+    }
   }
   #endif // simulation::run
 

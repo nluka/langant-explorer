@@ -9,18 +9,17 @@ using util::make_str;
 void simulation::save_state(
   simulation::state const &state,
   const char *const name,
-  fs::path const &dir,
+  fs::path const &save_dir,
   pgm8::format const fmt,
   b8 const image_only)
 {
-  if (!fs::is_directory(dir)) {
-    throw std::runtime_error(make_str("\"%s\" is not a directory", dir.string().c_str()));
+  if (!fs::is_directory(save_dir)) {
+    throw std::runtime_error(make_str("\"%s\" is not a directory", save_dir.string().c_str()));
   }
 
   std::string const name_with_gen = make_str("%s(%zu)", name, state.generation);
 
-  std::filesystem::path p(dir);
-  p /= name_with_gen + ".json";
+  std::filesystem::path p = save_dir / (name_with_gen + ".json");
 
   if (!image_only) {
     // write state file
@@ -75,7 +74,7 @@ void simulation::print_state_json(
     << "\n"
     << "  \"grid_width\": " << grid_width << ",\n"
     << "  \"grid_height\": " << grid_height << ",\n"
-    << "  \"grid_state\": \"" << grid_state << "\",\n"
+    << "  \"grid_state\": \"" << fs::path(grid_state).generic_string() << "\",\n"
     << "\n"
     << "  \"ant_col\": " << ant_col << ",\n"
     << "  \"ant_row\": " << ant_row << ",\n"

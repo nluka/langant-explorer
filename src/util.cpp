@@ -14,6 +14,49 @@
 using namespace std;
 using json_t = nlohmann::json;
 
+util::time_span::time_span(u64 const seconds_elapsed)
+{
+  u64 const SECONDS_PER_DAY = 86400, SECONDS_PER_HOUR = 3600, SECONDS_PER_MINUTE = 60;
+
+  this->days = 0;
+  this->hours = 0;
+  this->minutes = 0;
+  this->seconds = seconds_elapsed;
+
+  while (this->seconds >= SECONDS_PER_DAY) {
+    ++this->days;
+    this->seconds -= SECONDS_PER_DAY;
+  }
+
+  while (this->seconds >= SECONDS_PER_HOUR) {
+    ++this->hours;
+    this->seconds -= SECONDS_PER_HOUR;
+  }
+
+  while (this->seconds >= SECONDS_PER_MINUTE) {
+    ++this->minutes;
+    this->seconds -= SECONDS_PER_MINUTE;
+  }
+}
+
+string util::time_span::to_string() const noexcept
+{
+  std::stringstream ss;
+
+  if (this->days > 0) {
+    ss << this->days << "d ";
+  }
+  if (this->hours > 0) {
+    ss << this->hours << "h ";
+  }
+  if (this->minutes > 0) {
+    ss << this->minutes << "m ";
+  }
+  ss << this->seconds << 's';
+
+  return ss.str();
+}
+
 util::time_point_t util::current_time()
 {
   return std::chrono::high_resolution_clock::now();

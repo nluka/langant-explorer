@@ -87,6 +87,7 @@ namespace simulation
 
   struct state
   {
+    u64 start_generation;
     u64 generation;
     u64 nanos_spent_iterating;
     u64 nanos_spent_saving;
@@ -105,6 +106,7 @@ namespace simulation
 
     b8 can_step_forward(u64 generation_limit = 0) const noexcept;
     usize num_pixels() const noexcept;
+    u64 generations_completed() const noexcept;
   };
 
   struct activity_time_breakdown
@@ -144,6 +146,8 @@ namespace simulation
     i32 ant_row,
     orientation::value_type ant_orientation,
     rules_t const &rules);
+
+  std::string extract_name_from_json_state_path(std::string const &);
 
   struct run_result
   {

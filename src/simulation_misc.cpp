@@ -124,3 +124,27 @@ usize simulation::state::num_pixels() const noexcept
 {
   return static_cast<usize>(this->grid_width) * this->grid_height;
 }
+
+u64 simulation::state::generations_completed() const noexcept
+{
+  assert(generation >= start_generation);
+  return generation - start_generation;
+}
+
+std::string simulation::extract_name_from_json_state_path(std::string const &json_path)
+{
+  assert(!json_path.empty());
+
+  std::filesystem::path p(json_path);
+  p = p.filename();
+  p.replace_extension("");
+
+  std::string filename_no_extension(p.string());
+
+  size_t const opening_paren_pos = filename_no_extension.find_first_of('(');
+
+  if (opening_paren_pos == std::string::npos)
+    return filename_no_extension;
+  else
+    return filename_no_extension.erase(opening_paren_pos);
+}

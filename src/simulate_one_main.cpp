@@ -16,7 +16,6 @@
 #include "lib/term.hpp"
 
 #include "primitives.hpp"
-#include "timespan.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
 #include "logger.hpp"
@@ -80,7 +79,7 @@ int main(int const argc, char const *const *const argv) {
   }
 
   std::string const &true_sim_name = s_options.name == ""
-    ? s_options.state_file_path
+    ? simulation::extract_name_from_json_state_path(s_options.state_file_path)
     : s_options.name;
 
   std::thread sim_thread([&true_sim_name]() {
@@ -127,7 +126,8 @@ void ui_loop(std::string const &sim_name)
 
     u64 const
       total_nanos_elapsed = util::nanos_between(start_time, time_now).count(),
-      gens_completed = s_sim_state.generation,
+      current_generation = s_sim_state.generation,
+      gens_completed = s_sim_state.generations_completed(),
       gens_remaining = s_options.sim.generation_limit - gens_completed;
     f64 const
       total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
@@ -136,7 +136,7 @@ void ui_loop(std::string const &sim_name)
       mega_gens_completed = gens_completed / 1'000'000.0,
       mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON),
       // TODO: fix inf bug
-      percent_completion = ((gens_completed / static_cast<f64>(s_options.sim.generation_limit)) * 100.0);
+      percent_completion = ((gens_completed / static_cast<f64>(s_options.sim.generation_limit - s_sim_state.start_generation)) * 100.0);
     b8 const is_simulation_done = s_sim_run_result.code != simulation::run_result::code::NIL;
 
     // line
@@ -187,14 +187,14 @@ void ui_loop(std::string const &sim_name)
 
     // line
     {
-      printf("Generation : %llu", gens_completed);
+      printf("Generation : %llu", current_generation);
       term::clear_to_end_of_line();
       putc('\n', stdout);
     }
 
     // line
     {
-      printf("Elapsed    : %s", timespan_to_string(timespan_calculate(static_cast<u64>(total_secs_elapsed))).c_str());
+      printf("Elapsed    : %s", util::time_span(static_cast<u64>(total_secs_elapsed)).to_string().c_str());
       term::clear_to_end_of_line();
       putc('\n', stdout);
     }

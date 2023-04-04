@@ -68,12 +68,12 @@ int main(int const argc, char const *const *const argv)
     img_props.set_height(s_options.height);
     img_props.set_maxval(s_options.maxval);
 
-    // std::ios_base::openmode fmode = std::ios::out;
-    // if (pgm_fmt == pgm8::format::RAW) {
-    //   fmode |= std::ios::binary;
-    // }
+    std::ios_base::openmode fmode = std::ios::out;
+    if (s_options.format == pgm8::format::RAW) {
+      fmode |= std::ios::binary;
+    }
 
-    std::fstream file(s_options.out_file_path, std::ios::out);
+    std::fstream file(s_options.out_file_path, fmode);
 
     try {
       pgm8::write(file, img_props, pixels.get());

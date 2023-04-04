@@ -1,3 +1,4 @@
+#include <cassert>
 #include <chrono>
 #include <cstdarg>
 #include <cstdio>
@@ -462,6 +463,7 @@ vector<uint8_t> extract_binary_file_contents(string const &path)
 
   std::vector<uint8_t> vec(file_size);
   file.read(reinterpret_cast<char *>(vec.data()), file_size);
+  assert(file.gcount() > 0 && static_cast<uintmax_t>(file.gcount()) == file_size);
 
   return vec;
 }

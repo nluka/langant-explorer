@@ -434,6 +434,10 @@ simulation::state simulation::parse_state(
     json, "generation", state.generation, 0, UINT_FAST64_MAX, add_err
   );
 
+  if (generation_parse_success) {
+    state.start_generation = state.generation;
+  }
+
   b8 const grid_width_parse_success = try_to_parse_and_set_uint<i32>(
     json, "grid_width", state.grid_width, 0, UINT16_MAX, add_err
   );

@@ -1,3 +1,4 @@
+#include <cassert>
 #include <string>
 #include <sstream>
 
@@ -124,6 +125,7 @@ void pgm8::read_pixels(
   {
     char newline;
     file.read(&newline, 1);
+    assert(file.gcount() == sizeof(char));
   }
 
   size_t const num_pixels = static_cast<size_t>(props.get_width()) * props.get_height();
@@ -131,6 +133,7 @@ void pgm8::read_pixels(
   if (props.get_format() == pgm8::format::RAW)
   {
     file.read(reinterpret_cast<char *>(buffer), num_pixels);
+    assert(file.gcount() > 0 && static_cast<size_t>(file.gcount()) == num_pixels);
   }
   else // format::PLAIN
   {

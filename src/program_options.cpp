@@ -72,7 +72,7 @@ namespace simulation
 {
   option generation_limit() { return { "generation_limit", 'g' }; }
   option image_format()     { return { "image_format",     'f' }; }
-  option create_logs()      { return { "create_logs",        'l' }; }
+  option create_logs()      { return { "create_logs",      'l' }; }
   option save_path()        { return { "save_path",        'o' }; }
   option save_image_only()  { return { "save_image_only",  'y' }; }
   option save_final_state() { return { "save_final_state", 's' }; }
