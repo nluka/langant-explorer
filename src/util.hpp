@@ -23,7 +23,8 @@ namespace util
 
   struct time_span
   {
-    time_span(u64 seconds_elapsed);
+    time_span(u64 seconds_elapsed) noexcept;
+
     std::string to_string() const noexcept;
 
     private:
@@ -39,7 +40,7 @@ namespace util
 
   std::string make_str(char const *fmt, ...);
 
-  int print_err(char const *fmt, ...);
+  i32 print_err(char const *fmt, ...);
 
   [[noreturn]] void die(char const *fmt, ...);
 
@@ -107,8 +108,8 @@ namespace util
   }
 
   // Returns the size of a static (stack-allocated) C-style array at compile time.
-  template <typename ElemTy, usize Length>
-  consteval usize lengthof(ElemTy (&)[Length])
+  template <typename ElemTy, u64 Length>
+  consteval u64 lengthof(ElemTy (&)[Length])
   {
     return Length;
   }

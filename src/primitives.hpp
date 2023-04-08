@@ -27,7 +27,7 @@ typedef uint32_t u32;
 static_assert(sizeof(uint64_t) == 8);
 typedef uint64_t u64;
 
-typedef size_t usize;
+static_assert(sizeof(size_t) == sizeof(u64));
 
 static_assert(sizeof(float) == 4);
 typedef float f32;

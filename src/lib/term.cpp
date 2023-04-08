@@ -1,7 +1,6 @@
 #include <cstdarg>
-#include <stdio.h>
+#include <cstdio>
 #include <sstream>
-
 #include "term.hpp"
 
 // super useful reference:
@@ -17,14 +16,6 @@ void term::clear_curr_line() {
 
 void term::clear_to_end_of_line() {
   printf("\033[K");
-}
-
-size_t term::width_in_cols() {
-  return term::dimensions().m_width;
-}
-
-size_t term::height_in_lines() {
-  return term::dimensions().m_height;
 }
 
 void term::cursor::hide() {
@@ -143,76 +134,3 @@ void term::color::printf(int const color, char const *fmt, ...) {
 
   color::set(fore::DEFAULT | back::BLACK);
 }
-
-#ifdef _WIN32
-
-#include <windows.h>
-
-void term::remove_scrollbar() {
-  HANDLE const hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-  CONSOLE_SCREEN_BUFFER_INFO screenBufferInfo{};
-  GetConsoleScreenBufferInfo(hOut, &screenBufferInfo);
-
-  short const windowWidth =
-    screenBufferInfo.srWindow.Right - screenBufferInfo.srWindow.Left + 1;
-  short const windowHeight =
-    screenBufferInfo.srWindow.Bottom - screenBufferInfo.srWindow.Top + 1;
-
-  short const screenBufferWidth = screenBufferInfo.dwSize.X;
-  short const screenBufferHeight = screenBufferInfo.dwSize.Y;
-
-  COORD newSize{};
-  newSize.X = screenBufferWidth;
-  newSize.Y = windowHeight;
-
-  if (SetConsoleScreenBufferSize(hOut, newSize) == 0) {
-    std::stringstream ss{};
-    ss << "term::remove_scrollbar failed - error code " << GetLastError();
-    throw ss.str();
-  }
-}
-
-void term::cursor::set_size(size_t percent) {
-  if (percent < 1) {
-    percent = 1;
-  } else if (percent > 100) {
-    percent = 100;
-  }
-  HANDLE const hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  CONSOLE_CURSOR_INFO cursorInfo{};
-  cursorInfo.dwSize = static_cast<DWORD>(percent);
-  if (!SetConsoleCursorInfo(hOut, &cursorInfo)) {
-    std::exit(1);
-  }
-}
-
-// Top-leftmost position is (0, 0).
-term::cursor::Position term::cursor::get_pos() {
-  HANDLE const hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  CONSOLE_SCREEN_BUFFER_INFO consoleInfo{};
-  if (GetConsoleScreenBufferInfo(hOut, &consoleInfo)) {
-    return {
-      static_cast<size_t>(consoleInfo.dwCursorPosition.X),
-      static_cast<size_t>(consoleInfo.dwCursorPosition.Y)
-    };
-  } else {
-    std::exit(1);
-  }
-}
-
-term::Dimensions term::dimensions() {
-  HANDLE const hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  CONSOLE_SCREEN_BUFFER_INFO screenBufferInfo{};
-  GetConsoleScreenBufferInfo(hOut, &screenBufferInfo);
-  return {
-    // width
-    static_cast<size_t>(screenBufferInfo.srWindow.Right) -
-    static_cast<size_t>(screenBufferInfo.srWindow.Left) + 1,
-    // height
-    static_cast<size_t>(screenBufferInfo.srWindow.Bottom) -
-    static_cast<size_t>(screenBufferInfo.srWindow.Top) + 1
-  };
-}
-
-#endif // _WIN32

@@ -340,7 +340,7 @@ options_description po::simulate_many_options_description()
 }
 
 void po::parse_make_states_options(
-  int const argc,
+  i32 const argc,
   char const *const *const argv,
   make_states_options &out,
   util::errors_t &errors)
@@ -478,7 +478,7 @@ void po::parse_make_states_options(
 
   {
     option const opt = make_states::count();
-    auto const count = get_required_option<usize>(opt, vm, errors);
+    auto const count = get_required_option<u64>(opt, vm, errors);
 
     if (count.has_value()) {
       if (count.value() < 1) {
@@ -531,7 +531,7 @@ void po::parse_make_states_options(
       if (grid_width.value() < 1 || grid_width.value() > UINT16_MAX) {
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
           opt_gw.to_string().c_str(), UINT16_MAX));
-      } else if (!util::in_range_incl_excl<usize>(ant_col.value(), 0, grid_width.value())) {
+      } else if (!util::in_range_incl_excl<u64>(ant_col.value(), 0, grid_width.value())) {
         errors.emplace_back(make_str("%s must be on grid x-axis [0, %zu)",
           opt_ac.to_string().c_str(), grid_width.value()));
       } else {
@@ -552,7 +552,7 @@ void po::parse_make_states_options(
       if (grid_height.value() < 1 || grid_height.value() > UINT16_MAX) {
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
           opt_gh.to_string().c_str(), UINT16_MAX));
-      } else if (!util::in_range_incl_excl<usize>(ant_row.value(), 0, grid_height.value())) {
+      } else if (!util::in_range_incl_excl<u64>(ant_row.value(), 0, grid_height.value())) {
         errors.emplace_back(make_str("%s must be on grid y-axis [0, %zu)",
           opt_ar.to_string().c_str(), grid_height.value()));
       } else {
@@ -564,7 +564,7 @@ void po::parse_make_states_options(
 }
 
 void po::parse_make_image_options(
-  int const argc,
+  i32 const argc,
   char const *const *const argv,
   make_image_options &out,
   util::errors_t &errors)
@@ -621,9 +621,9 @@ void po::parse_make_image_options(
     if (content.has_value()) {
       if (std::regex_match(content.value(), std::regex(make_image::regex_content()))) {
         if (content.value().starts_with("fill")) {
-          usize const equals_sign_pos = content.value().find_first_of('=');
+          u64 const equals_sign_pos = content.value().find_first_of('=');
           std::string const fill_val_str = content.value().substr(equals_sign_pos + 1);
-          usize const fill_val = std::stoull(fill_val_str);
+          u64 const fill_val = std::stoull(fill_val_str);
           if (fill_val > UINT8_MAX) {
             errors.emplace_back(make_str("%s fill value must be <= %zu",
               opt.to_string().c_str(), UINT8_MAX));
@@ -768,7 +768,7 @@ void validate_and_set_simulation_options(
 }
 
 void po::parse_simulate_one_options(
-  int const argc,
+  i32 const argc,
   char const *const *const argv,
   simulate_one_options &out,
   util::errors_t &errors)
@@ -844,7 +844,7 @@ void po::parse_simulate_one_options(
 }
 
 void po::parse_simulate_many_options(
-  int const argc,
+  i32 const argc,
   char const *const *const argv,
   simulate_many_options &out,
   util::errors_t &errors)

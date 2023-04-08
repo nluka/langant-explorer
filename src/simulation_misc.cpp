@@ -1,7 +1,6 @@
 #include "simulation.hpp"
 
-char const *simulation::orientation::to_string(
-  orientation::value_type const orient)
+char const *simulation::orientation::to_cstr(orientation::value_type const orient)
 {
   switch (orient) {
     case orientation::NORTH: return "N";
@@ -14,17 +13,16 @@ char const *simulation::orientation::to_string(
   }
 }
 
-simulation::orientation::value_type simulation::orientation::from_string(char const *str)
+simulation::orientation::value_type simulation::orientation::from_cstr(char const *str)
 {
   if (strcmp(str, "N") == 0) return orientation::NORTH;
   if (strcmp(str, "E") == 0) return orientation::EAST;
   if (strcmp(str, "S") == 0) return orientation::SOUTH;
   if (strcmp(str, "W") == 0) return orientation::WEST;
-  throw std::runtime_error("orientation::from_string failed - bad str");
+  throw std::runtime_error("orientation::from_cstr failed - bad str");
 }
 
-char const *simulation::turn_direction::to_string(
-  turn_direction::value_type const turn_dir)
+char const *simulation::turn_direction::to_cstr(turn_direction::value_type const turn_dir)
 {
   switch (turn_dir) {
     case turn_direction::LEFT: return "L";
@@ -48,8 +46,7 @@ simulation::turn_direction::value_type simulation::turn_direction::from_char(cha
   }
 }
 
-char const *simulation::step_result::to_string(
-  step_result::value_type const step_res)
+char const *simulation::step_result::to_cstr(step_result::value_type const step_res)
 {
   switch (step_res) {
     case step_result::NIL: return "nil";
@@ -93,7 +90,8 @@ u8 simulation::deduce_maxval_from_rules(simulation::rules_t const &rules)
 }
 
 simulation::activity_time_breakdown simulation::query_activity_time_breakdown(
-  simulation::state const &state, util::time_point_t const now)
+  simulation::state const &state,
+  util::time_point_t const now)
 {
   if (state.current_activity == activity::NIL) {
     // currently doing nothing
@@ -120,9 +118,9 @@ simulation::activity_time_breakdown simulation::query_activity_time_breakdown(
   }
 }
 
-usize simulation::state::num_pixels() const noexcept
+u64 simulation::state::num_pixels() const noexcept
 {
-  return static_cast<usize>(this->grid_width) * this->grid_height;
+  return static_cast<u64>(this->grid_width) * this->grid_height;
 }
 
 u64 simulation::state::generations_completed() const noexcept

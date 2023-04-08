@@ -36,7 +36,7 @@ namespace po
   };
 
   void parse_make_image_options(
-    int argc,
+    i32 argc,
     char const *const *argv,
     make_image_options &,
     util::errors_t &);
@@ -50,7 +50,7 @@ namespace po
     std::string ant_orientations;
     std::string out_dir_path;
     std::string word_file_path;
-    usize count;
+    u64 count;
     u16 min_num_rules;
     u16 max_num_rules;
     i32 grid_width;
@@ -61,7 +61,7 @@ namespace po
   };
 
   void parse_make_states_options(
-    int argc,
+    i32 argc,
     char const *const *argv,
     make_states_options &,
     util::errors_t &);
@@ -87,7 +87,7 @@ namespace po
   };
 
   void parse_simulate_one_options(
-    int argc,
+    i32 argc,
     char const *const *argv,
     simulate_one_options &,
     util::errors_t &);
@@ -101,7 +101,7 @@ namespace po
   };
 
   void parse_simulate_many_options(
-    int argc,
+    i32 argc,
     char const *const *argv,
     simulate_many_options &,
     util::errors_t &);

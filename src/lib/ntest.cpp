@@ -650,14 +650,14 @@ std::string path_minus_dir_overlap(fs::path subject_abs, fs::path directory_abs)
   assert(fs::is_directory(directory_abs));
   assert(directory_abs.is_absolute());
 
-  string subj_str = subject_abs.string();
-  string dir_str = directory_abs.string();
+  string subj_str = subject_abs.generic_string();
+  string dir_str = directory_abs.generic_string();
 
   assert(!subj_str.empty());
   assert(!dir_str.empty());
 
-  if (!dir_str.ends_with(fs::path::preferred_separator))
-    dir_str.push_back(fs::path::preferred_separator);
+  if (dir_str.back() != '/')
+    dir_str.push_back('/');
 
   size_t i;
   for (i = 0; i < dir_str.size() && subj_str[i] == dir_str[i]; ++i);

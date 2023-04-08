@@ -11,6 +11,7 @@ staging
 *.exe
 *.pdb
 *.log
+*.psd
 
 # testing
 testing/*.expected

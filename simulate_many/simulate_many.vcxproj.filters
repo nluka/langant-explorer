@@ -33,9 +33,6 @@
     <ClCompile Include="..\src\lib\term.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\timespan.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\util.cpp">
       <Filter>src</Filter>
     </ClCompile>

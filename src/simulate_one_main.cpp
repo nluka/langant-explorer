@@ -33,12 +33,12 @@ static simulation::run_result s_sim_run_result{};
 
 void ui_loop(std::string const &sim_name);
 
-int main(int const argc, char const *const *const argv) {
+i32 main(i32 const argc, char const *const *const argv) {
   if (argc < 2) {
     std::ostringstream usage_msg;
     usage_msg <<
       "\n"
-      "USAGE:\n"
+      "Usage:\n"
       "  simulate_one [options]\n"
       "\n";
     po::simulate_one_options_description().print(usage_msg, 6);
@@ -49,6 +49,7 @@ int main(int const argc, char const *const *const argv) {
 
   {
     errors_t errors{};
+
     po::parse_simulate_one_options(argc, argv, s_options, errors);
 
     if (!errors.empty()) {
@@ -56,15 +57,6 @@ int main(int const argc, char const *const *const argv) {
         print_err("%s", err.c_str());
       die("%zu configuration errors", errors.size());
     }
-  }
-
-  if (s_options.log_file_path != "") {
-    logger::set_out_pathname(s_options.log_file_path);
-    logger::set_autoflush(true);
-  }
-
-  {
-    errors_t errors{};
 
     s_sim_state = simulation::parse_state(
       util::extract_txt_file_contents(s_options.state_file_path, false),
@@ -76,6 +68,11 @@ int main(int const argc, char const *const *const argv) {
         print_err("%s", err.c_str());
       die("%zu state errors", errors.size());
     }
+  }
+
+  if (s_options.log_file_path != "") {
+    logger::set_out_file_path(s_options.log_file_path);
+    logger::set_autoflush(true);
   }
 
   std::string const &true_sim_name = s_options.name == ""
@@ -132,11 +129,11 @@ void ui_loop(std::string const &sim_name)
     f64 const
       total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
       secs_elapsed_iterating = time_breakdown.nanos_spent_iterating / 1'000'000'000.0,
-      secs_elapsed_saving = time_breakdown.nanos_spent_saving / 1'000'000'000.0,
       mega_gens_completed = gens_completed / 1'000'000.0,
       mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON),
-      // TODO: fix inf bug
-      percent_completion = ((gens_completed / static_cast<f64>(s_options.sim.generation_limit - s_sim_state.start_generation)) * 100.0);
+      percent_completion = ((gens_completed / gens_remaining) * 100.0),
+      percent_iteration = ( time_breakdown.nanos_spent_iterating / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0,
+      percent_saving    = ( time_breakdown.nanos_spent_saving    / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0;
     b8 const is_simulation_done = s_sim_run_result.code != simulation::run_result::code::NIL;
 
     // line
@@ -180,7 +177,8 @@ void ui_loop(std::string const &sim_name)
     // line
     {
       printf("Completion : ");
-      printf(fore::LIGHT_GREEN | back::BLACK, "%.1lf %%", percent_completion);
+      printf(fore::LIGHT_GREEN | back::BLACK, "%.1lf %%",
+        std::isinf(percent_completion) ? 0.0 : percent_completion);
       term::clear_to_end_of_line();
       putc('\n', stdout);
     }
@@ -202,16 +200,15 @@ void ui_loop(std::string const &sim_name)
     // line
     {
       printf("I/S Ratio  : %.1lf / %.1lf",
-        ( time_breakdown.nanos_spent_iterating / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0,
-        ( time_breakdown.nanos_spent_saving    / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0);
+        std::isnan(percent_iteration) ? 0.0 : percent_iteration,
+        std::isnan(percent_saving)    ? 0.0 : percent_saving);
       term::clear_to_end_of_line();
       putc('\n', stdout);
     }
 
     // line
     {
-      printf("Activity   : ");
-      printf([] {
+      printf("Activity   : %s", [] {
         switch (s_sim_state.current_activity) {
           default:
           case simulation::activity::NIL:       return "nil";

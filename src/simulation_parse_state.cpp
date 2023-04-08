@@ -94,7 +94,7 @@ static
 b8 try_to_parse_and_set_rule(
   std::array<simulation::rule, 256> &out,
   json_t const &rule,
-  usize const index,
+  u64 const index,
   std::function<void(std::string &&)> const &add_err)
 {
   if (!rule.is_object()) {
@@ -211,7 +211,7 @@ b8 try_to_parse_and_set_rules(
 
   std::array<simulation::rule, 256> parsed_rules{};
 
-  for (usize i = 0; i < rules.size(); ++i) {
+  for (u64 i = 0; i < rules.size(); ++i) {
     if (!try_to_parse_and_set_rule(parsed_rules, rules[i], i, add_err)) {
       return false;
     }
@@ -220,9 +220,9 @@ b8 try_to_parse_and_set_rules(
   // validation
   {
     std::array<u16, 256> shade_occurences{};
-    usize num_defined_rules = 0;
+    u64 num_defined_rules = 0;
 
-    for (usize i = 0; i < parsed_rules.size(); ++i) {
+    for (u64 i = 0; i < parsed_rules.size(); ++i) {
       auto const &r = parsed_rules[i];
       b8 const is_rule_used = r.turn_dir != simulation::turn_direction::NIL;
       if (is_rule_used) {
@@ -237,7 +237,7 @@ b8 try_to_parse_and_set_rules(
       return false;
     }
 
-    usize num_non_zero_occurences = 0, num_non_two_occurences = 0;
+    u64 num_non_zero_occurences = 0, num_non_two_occurences = 0;
     for (auto const occurencesOfShade : shade_occurences) {
       if (occurencesOfShade != 0) {
         ++num_non_zero_occurences;
@@ -306,7 +306,7 @@ b8 try_to_parse_and_set_grid_state(
     }
 
     // only try to allocate and setup grid if there are no errors
-    usize const num_pixels = static_cast<usize>(state.grid_width) * state.grid_height;
+    u64 const num_pixels = static_cast<u64>(state.grid_width) * state.grid_height;
     try {
       state.grid = new u8[num_pixels];
     } catch (std::bad_alloc const &) {
@@ -340,9 +340,9 @@ b8 try_to_parse_and_set_grid_state(
       return false;
     }
 
-    usize const num_pixels = img_props.num_pixels();
+    u64 const num_pixels = img_props.num_pixels();
     {
-      usize const num_pixels_expected = static_cast<usize>(state.grid_width) * state.grid_height;
+      u64 const num_pixels_expected = static_cast<u64>(state.grid_width) * state.grid_height;
       if (num_pixels != num_pixels_expected) {
         if (state.grid_width != img_props.get_width()) {
           add_err(make_str("dimension mismatch, image width (%zu) does not correspond to grid width (%zu)",
@@ -401,7 +401,7 @@ simulation::state simulation::parse_state(
 
   {
     auto const validate_property_set = [&json, &add_err](char const *const key) -> i8 {
-      usize const num_occurences = json.count(key);
+      u64 const num_occurences = json.count(key);
       if (num_occurences == 0) {
         add_err(make_str("`%s` not set", key));
         return 0;
@@ -472,9 +472,9 @@ simulation::state simulation::parse_state(
     json,
     "last_step_result",
     {
-      { simulation::step_result::to_string(simulation::step_result::NIL), simulation::step_result::NIL },
-      { simulation::step_result::to_string(simulation::step_result::SUCCESS), simulation::step_result::SUCCESS },
-      { simulation::step_result::to_string(simulation::step_result::HIT_EDGE), simulation::step_result::HIT_EDGE },
+      { simulation::step_result::to_cstr(simulation::step_result::NIL), simulation::step_result::NIL },
+      { simulation::step_result::to_cstr(simulation::step_result::SUCCESS), simulation::step_result::SUCCESS },
+      { simulation::step_result::to_cstr(simulation::step_result::HIT_EDGE), simulation::step_result::HIT_EDGE },
     },
     state.last_step_res,
     add_err
@@ -486,10 +486,10 @@ simulation::state simulation::parse_state(
     json,
     "ant_orientation",
     {
-      { simulation::orientation::to_string(simulation::orientation::NORTH), simulation::orientation::NORTH },
-      { simulation::orientation::to_string(simulation::orientation::EAST), simulation::orientation::EAST },
-      { simulation::orientation::to_string(simulation::orientation::SOUTH), simulation::orientation::SOUTH },
-      { simulation::orientation::to_string(simulation::orientation::WEST), simulation::orientation::WEST },
+      { simulation::orientation::to_cstr(simulation::orientation::NORTH), simulation::orientation::NORTH },
+      { simulation::orientation::to_cstr(simulation::orientation::EAST), simulation::orientation::EAST },
+      { simulation::orientation::to_cstr(simulation::orientation::SOUTH), simulation::orientation::SOUTH },
+      { simulation::orientation::to_cstr(simulation::orientation::WEST), simulation::orientation::WEST },
     },
     state.ant_orientation,
     add_err

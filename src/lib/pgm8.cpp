@@ -71,27 +71,11 @@ pgm8::image_properties pgm8::read_properties(std::ifstream &file)
 
   format const fmt = [&file]()
   {
-    auto const string_starts_with = [](
-      std::string const &subject,
-      char const *const sequence)
-    {
-      size_t const seq_len = std::strlen(sequence);
-
-      if (subject.length() < seq_len)
-        return false;
-
-      for (size_t i = 0; i < seq_len; ++i)
-        if (subject[i] != sequence[i])
-          return false;
-
-      return true;
-    };
-
     std::string magic_num{};
     std::getline(file, magic_num);
-    if (string_starts_with(magic_num, "P5"))
+    if (magic_num.starts_with("P5"))
       return format::RAW;
-    else if (string_starts_with(magic_num, "P2"))
+    else if (magic_num.starts_with("P2"))
       return format::PLAIN;
     else
       throw std::runtime_error("invalid magic number, corrupt or non-PGM file");

@@ -14,7 +14,7 @@ void simulation::save_state(
   b8 const image_only)
 {
   if (!fs::is_directory(save_dir)) {
-    throw std::runtime_error(make_str("\"%s\" is not a directory", save_dir.string().c_str()));
+    throw std::runtime_error(make_str("save_dir '%s' is not a directory", save_dir.generic_string().c_str()));
   }
 
   std::string const name_with_gen = make_str("%s(%zu)", name, state.generation);
@@ -29,14 +29,15 @@ void simulation::save_state(
 
     print_state_json(
       state_file,
+      name_with_gen + ".pgm",
       state.generation,
-      state.last_step_res,
       state.grid_width,
       state.grid_height,
-      name_with_gen + ".pgm",
       state.ant_col,
       state.ant_row,
+      state.last_step_res,
       state.ant_orientation,
+      state.maxval,
       state.rules);
   }
 
@@ -57,20 +58,21 @@ void simulation::save_state(
 
 void simulation::print_state_json(
   std::ostream &os,
+  std::string const &grid_state,
   u64 const generation,
-  step_result::value_type const last_step_res,
   i32 const grid_width,
   i32 const grid_height,
-  std::string const &grid_state,
   i32 const ant_col,
   i32 const ant_row,
+  step_result::value_type const last_step_res,
   orientation::value_type const ant_orientation,
+  u8 const maxval,
   rules_t const &rules)
 {
   os
     << "{\n"
     << "  \"generation\": " << generation << ",\n"
-    << "  \"last_step_result\": \"" << simulation::step_result::to_string(last_step_res) << "\",\n"
+    << "  \"last_step_result\": \"" << simulation::step_result::to_cstr(last_step_res) << "\",\n"
     << "\n"
     << "  \"grid_width\": " << grid_width << ",\n"
     << "  \"grid_height\": " << grid_height << ",\n"
@@ -78,35 +80,39 @@ void simulation::print_state_json(
     << "\n"
     << "  \"ant_col\": " << ant_col << ",\n"
     << "  \"ant_row\": " << ant_row << ",\n"
-    << "  \"ant_orientation\": \"" << simulation::orientation::to_string(ant_orientation) << "\",\n"
+    << "  \"ant_orientation\": \"" << simulation::orientation::to_cstr(ant_orientation) << "\",\n"
     << "\n"
     << "  \"rules\": [\n"
   ;
 
+  u8 const maxval_digits = util::count_digits(maxval);
+
   // rules elements
   {
-    auto const print_rule = [&os](
-      usize const shade,
+    auto const print_rule = [&](
+      u64 const shade,
       simulation::rule const &rule,
-      b8 const comma_at_end
-    ) {
+      b8 const comma_at_end)
+    {
       os
-        << "    { \"on\": " << shade
-        << ", \"replace_with\": " << static_cast<u16>(rule.replacement_shade)
-        << ", \"turn\": \"" << simulation::turn_direction::to_string(rule.turn_dir)
-        << "\" }" << (comma_at_end ? "," : "") << '\n'
+        << "    " // indentation
+        << "{ "
+        << "\"on\": " << std::setw(maxval_digits) << std::setfill(' ') << shade << ", "
+        << "\"replace_with\": " << std::setw(maxval_digits) << std::setfill(' ') << static_cast<u16>(rule.replacement_shade) << ", "
+        << "\"turn\": \"" << simulation::turn_direction::to_cstr(rule.turn_dir) << "\""
+        << " }" << (comma_at_end ? "," : "") << '\n'
       ;
     };
 
-    usize last_rule_idx = 0;
-    for (usize i = 255; i > 0; --i) {
+    u64 last_rule_idx = 0;
+    for (u64 i = 255; i > 0; --i) {
       if (rules[i].turn_dir != simulation::turn_direction::NIL) {
         last_rule_idx = i;
         break;
       }
     }
 
-    for (usize shade = 0; shade < last_rule_idx; ++shade) {
+    for (u64 shade = 0; shade < last_rule_idx; ++shade) {
       auto const &rule = rules[shade];
       b8 const exists = rule.turn_dir != simulation::turn_direction::NIL;
       if (exists)

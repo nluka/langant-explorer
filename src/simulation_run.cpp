@@ -29,7 +29,7 @@ std::vector<ElemTy> remove_duplicates_sorted(std::vector<ElemTy> const &input)
     output.push_back(input[0]);
   }
 
-  for (usize i = 1; i < input.size() - 1; ++i) {
+  for (u64 i = 1; i < input.size() - 1; ++i) {
     if (input[i] != input[i - 1] && input[i] != input[i + 1]) {
       output.push_back(input[i]);
     }
@@ -45,13 +45,13 @@ std::vector<ElemTy> remove_duplicates_sorted(std::vector<ElemTy> const &input)
 
 // Finds the index of the smallest value in an array.
 template <typename Ty>
-usize idx_of_smallest(Ty const *const values, usize const num_values)
+u64 idx_of_smallest(Ty const *const values, u64 const num_values)
 {
   assert(num_values > 0);
   assert(values != nullptr);
 
-  usize min_idx = 0;
-  for (usize i = 1; i < num_values; ++i) {
+  u64 min_idx = 0;
+  for (u64 i = 1; i < num_values; ++i) {
     if (values[i] < values[min_idx]) {
       min_idx = i;
     }
@@ -143,7 +143,7 @@ simulation::run_result simulation::run(
       dist_to_gen_limit,
     };
 
-    enum stop_reason : usize
+    enum stop_reason : u64
     {
       SAVE_INTERVAL = 0,
       SAVE_POINT,
@@ -156,7 +156,7 @@ simulation::run_result simulation::run(
       stop_reason reason;
     };
 
-    usize const idx_of_smallest_dist = idx_of_smallest(distances.data(), distances.size());
+    u64 const idx_of_smallest_dist = idx_of_smallest(distances.data(), distances.size());
     stop const next_stop {
       distances[idx_of_smallest_dist],
       static_cast<stop_reason>(idx_of_smallest_dist),
@@ -169,7 +169,7 @@ simulation::run_result simulation::run(
     if (next_stop.distance > 0) {
       begin_new_activity(activity::ITERATING);
 
-      for (usize i = 0; i < next_stop.distance; ++i) {
+      for (u64 i = 0; i < next_stop.distance; ++i) {
         state.last_step_res = simulation::attempt_step_forward(state);
         if (state.last_step_res == simulation::step_result::SUCCESS) [[likely]] {
           ++state.generation;
@@ -208,7 +208,6 @@ done:
     begin_new_activity(activity::SAVING);
     do_save();
     end_curr_activity();
-    last_saved_gen = state.generation;
     u64 const save_duration_ns = compute_activity_duration_ns();
     state.nanos_spent_saving += save_duration_ns;
   }
@@ -220,8 +219,9 @@ done:
       "%s %s",
       name.c_str(),
       (result.code == simulation::run_result::REACHED_GENERATION_LIMIT
-        ? "reached generation limit"
-        : "hit edge"));
+        ? util::make_str("reached generation limit of %zu", generation_limit).c_str()
+        : util::make_str("hit edge @ %zu", state.generation).c_str())
+    );
   }
 
   return result;
@@ -230,7 +230,7 @@ done:
 simulation::step_result::value_type simulation::attempt_step_forward(
   simulation::state &state)
 {
-  usize const curr_cell_idx = (state.ant_row * state.grid_width) + state.ant_col;
+  u64 const curr_cell_idx = (state.ant_row * state.grid_width) + state.ant_col;
   u8 const curr_cell_shade = state.grid[curr_cell_idx];
   auto const &curr_cell_rule = state.rules[curr_cell_shade];
 

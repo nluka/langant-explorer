@@ -187,7 +187,6 @@
     <ClCompile Include="..\src\simulation_parse_state.cpp" />
     <ClCompile Include="..\src\simulation_run.cpp" />
     <ClCompile Include="..\src\simulation_save_state.cpp" />
-    <ClCompile Include="..\src\timespan.cpp" />
     <ClCompile Include="..\src\util.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

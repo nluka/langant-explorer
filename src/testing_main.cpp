@@ -14,7 +14,7 @@ using util::lengthof;
 
 simulation::rules_t generate_rules(
   std::vector<std::pair<
-    usize, // shade
+    u64, // shade
     simulation::rule
   >> const &scheme)
 {
@@ -26,7 +26,7 @@ simulation::rules_t generate_rules(
   return rules;
 }
 
-int main()
+i32 main()
 {
   ntest::config::set_max_arr_preview_len(1);
   ntest::config::set_max_str_preview_len(10);
@@ -320,7 +320,11 @@ int main()
       assert(errors.empty());
 
       {
-        auto const to_delete = fregex::find(save_dir.string().c_str(), "RL_plain\\.actual.*");
+        auto const to_delete = fregex::find(
+          save_dir.string().c_str(),
+          "RL_plain\\.actual.*",
+          fregex::entry_type::regular_file);
+
         for (auto const &file : to_delete) {
           fs::remove_all(file);
         }
@@ -353,7 +357,11 @@ int main()
       assert(errors.empty());
 
       {
-        auto const to_delete = fregex::find(save_dir.string().c_str(), "RL_plain_from16\\.actual.*");
+        auto const to_delete = fregex::find(
+          save_dir.string().c_str(),
+          "RL_plain_from16\\.actual.*",
+          fregex::entry_type::regular_file);
+
         for (auto const &file : to_delete) {
           fs::remove_all(file);
         }
@@ -384,7 +392,11 @@ int main()
       assert(errors.empty());
 
       {
-        auto const to_delete = fregex::find(save_dir.string().c_str(), "RL_raw\\.actual.*");
+        auto const to_delete = fregex::find(
+          save_dir.string().c_str(),
+          "RL_raw\\.actual.*",
+          fregex::entry_type::regular_file);
+
         for (auto const &file : to_delete) {
           fs::remove_all(file);
         }
@@ -417,7 +429,11 @@ int main()
       assert(errors.empty());
 
       {
-        auto const to_delete = fregex::find(save_dir.string().c_str(), "RL_raw_from16\\.actual.*");
+        auto const to_delete = fregex::find(
+          save_dir.string().c_str(),
+          "RL_raw_from16\\.actual.*",
+          fregex::entry_type::regular_file);
+
         for (auto const &file : to_delete) {
           fs::remove_all(file);
         }
@@ -446,7 +462,7 @@ int main()
   #if 1 // po::parse_simulate_one_options
   {
     auto const assert_parse = [](
-      usize const argc,
+      u64 const argc,
       char const *const *const argv,
       po::simulate_one_options const &expected_options,
       errors_t &expected_errors,
@@ -457,14 +473,8 @@ int main()
 
       po::parse_simulate_one_options(static_cast<int>(argc), argv, actual_options, actual_errors);
 
-      std::sort(
-        expected_errors.begin(),
-        expected_errors.end(),
-        util::ascending_order<std::string>());
-      std::sort(
-        actual_errors.begin(),
-        actual_errors.end(),
-        util::ascending_order<std::string>());
+      std::sort(expected_errors.begin(), expected_errors.end(), util::ascending_order<std::string>());
+      std::sort(actual_errors.begin(), actual_errors.end(), util::ascending_order<std::string>());
 
       if (!expected_errors.empty())
         ntest::assert_stdvec(expected_errors, actual_errors, loc);
@@ -697,7 +707,7 @@ int main()
   #if 1 // po::parse_simulate_many_options
   {
     auto const assert_parse = [](
-      usize const argc,
+      u64 const argc,
       char const *const *const argv,
       po::simulate_many_options const &expected_options,
       errors_t &expected_errors,
@@ -708,14 +718,8 @@ int main()
 
       po::parse_simulate_many_options(static_cast<int>(argc), argv, actual_options, actual_errors);
 
-      std::sort(
-        expected_errors.begin(),
-        expected_errors.end(),
-        util::ascending_order<std::string>());
-      std::sort(
-        actual_errors.begin(),
-        actual_errors.end(),
-        util::ascending_order<std::string>());
+      std::sort(expected_errors.begin(), expected_errors.end(), util::ascending_order<std::string>());
+      std::sort(actual_errors.begin(), actual_errors.end(), util::ascending_order<std::string>());
 
       if (!expected_errors.empty())
         ntest::assert_stdvec(expected_errors, actual_errors, loc);
@@ -952,7 +956,7 @@ int main()
   #if 1 // po::parse_make_image_options
   {
     auto const assert_parse = [](
-      usize const argc,
+      u64 const argc,
       char const *const *const argv,
       po::make_image_options const &expected_options,
       errors_t &expected_errors,
@@ -963,14 +967,8 @@ int main()
 
       po::parse_make_image_options(static_cast<int>(argc), argv, actual_options, actual_errors);
 
-      std::sort(
-        expected_errors.begin(),
-        expected_errors.end(),
-        util::ascending_order<std::string>());
-      std::sort(
-        actual_errors.begin(),
-        actual_errors.end(),
-        util::ascending_order<std::string>());
+      std::sort(expected_errors.begin(), expected_errors.end(), util::ascending_order<std::string>());
+      std::sort(actual_errors.begin(), actual_errors.end(), util::ascending_order<std::string>());
 
       if (!expected_errors.empty())
         ntest::assert_stdvec(expected_errors, actual_errors, loc);
@@ -1086,7 +1084,7 @@ int main()
   #if 1 // po::parse_make_state_options
   {
     auto const assert_parse = [](
-      usize const argc,
+      u64 const argc,
       char const *const *const argv,
       po::make_states_options const &expected_options,
       errors_t &expected_errors,
@@ -1097,14 +1095,8 @@ int main()
 
       po::parse_make_states_options(static_cast<int>(argc), argv, actual_options, actual_errors);
 
-      std::sort(
-        expected_errors.begin(),
-        expected_errors.end(),
-        util::ascending_order<std::string>());
-      std::sort(
-        actual_errors.begin(),
-        actual_errors.end(),
-        util::ascending_order<std::string>());
+      std::sort(expected_errors.begin(), expected_errors.end(), util::ascending_order<std::string>());
+      std::sort(actual_errors.begin(), actual_errors.end(), util::ascending_order<std::string>());
 
       if (!expected_errors.empty())
         ntest::assert_stdvec(expected_errors, actual_errors, loc);
@@ -1421,12 +1413,10 @@ int main()
     report_name = "langant-explorer-linux";
     #elif ON_WINDOWS
     report_name = "langant-explorer-windows";
-    #else
-    # error "unsupported platform"
     #endif
 
     auto const res = ntest::generate_report(report_name);
     std::cout << res.num_fails << " failed, " << res.num_passes << " passed\n";
-    return static_cast<int>(res.num_fails);
+    return static_cast<i32>(res.num_fails);
   }
 }

@@ -1,28 +1,12 @@
 #ifndef NLUKA_TERM_HPP
 #define NLUKA_TERM_HPP
 
-// Module for doing fancy things in the terminal via ANSI escape sequences.
-// Make sure your terminal supports ANSI escape sequences when using this module!
+// Functions for doing fancy terminal stuff via ANSI escape sequences.
 namespace term {
 
 void clear_screen();
 void clear_curr_line();
 void clear_to_end_of_line();
-
-size_t width_in_cols();
-size_t height_in_lines();
-
-#ifdef _WIN32
-
-struct Dimensions {
-  size_t m_width;
-  size_t m_height;
-};
-
-Dimensions dimensions();
-void remove_scrollbar();
-
-#endif // _WIN32
 
 namespace cursor {
 
@@ -39,26 +23,13 @@ namespace cursor {
   void save_pos();
   void restore_pos();
 
-  #ifdef _WIN32
-
-  struct Position {
-    // starts from 0
-    size_t m_x, m_y;
-  };
-
-  Position get_pos();
-  void set_size(size_t percent);
-
-  #endif // _WIN32
-
 } // namespace cursor
 
 namespace color {
 
   // Foreground.
   namespace fore {
-
-    constexpr int
+    int constexpr
       DEFAULT       = 0b00000000000000000000000000000000,
       RED           = 0b00000000000000000000000000000001,
       GREEN         = 0b00000000000000000000000000000010,
@@ -75,13 +46,11 @@ namespace color {
       LIGHT_MAGENTA = 0b00000000000000000001000000000000,
       LIGHT_CYAN    = 0b00000000000000000010000000000000,
       WHITE         = 0b00000000000000000100000000000000;
-
   } // namespace fore
 
   // Background.
   namespace back {
-
-    constexpr int
+    int constexpr
       BLACK   = 0b10000000000000000000000000000000,
       RED     = 0b01000000000000000000000000000000,
       GREEN   = 0b00100000000000000000000000000000,
@@ -90,13 +59,12 @@ namespace color {
       MAGENTA = 0b00000100000000000000000000000000,
       CYAN    = 0b00000010000000000000000000000000,
       WHITE   = 0b00000001000000000000000000000000;
-
   } // namespace back
 
   // Sets stdout foreground and background color.
   void set(int color);
 
-  // Wrapper for `printf` allowing for colored printing.
+  // Wrapper for `printf` enabling colored printing.
   void printf(int color, char const *fmt, ...);
 
 } // namespace color

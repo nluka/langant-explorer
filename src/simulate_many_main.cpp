@@ -17,7 +17,6 @@
 #endif
 
 #include "primitives.hpp"
-#include "timespan.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
 #include "logger.hpp"
@@ -31,9 +30,9 @@ using util::print_err;
 using util::die;
 
 static po::simulate_many_options s_options{};
-static std::atomic<usize> s_num_simulations_done(0);
-static std::atomic<usize> s_num_simulations_in_progress(0);
-static std::atomic<usize> s_num_simulations_failed(0);
+static std::atomic<u64> s_num_simulations_done(0);
+static std::atomic<u64> s_num_simulations_in_progress(0);
+static std::atomic<u64> s_num_simulations_failed(0);
 
 struct named_simulation
 {
@@ -43,13 +42,13 @@ struct named_simulation
 
 void ui_loop(std::vector<named_simulation> const &);
 
-int main(int const argc, char const *const *const argv)
+i32 main(i32 const argc, char const *const *const argv)
 {
   if (argc < 2) {
     std::ostringstream usage_msg;
     usage_msg <<
       "\n"
-      "USAGE:\n"
+      "Usage:\n"
       "  simulate_many [options]\n"
       "\n";
     po::simulate_many_options_description().print(usage_msg, 6);
@@ -70,44 +69,45 @@ int main(int const argc, char const *const *const argv)
   }
 
   if (s_options.log_file_path != "") {
-    logger::set_out_pathname(s_options.log_file_path);
+    logger::set_out_file_path(s_options.log_file_path);
     logger::set_autoflush(true);
   }
 
   std::vector<fs::path> const state_files = fregex::find(
     s_options.state_dir_path.c_str(),
-    ".*\\.json"
-  );
+    ".*\\.json",
+    fregex::entry_type::regular_file);
 
-  std::vector<named_simulation> simulations;
-  simulations.reserve(state_files.size());
+  std::vector<named_simulation> simulations(state_files.size());
 
   // parse all state files in provided path and register them for simulation
-  for (auto const &state_file_path : state_files) {
-    std::string const path_str = state_file_path.string();
+  for (u64 i = 0; i < simulations.size(); ++i) {
+    auto const &state_file_path = state_files[i];
+    std::string const path_str = state_file_path.generic_string();
 
     errors_t errors{};
 
-    simulation::state sim_state = simulation::parse_state(
+    simulations[i].state = simulation::parse_state(
       util::extract_txt_file_contents(path_str.c_str(), false),
       fs::path(s_options.state_dir_path),
       errors);
 
     if (!errors.empty()) {
+      print_err("in '%s':", path_str.c_str());
       for (auto const &err : errors)
         print_err("%s", err.c_str());
       die("%zu state errors", errors.size());
     }
 
-    std::string name = state_file_path.filename().string();
-    simulations.emplace_back(std::move(name), sim_state);
+    std::string name = simulation::extract_name_from_json_state_path(state_file_path.filename().string());
+    simulations[i].name = std::move(name);
   }
 
   auto const simulation_task = [](named_simulation &sim) {
     ++s_num_simulations_in_progress;
 
     try {
-      auto const result = simulation::run(
+      [[maybe_unused]] auto const result = simulation::run(
         sim.state,
         sim.name,
         s_options.sim.generation_limit,
@@ -136,7 +136,7 @@ int main(int const argc, char const *const *const argv)
   // I would const this, but native_handle() is not a const member function for some reason
   std::thread *threads = t_pool.get_threads_uniqueptr().get();
 
-  for (usize i = 0; i < t_pool.get_thread_count(); ++i) {
+  for (u64 i = 0; i < t_pool.get_thread_count(); ++i) {
     SetPriorityClass(threads[i].native_handle(), HIGH_PRIORITY_CLASS);
   }
 #endif
@@ -144,10 +144,6 @@ int main(int const argc, char const *const *const argv)
   for (auto &sim : simulations) {
     t_pool.push_task(simulation_task, std::ref(sim));
   }
-
-  // sleep for a bit so we are not dividing by tiny time elapsed values,
-  // which results in Infinity values
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   term::cursor::hide();
   std::atexit(term::cursor::show);
@@ -183,13 +179,16 @@ void ui_loop(std::vector<named_simulation> const &simulations)
       num_sims_completed = s_num_simulations_done.load(),
       num_sims_failed = s_num_simulations_failed.load(),
       num_sims_in_progress = s_num_simulations_in_progress.load(),
+      num_sims_remaining = simulations.size() - num_sims_completed,
       total_nanos_elapsed = util::nanos_between(start_time, time_now).count();
     f64 const
       total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
       secs_elapsed_iterating = nanos_spent_iterating / 1'000'000'000.0,
-      secs_elapsed_saving = nanos_spent_saving / 1'000'000'000.0,
       mega_gens_completed = gens_completed / 1'000'000.0,
-      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON);
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON),
+      percent_sims_completed = ( static_cast<f64>(num_sims_completed) / simulations.size() ) * 100.0,
+      percent_iteration = ( nanos_spent_iterating / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0,
+      percent_saving    = ( nanos_spent_saving    / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0;
 
     // line
     puts(horizontal_rule.c_str());
@@ -206,6 +205,14 @@ void ui_loop(std::vector<named_simulation> const &simulations)
     {
       printf("Completed : ");
       printf(fore::LIGHT_GREEN | back::BLACK, "%zu", num_sims_completed);
+      printf(" (%.1lf %%)", percent_sims_completed);
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+    }
+
+    {
+      printf("Remaining : ");
+      printf(fore::LIGHT_YELLOW | back::BLACK, "%zu", num_sims_remaining);
       term::clear_to_end_of_line();
       putc('\n', stdout);
     }
@@ -213,7 +220,7 @@ void ui_loop(std::vector<named_simulation> const &simulations)
     // line
     {
       printf("Active    : ");
-      printf(fore::LIGHT_YELLOW | back::BLACK, "%zu", num_sims_in_progress);
+      printf(fore::LIGHT_BLUE | back::BLACK, "%zu", num_sims_in_progress);
       term::clear_to_end_of_line();
       putc('\n', stdout);
     }
@@ -228,7 +235,7 @@ void ui_loop(std::vector<named_simulation> const &simulations)
 
     // line
     {
-      printf("Elapsed   : %s", timespan_to_string(timespan_calculate(static_cast<u64>(total_secs_elapsed))).c_str());
+      printf("Elapsed   : %s", util::time_span(static_cast<u64>(total_secs_elapsed)).to_string().c_str());
       term::clear_to_end_of_line();
       putc('\n', stdout);
     }
@@ -236,8 +243,8 @@ void ui_loop(std::vector<named_simulation> const &simulations)
     // line
     {
       printf("I/S Ratio : %.1lf / %.1lf",
-        ( nanos_spent_iterating / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0,
-        ( nanos_spent_saving    / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0);
+        std::isnan(percent_iteration) ? 0.0 : percent_iteration,
+        std::isnan(percent_saving)    ? 0.0 : percent_saving);
       term::clear_to_end_of_line();
       putc('\n', stdout);
     }
@@ -250,6 +257,6 @@ void ui_loop(std::vector<named_simulation> const &simulations)
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    term::cursor::move_up(8);
+    term::cursor::move_up(9);
   }
 }

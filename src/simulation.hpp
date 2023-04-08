@@ -23,16 +23,15 @@ namespace simulation
   {
     typedef i8 value_type;
 
-    value_type from_string(char const *);
-    char const *to_string(value_type);
+    value_type from_cstr(char const *);
+    char const *to_cstr(value_type);
 
-    value_type const
-      OVERFLOW_COUNTER_CLOCKWISE = 0,
-      NORTH = 1,
-      EAST = 2,
-      SOUTH = 3,
-      WEST = 4,
-      OVERFLOW_CLOCKWISE = 5;
+    value_type const OVERFLOW_COUNTER_CLOCKWISE = 0;
+    value_type const NORTH = 1;
+    value_type const EAST = 2;
+    value_type const SOUTH = 3;
+    value_type const WEST = 4;
+    value_type const OVERFLOW_CLOCKWISE = 5;
   }
 
   // not using an enum class because I want to do arithmetic with
@@ -42,13 +41,12 @@ namespace simulation
     typedef i8 value_type;
 
     value_type from_char(char);
-    char const *to_string(value_type);
+    char const *to_cstr(value_type);
 
-    value_type const
-      NIL = -2,
-      LEFT = -1,
-      NO_CHANGE = 0,
-      RIGHT = 1;
+    value_type const NIL = -2;
+    value_type const LEFT = -1;
+    value_type const NO_CHANGE = 0;
+    value_type const RIGHT = 1;
   }
 
   // not using an enum class because the other 2 enumerated types are done with
@@ -57,12 +55,11 @@ namespace simulation
   {
     typedef i8 value_type;
 
-    char const *to_string(value_type);
+    char const *to_cstr(value_type);
 
-    value_type const
-      NIL = -1,
-      SUCCESS = 0,
-      HIT_EDGE = 1;
+    value_type const NIL = -1;
+    value_type const SUCCESS = 0;
+    value_type const HIT_EDGE = 1;
   }
 
   struct rule
@@ -74,6 +71,7 @@ namespace simulation
     friend std::ostream &operator<<(std::ostream &, rule const &);
   };
 
+  // make sure there's no padding
   static_assert(sizeof(rule) == 2);
 
   typedef std::array<rule, 256> rules_t;
@@ -105,7 +103,7 @@ namespace simulation
     rules_t rules;
 
     b8 can_step_forward(u64 generation_limit = 0) const noexcept;
-    usize num_pixels() const noexcept;
+    u64 num_pixels() const noexcept;
     u64 generations_completed() const noexcept;
   };
 
@@ -137,14 +135,15 @@ namespace simulation
 
   void print_state_json(
     std::ostream &os,
+    std::string const &grid_state,
     u64 generation,
-    step_result::value_type last_step_res,
     i32 grid_width,
     i32 grid_height,
-    std::string const &grid_state,
     i32 ant_col,
     i32 ant_row,
+    step_result::value_type last_step_res,
     orientation::value_type ant_orientation,
+    u8 maxval,
     rules_t const &rules);
 
   std::string extract_name_from_json_state_path(std::string const &);
@@ -159,8 +158,8 @@ namespace simulation
     };
 
     code code = code::NIL;
-    usize num_save_points_successful = 0;
-    usize num_save_points_failed = 0;
+    u64 num_save_points_successful = 0;
+    u64 num_save_points_failed = 0;
   };
 
   run_result run(

@@ -1,3 +1,4 @@
+#include <cassert>
 #include <algorithm>
 #include <regex>
 #include <sstream>
@@ -10,15 +11,13 @@ namespace fs = std::filesystem;
 std::vector<std::filesystem::path> fregex::find(
   std::filesystem::path const &search_path,
   char const *const pattern,
+  uint8_t const entry_type_bit_field,
   bool const recursive,
   std::filesystem::path const &debug_log_path)
 {
-  if (pattern == nullptr)
-    throw std::runtime_error("pattern == nullptr");
-  if (std::strlen(pattern) == 0)
-    throw std::runtime_error("empty pattern");
-  if (!fs::is_directory(search_path))
-    throw std::runtime_error("search_path is not a directory");
+  assert(pattern != nullptr);
+  assert(std::strlen(pattern) > 0);
+  assert(fs::is_directory(search_path));
 
   std::vector<fs::path> matches{};
   std::regex const regex(pattern);
@@ -34,13 +33,16 @@ std::vector<std::filesystem::path> fregex::find(
   }
 
   auto const process_entry = [&](fs::directory_entry const &entry) {
-    // ignore anything that isn't a file or symlink (shortcut)
     if (
-      !entry.is_regular_file() &&
-      !entry.is_block_file() &&
-      !entry.is_character_file() &&
-      !entry.is_fifo() &&
-      !entry.is_symlink()
+      ((entry_type_bit_field & fregex::entry_type::block_file) && !entry.is_block_file()) &&
+      ((entry_type_bit_field & fregex::entry_type::character_file) && !entry.is_character_file()) &&
+      ((entry_type_bit_field & fregex::entry_type::directory) && !entry.is_directory()) &&
+      ((entry_type_bit_field & fregex::entry_type::fifo) && !entry.is_fifo()) &&
+      ((entry_type_bit_field & fregex::entry_type::other) && !entry.is_other()) &&
+      ((entry_type_bit_field & fregex::entry_type::other) && !entry.is_other()) &&
+      ((entry_type_bit_field & fregex::entry_type::regular_file) && !entry.is_regular_file()) &&
+      ((entry_type_bit_field & fregex::entry_type::socket) && !entry.is_socket()) &&
+      ((entry_type_bit_field & fregex::entry_type::symlink) && !entry.is_symlink())
     ) {
       return;
     }

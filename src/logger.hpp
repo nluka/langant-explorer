@@ -9,9 +9,9 @@
 namespace logger {
 
 // Sets the pathname of the file to write logs to.
-void set_out_pathname(char const *);
+void set_out_file_path(char const *);
 // Sets the pathname of the file to write logs to.
-void set_out_pathname(std::string const &);
+void set_out_file_path(std::string const &);
 
 // Sets the character sequence used to separate events. The default is "\n".
 void set_delim(char const *);

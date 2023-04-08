@@ -14,7 +14,7 @@
 using namespace std;
 using json_t = nlohmann::json;
 
-util::time_span::time_span(u64 const seconds_elapsed)
+util::time_span::time_span(u64 const seconds_elapsed) noexcept
 {
   u64 const SECONDS_PER_DAY = 86400, SECONDS_PER_HOUR = 3600, SECONDS_PER_MINUTE = 60;
 
@@ -63,19 +63,20 @@ util::time_point_t util::current_time()
 }
 
 std::chrono::nanoseconds util::nanos_between(
-  time_point_t const start, time_point_t const end)
+  time_point_t const start,
+  time_point_t const end)
 {
   return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
 }
 
 string util::make_str(char const *const fmt, ...)
 {
-  usize const buf_len = 1024;
+  u64 const buf_len = 1024;
   char buffer[buf_len];
 
   va_list args;
   va_start(args, fmt);
-  int const cnt = vsnprintf(buffer, sizeof(buffer), fmt, args);
+  [[maybe_unused]] i32 const cnt = vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
   return std::string(buffer);
@@ -124,7 +125,7 @@ vector<u64> util::parse_json_array_u64(char const *str)
 
   std::vector<u64> save_points(json.size());
 
-  for (usize i = 0; i < json.size(); ++i) {
+  for (u64 i = 0; i < json.size(); ++i) {
     auto const &elem = json[i];
     if (!elem.is_number_unsigned()) {
       throw std::runtime_error(make_str("element at idx %zu is not unsigned number", i));
@@ -145,7 +146,7 @@ void util::die(char const *fmt, ...)
 
   va_list args;
   va_start(args, fmt);
-  [[maybe_unused]] int retval = vprintf(fmt, args);
+  [[maybe_unused]] i32 const retval = vprintf(fmt, args);
   va_end(args);
 
   putc('\n', stdout);
@@ -163,7 +164,7 @@ int util::print_err(char const *fmt, ...)
 
   va_list args;
   va_start(args, fmt);
-  int retval = vprintf(fmt, args);
+  i32 const retval = vprintf(fmt, args);
   va_end(args);
 
   putc('\n', stdout);

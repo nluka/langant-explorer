@@ -12,12 +12,12 @@
 // CONFIGURATION:
 #define MAX_MSG_LEN 1000
 
-static std::string s_outPathname{};
-void logger::set_out_pathname(char const *const pathname) {
-  s_outPathname = pathname;
+static std::string s_out_file_path{};
+void logger::set_out_file_path(char const *const path) {
+  s_out_file_path = path;
 }
-void logger::set_out_pathname(std::string const &pathname) {
-  s_outPathname = pathname;
+void logger::set_out_file_path(std::string const &path) {
+  s_out_file_path = path;
 }
 
 static char const *s_delim = "\n";
@@ -25,21 +25,25 @@ void logger::set_delim(char const *const delim) {
   s_delim = delim;
 }
 
-static bool s_autoFlush = false;
+static bool s_auto_flush = false;
 void logger::set_autoflush(bool const b) {
-  s_autoFlush = b;
+  s_auto_flush = b;
 }
 
 using logger::event_type;
 
-static
-char const *event_type_to_str(event_type const evType) {
-  switch (evType) {
-    case event_type::SIM_START: return "SIM_START ";
-    case event_type::SAVE_PNT:  return "SAVE_POINT";
-    case event_type::SIM_END:   return "SIM_END   ";
-    case event_type::ERR:       return "ERROR     ";
-    default: throw std::runtime_error("bad event_type");
+static char const *event_type_to_str(event_type const ev_type) {
+  switch (ev_type) {
+    case event_type::SIM_START:
+      return "SIM_START ";
+    case event_type::SAVE_PNT:
+      return "SAVE_POINT";
+    case event_type::SIM_END:
+      return "SIM_END   ";
+    case event_type::ERR:
+      return "ERROR     ";
+    default:
+      throw std::runtime_error("bad event_type");
   }
 }
 
@@ -47,8 +51,8 @@ class Event {
 private:
   event_type const m_type;
   std::string const m_msg;
-  std::chrono::system_clock::time_point const m_timepoint =
-    std::chrono::system_clock::now();
+  std::chrono::system_clock::time_point const m_time_point =
+      std::chrono::system_clock::now();
 
 public:
   Event(event_type const type, char const *const msg)
@@ -59,7 +63,7 @@ public:
 
     ss << '[' << event_type_to_str(m_type) << ']' << ' ';
 
-    std::time_t const time = std::chrono::system_clock::to_time_t(m_timepoint);
+    std::time_t const time = std::chrono::system_clock::to_time_t(m_time_point);
 
     // timestamp
     #if 0
@@ -90,23 +94,23 @@ public:
 
 static std::vector<Event> s_events{};
 #if LOGGER_THREADSAFE
-static std::mutex s_eventsMutex{};
+static std::mutex s_events_mutex{};
 #endif
 
 static
 void assert_file_opened(std::ofstream const &file) {
   if (!file) {
     std::stringstream ss{};
-    ss << "failed to open file `" << s_outPathname << '`';
+    ss << "failed to open file `" << s_out_file_path << '`';
     throw ss.str();
   }
 }
 
 void logger::log(event_type const evType, char const *const fmt, ...) {
   {
-    #if LOGGER_THREADSAFE
-    std::scoped_lock const lock{s_eventsMutex};
-    #endif
+#if LOGGER_THREADSAFE
+    std::scoped_lock const lock{s_events_mutex};
+#endif
 
     va_list varArgs;
     va_start(varArgs, fmt);
@@ -118,28 +122,28 @@ void logger::log(event_type const evType, char const *const fmt, ...) {
     s_events.emplace_back(evType, msg);
   }
 
-  if (s_autoFlush) {
+  if (s_auto_flush) {
     logger::flush();
   }
 }
 
 void logger::flush() {
-  static bool s_isFileReady = false;
-  if (!s_isFileReady) {
-    std::ofstream file(s_outPathname); // clear file
+  static bool s_file_ready = false;
+  if (!s_file_ready) {
+    std::ofstream file(s_out_file_path); // clear file
     assert_file_opened(file);
-    s_isFileReady = true;
+    s_file_ready = true;
   }
 
-  #if LOGGER_THREADSAFE
-  std::scoped_lock const lock{s_eventsMutex};
-  #endif
+#if LOGGER_THREADSAFE
+  std::scoped_lock const lock{s_events_mutex};
+#endif
 
   if (s_events.empty()) {
     return;
   }
 
-  std::ofstream file(s_outPathname, std::ios_base::app);
+  std::ofstream file(s_out_file_path, std::ios_base::app);
   assert_file_opened(file);
 
   for (auto const &evt : s_events) {

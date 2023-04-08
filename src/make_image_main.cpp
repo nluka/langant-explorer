@@ -1,5 +1,6 @@
 #include <random>
 #include <regex>
+#include <filesystem>
 
 #include <boost/program_options.hpp>
 #include "lib/pgm8.hpp"
@@ -17,13 +18,13 @@ using util::die;
 
 static po::make_image_options s_options{};
 
-int main(int const argc, char const *const *const argv)
+i32 main(i32 const argc, char const *const *const argv)
 {
   if (argc == 1) {
     std::ostringstream usage_msg;
     usage_msg <<
       "\n"
-      "USAGE:\n"
+      "Usage:\n"
       "  make_image [options]\n"
       "\n";
     po::make_image_options_description().print(usage_msg, 6);
@@ -43,7 +44,7 @@ int main(int const argc, char const *const *const argv)
     }
   }
 
-  usize const num_pixels = s_options.width * s_options.height;
+  u64 const num_pixels = s_options.width * s_options.height;
   auto pixels = std::make_unique<u8[]>(num_pixels);
 
   if (s_options.content.starts_with("fill")) {
@@ -53,9 +54,9 @@ int main(int const argc, char const *const *const argv)
 
     std::random_device rand_device;
     std::mt19937 rand_num_gener(rand_device());
-    std::uniform_int_distribution<u16> const pixel_distribution(0, s_options.maxval);
+    std::uniform_int_distribution<u16> pixel_distribution(0, s_options.maxval);
 
-    for (usize i = 0; i < num_pixels; ++i) {
+    for (u64 i = 0; i < num_pixels; ++i) {
       auto const rand_pixel = pixel_distribution(rand_num_gener);
       pixels.get()[i] = static_cast<u8>(rand_pixel);
     }

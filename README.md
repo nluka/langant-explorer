@@ -1,25 +1,75 @@
 # Langton's Ant Explorer
 
-A high-performance toolchain for finding interesting [Langton's Ant](https://en.wikipedia.org/wiki/Langton%27s_ant) outcomes.
+A high-performance toolchain for discovering interesting [Langton's Ant](https://en.wikipedia.org/wiki/Langton%27s_ant) outcomes.
 
-<img src="resources/preview.png" />
+<img src="resources/gallery1.png" />
+<img src="resources/gallery2.png" style="margin-bottom:2rem;" />
 
-The toolchain consists of 4 programs:
+The toolchain consists of 5 separate programs:
+- [next_cluster](#next_cluster)
+  - Determines the next cluster number in a directory of clusters
 - [make_states](#make_states)
-  - Generates initial states within given constraints for simulation by `simulate_many` or `simulate_one`
+  - Generates initial states for simulation
 - [make_image](#make_image)
-  - Creates customizable PGM images for seeding initial grid states
+  - Creates customized PGM images for seeding initial grid states
 - [simulate_one](#simulate_one)
   - Runs a single simulation until the generation limit is reached or the ant tries to step off the grid
   - Can saves state at specific points and or an interval and or when the simulation terminates
 - [simulate_many](#simulate_many)
-  - Similar to `simulate_one`, but runs a batch of independent simulations in a thread pool
+  - Similar to `simulate_one`, but runs a batch of simulations in a thread pool, intended for mass processing
   - Simulations share a generation limit, save points, and save interval, but not state
+
+These intention of having separate programs is to create flexibility by allowing users to orchestrate them as desired. A simple example script for creating clusters of simulations:
+
+```sh
+if [ $# -ne 2 ]; then
+    printf 'Usage: cluster.sh <out_dir> <sim_count>'
+    exit 1
+fi
+
+width=1000
+height=1000
+col=500
+row=500
+gen_limit=10000000000
+out_dir=$1
+sim_count=$2
+
+./next_cluster_release.exe ${out_dir}
+cluster=$?
+
+printf "Cluster %d, %s\n" ${cluster} ${out_dir}
+
+./make_states_release.exe \
+  -N ${sim_count} \
+  -o ${out_dir}/cluster${cluster} \
+  -n randwords,2 \
+  -m 256 -M 256 \
+  -t LR \
+  -s rand \
+  -w ${width} -h ${height} \
+  -x ${col} -y ${row} \
+  -O NESW \
+  -g fill=0 \
+  -W words.txt \
+  -c
+wait
+
+./simulate_many_release.exe \
+  -T 6 \
+  -L ${out_dir}/cluster${cluster}/log.txt \
+  -S ${out_dir}/cluster${cluster} \
+  -g ${gen_limit} \
+  -f raw \
+  -o ${out_dir}/cluster${cluster} \
+  -s -y -l
+wait
+```
 
 ## make_states
 
 ```text
-USAGE:
+Usage:
   make_states [options]
 
 Options:
@@ -72,7 +122,7 @@ Options:
 ## make_image
 
 ```text
-USAGE:
+Usage:
   make_image [options]
 
 Options:
@@ -93,7 +143,7 @@ Options:
 ## simulate_one
 
 ```text
-USAGE:
+Usage:
   simulate_one [options]
 
 General options:
@@ -110,7 +160,7 @@ Simulation options:
       uint64.
   -f [ --image_format ] arg
       PGM image format for saves, raw|plain.
-  -l [ --log_saves ]
+  -l [ --create_logs ]
       Create a log entry when a save is made.
   -o [ --save_path ] arg
       Directory in which to save state JSON and PGM files.
@@ -127,7 +177,7 @@ Simulation options:
 ## simulate_many
 
 ```text
-USAGE:
+Usage:
   simulate_many [options]
 
 General options:
@@ -144,7 +194,7 @@ Simulation options:
       uint64.
   -f [ --image_format ] arg
       PGM image format for saves, raw|plain.
-  -l [ --log_saves ]
+  -l [ --create_logs ]
       Create a log entry when a save is made.
   -o [ --save_path ] arg
       Directory in which to save state JSON and PGM files.
@@ -170,8 +220,8 @@ Simulation options:
   "grid_state":  /* "fill N" where N [0, 255] OR path to PGM */,
 
   "ant_orientation": /* "N" | "E" | "S" | "W" */,
-  "ant_x":           /* [0, grid_width)       */,
-  "ant_y":           /* [0, grid_height)      */,
+  "ant_col":         /* [0, grid_width)       */,
+  "ant_row":         /* [0, grid_height)      */,
 
   "rules": [
     {
@@ -217,3 +267,4 @@ Visualized:
 
 - [Boost 1.80.0](https://www.boost.org/users/history/version_1_80_0.html) (modules: program_options, container)
 - [bshoshany/thread-pool](https://github.com/bshoshany/thread-pool)
+- [nlohmann/json](https://github.com/nlohmann/json)
