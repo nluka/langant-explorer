@@ -5,7 +5,7 @@ A high-performance toolchain for discovering interesting [Langton's Ant](https:/
 <img src="resources/gallery1.png" />
 <img src="resources/gallery2.png" style="margin-bottom:2rem;" />
 
-The toolchain consists of 5 separate programs:
+The toolchain consists of 5 separate programs designed to work together:
 - [next_cluster](#next_cluster)
   - Determines the next cluster number in a directory of clusters
 - [make_states](#make_states)
@@ -19,7 +19,7 @@ The toolchain consists of 5 separate programs:
   - Similar to `simulate_one`, but runs a batch of simulations in a thread pool, intended for mass processing
   - Simulations share a generation limit, save points, and save interval, but not state
 
-These intention of having separate programs is to create flexibility by allowing users to orchestrate them as desired. A simple example script for creating clusters of simulations:
+Having separate programs creates flexibility by allowing users to orchestrate them as desired. A simple example script for creating clusters of simulations:
 
 ```sh
 if [ $# -ne 2 ]; then
