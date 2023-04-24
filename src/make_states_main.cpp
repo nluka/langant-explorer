@@ -18,6 +18,7 @@ namespace fs = std::filesystem;
 namespace bpo = boost::program_options;
 using json_t = nlohmann::json;
 using util::errors_t;
+using util::time_point_t;
 using util::make_str;
 using util::print_err;
 using util::die;
@@ -27,6 +28,9 @@ typedef std::uniform_int_distribution<u64> u64_distrib;
 static std::string s_words{};
 static std::vector<u64> s_words_newline_positions{};
 static po::make_states_options s_options{};
+static std::atomic<u64> s_num_states_completed = 0;
+static std::atomic<u64> s_num_states_failed = 0;
+static std::atomic<u64> s_num_filename_conflicts = 0;
 
 simulation::rules_t make_random_rules(
   char *turn_dirs_buffer,
@@ -39,6 +43,7 @@ void get_rand_name(
   std::mt19937 &num_generator);
 
 i32 main(i32 const argc, char const *const *const argv)
+try
 {
   if (argc < 2) {
     std::ostringstream usage_msg;
@@ -78,76 +83,159 @@ i32 main(i32 const argc, char const *const *const argv)
         s_words_newline_positions.push_back(i);
   }
 
-  std::random_device rand_device;
-  std::mt19937 rand_num_gener(rand_device());
+  std::thread states_writer([&]()
+  {
+    std::random_device rand_device;
+    std::mt19937 rand_num_gener(rand_device());
 
-  u64_distrib dist_rules_len(s_options.min_num_rules, s_options.max_num_rules);
-  u64_distrib dist_turn_dir(0ui64, s_options.turn_directions.length() - 1);
-  u64_distrib dist_ant_orient(0ui64, s_options.ant_orientations.length() - 1);
+    u64_distrib dist_rules_len(s_options.min_num_rules, s_options.max_num_rules);
+    u64_distrib dist_turn_dir(u64(0), s_options.turn_directions.length() - 1);
+    u64_distrib dist_ant_orient(u64(0), s_options.ant_orientations.length() - 1);
 
-  u64 num_fname_conflicts = 0;
-  // will be reused for each generated state file
-  fs::path state_path = fs::path(s_options.out_dir_path) / "blank.json";
-  // only used if name_mode is randwords
-  std::string rand_fname{};
+    // will be reused for each generated state file
+    fs::path state_path = fs::path(s_options.out_dir_path) / "blank.json";
+    // only used if name_mode is randwords
+    std::string rand_fname{};
 
-  for (u64 i = 0; i < s_options.count; ++i) {
-    simulation::orientation::value_type const rand_ant_orient = [&]() {
-      u64 const rand_idx = dist_ant_orient(rand_num_gener);
-      char const rand_ant_orient_str[] {
-        static_cast<char>(toupper(s_options.ant_orientations[rand_idx])),
-        '\0'
-      };
-      return simulation::orientation::from_cstr(rand_ant_orient_str);
-    }();
+    for (u64 i = 0; i < s_options.count; ++i) {
+      try {
+        simulation::orientation::value_type const rand_ant_orient = [&]() {
+          u64 const rand_idx = dist_ant_orient(rand_num_gener);
+          char const rand_ant_orient_str[] {
+            static_cast<char>(toupper(s_options.ant_orientations[rand_idx])),
+            '\0'
+          };
+          return simulation::orientation::from_cstr(rand_ant_orient_str);
+        }();
 
-    char turn_dirs_buffer[256 + 1] { 0 };
-    simulation::rules_t const rand_rules = make_random_rules(
-      turn_dirs_buffer,
-      dist_rules_len,
-      dist_turn_dir,
-      rand_num_gener);
+        char turn_dirs_buffer[256 + 1] { 0 };
+        simulation::rules_t const rand_rules = make_random_rules(
+          turn_dirs_buffer,
+          dist_rules_len,
+          dist_turn_dir,
+          rand_num_gener);
 
-    if (s_options.name_mode == "turndirecs") {
-      state_path.replace_filename(turn_dirs_buffer);
-    } else {
-      get_rand_name(rand_fname, rand_num_gener);
-      state_path.replace_filename(rand_fname);
+        if (s_options.name_mode == "turndirecs") {
+          state_path.replace_filename(turn_dirs_buffer);
+        } else {
+          get_rand_name(rand_fname, rand_num_gener);
+          state_path.replace_filename(rand_fname);
+        }
+        state_path.replace_extension(".json");
+
+        if (fs::exists(state_path)) {
+          ++s_num_filename_conflicts;
+          continue;
+        }
+
+        {
+          std::fstream file = util::open_file(state_path.string().c_str(), std::ios::out);
+
+          simulation::print_state_json(
+            file,
+            s_options.grid_state,
+            0,
+            s_options.grid_width,
+            s_options.grid_height,
+            s_options.ant_col,
+            s_options.ant_row,
+            simulation::step_result::NIL,
+            rand_ant_orient,
+            static_cast<u8>(s_options.max_num_rules - 1),
+            rand_rules);
+        }
+
+        ++s_num_states_completed;
+
+      } catch (std::runtime_error const &) {
+        ++s_num_states_failed;
+        // print_err(except.what());
+      } catch (...) {
+        ++s_num_states_failed;
+      }
     }
-    state_path.replace_extension(".json");
+  });
 
-    if (fs::exists(state_path)) {
-      ++num_fname_conflicts;
-      continue;
+  term::cursor::hide();
+  std::atexit(term::cursor::show);
+
+  std::string const horizontal_rule(30, '-');
+  time_point_t const start_time = util::current_time();
+
+  // UI loop
+  while (true) {
+    using namespace term::color;
+
+    time_point_t const time_now = util::current_time();
+
+    u64 const
+      completed = s_num_states_completed.load(),
+      failed = s_num_states_failed.load(),
+      filename_conflicts = s_num_filename_conflicts.load(),
+      total_done = completed + failed + filename_conflicts,
+      total_nanos_elapsed = util::nanos_between(start_time, time_now);
+    f64 const
+      total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
+      percent_done = (total_done / static_cast<f64>(s_options.count)) * 100.0,
+      states_per_sec = completed / total_secs_elapsed;
+
+    u64 num_lines_printed = 0;
+
+    auto const print_line = [&num_lines_printed](std::function<void ()> const &func) {
+      func();
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+      ++num_lines_printed;
+    };
+
+    print_line([&] { printf("%s", horizontal_rule.c_str()); });
+
+    print_line([&] {
+      printf("Progress   : ");
+      printf("%.1lf %%", percent_done);
+    });
+
+    print_line([&] {
+      printf("Completed  : ");
+      printf(fore::LIGHT_GREEN | back::BLACK, "%zu", completed);
+    });
+
+    print_line([&] {
+      printf("States/sec : ");
+      printf(fore::WHITE | back::MAGENTA, "%.2lf", states_per_sec);
+    });
+
+    print_line([&] {
+      printf("Failed     : ");
+      printf(fore::LIGHT_RED | back::BLACK, "%zu", failed + filename_conflicts);
+      if (filename_conflicts > 0)
+        printf(" (%zu name conflicts)", filename_conflicts);
+    });
+
+    print_line([&] { printf("Elapsed    : %s",
+      util::time_span(static_cast<u64>(total_secs_elapsed)).to_string().c_str()); });
+
+    print_line([&] { printf("%s", horizontal_rule.c_str()); });
+
+    if (total_done == s_options.count) {
+      break;
     }
 
-    try {
-      std::fstream file = util::open_file(state_path.string().c_str(), std::ios::out);
-
-      simulation::print_state_json(
-        file,
-        s_options.grid_state,
-        0,
-        s_options.grid_width,
-        s_options.grid_height,
-        s_options.ant_col,
-        s_options.ant_row,
-        simulation::step_result::NIL,
-        rand_ant_orient,
-        static_cast<u8>(s_options.max_num_rules - 1),
-        rand_rules);
-
-    } catch (std::runtime_error const &except) {
-      print_err(except.what());
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    term::cursor::move_up(num_lines_printed);
   }
 
-  std::cout << "Generated " << (s_options.count - num_fname_conflicts) << " randomized states";
-  if (num_fname_conflicts > 0)
-    std::cout << " (" << num_fname_conflicts << " filename conflicts)";
-  std::cout << '\n';
+  states_writer.join();
 
   return 0;
+}
+catch (std::exception const &except)
+{
+  die("%s", except.what());
+}
+catch (...)
+{
+  die("unknown error");
 }
 
 simulation::rules_t make_random_rules(
