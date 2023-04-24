@@ -198,7 +198,10 @@ try
       ++num_lines_printed;
     };
 
-    print_line([&] { printf("%s", horizontal_rule.c_str()); });
+    print_line([&] {
+      printf("States/sec : ");
+      printf(fore::WHITE | back::MAGENTA, "%.2lf", states_per_sec);
+    });
 
     print_line([&] {
       printf("Progress   : ");
@@ -211,11 +214,6 @@ try
     });
 
     print_line([&] {
-      printf("States/sec : ");
-      printf(fore::WHITE | back::MAGENTA, "%.2lf", states_per_sec);
-    });
-
-    print_line([&] {
       printf("Failed     : ");
       printf(fore::LIGHT_RED | back::BLACK, "%zu", failed + filename_conflicts);
       if (filename_conflicts > 0)
@@ -224,8 +222,6 @@ try
 
     print_line([&] { printf("Elapsed    : %s",
       util::time_span(static_cast<u64>(total_secs_elapsed)).to_string().c_str()); });
-
-    print_line([&] { printf("%s", horizontal_rule.c_str()); });
 
     if (total_done == s_options.count) {
       break;

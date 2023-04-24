@@ -190,73 +190,56 @@ void ui_loop(std::vector<named_simulation> const &simulations)
       percent_iteration = ( nanos_spent_iterating / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0,
       percent_saving    = ( nanos_spent_saving    / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0;
 
-    // line
-    puts(horizontal_rule.c_str());
+    u64 num_lines_printed = 0;
 
-    // line
-    {
-      printf("Mgens/sec : ");
-      printf(fore::WHITE | back::MAGENTA, "%.2lf", mega_gens_per_sec);
+    auto const print_line = [&num_lines_printed](std::function<void ()> const &func) {
+      func();
       term::clear_to_end_of_line();
       putc('\n', stdout);
-    }
+      ++num_lines_printed;
+    };
 
-    // line
-    {
+    print_line([&] {
+      printf("Mgens/sec : ");
+      printf(fore::WHITE | back::MAGENTA, "%.2lf", mega_gens_per_sec);
+    });
+
+    print_line([&] {
       printf("Completed : ");
       printf(fore::LIGHT_GREEN | back::BLACK, "%zu", num_sims_completed);
       printf(" (%.1lf %%)", percent_sims_completed);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    {
+    print_line([&] {
       printf("Remaining : ");
       printf(fore::LIGHT_YELLOW | back::BLACK, "%zu", num_sims_remaining);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Active    : ");
       printf(fore::LIGHT_BLUE | back::BLACK, "%zu", num_sims_in_progress);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Failed    : ");
       printf(fore::LIGHT_RED | back::BLACK, "%zu", num_sims_failed);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Elapsed   : %s", util::time_span(static_cast<u64>(total_secs_elapsed)).to_string().c_str());
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("I/S Ratio : %.1lf / %.1lf",
         std::isnan(percent_iteration) ? 0.0 : percent_iteration,
         std::isnan(percent_saving)    ? 0.0 : percent_saving);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
-
-    // line
-    puts(horizontal_rule.c_str());
+    });
 
     if (num_sims_completed == simulations.size()) {
       break;
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    term::cursor::move_up(9);
+    term::cursor::move_up(num_lines_printed);
   }
 }

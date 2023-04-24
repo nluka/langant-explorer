@@ -136,19 +136,23 @@ void ui_loop(std::string const &sim_name)
       percent_saving    = ( time_breakdown.nanos_spent_saving    / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0;
     b8 const is_simulation_done = s_sim_run_result.code != simulation::run_result::code::NIL;
 
-    // line
-    puts(horizontal_rule.c_str());
+    u64 num_lines_printed = 0;
 
-    // line
-    {
+    auto const print_line = [&num_lines_printed](std::function<void ()> const &func) {
+      func();
+      term::clear_to_end_of_line();
+      putc('\n', stdout);
+      ++num_lines_printed;
+    };
+
+    print_line([&] {
       printf("Name       : ");
       printf(fore::CYAN | back::BLACK, "%s", sim_name.c_str());
       term::clear_to_end_of_line();
       putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Result     : ");
       if (!is_simulation_done) {
         printf("TBD");
@@ -162,52 +166,34 @@ void ui_loop(std::string const &sim_name)
           }
         }());
       }
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Mgens/sec  : ");
       printf(fore::WHITE | back::MAGENTA, "%.2lf", mega_gens_per_sec);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Completion : ");
       printf(fore::LIGHT_GREEN | back::BLACK, "%.1lf %%",
         std::isinf(percent_completion) ? 0.0 : percent_completion);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Generation : %llu", current_generation);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Elapsed    : %s", util::time_span(static_cast<u64>(total_secs_elapsed)).to_string().c_str());
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("I/S Ratio  : %.1lf / %.1lf",
         std::isnan(percent_iteration) ? 0.0 : percent_iteration,
         std::isnan(percent_saving)    ? 0.0 : percent_saving);
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
+    });
 
-    // line
-    {
+    print_line([&] {
       printf("Activity   : %s", [] {
         switch (s_sim_state.current_activity) {
           default:
@@ -216,17 +202,12 @@ void ui_loop(std::string const &sim_name)
           case simulation::activity::SAVING:    return "saving";
         }
       }());
-      term::clear_to_end_of_line();
-      putc('\n', stdout);
-    }
-
-    // line
-    puts(horizontal_rule.c_str());
+    });
 
     if (is_simulation_done)
       return;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    term::cursor::move_up(10);
+    term::cursor::move_up(num_lines_printed);
   }
 }
