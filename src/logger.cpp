@@ -42,6 +42,8 @@ static char const *event_type_to_str(event_type const ev_type) {
       return "SIM_END   ";
     case event_type::ERR:
       return "ERROR     ";
+
+    case event_type::COUNT:
     default:
       throw std::runtime_error("bad event_type");
   }

@@ -91,7 +91,7 @@ simulation::run_result simulation::run(
   };
 
   auto const compute_activity_duration_ns = [&]() {
-    u64 const duration = util::nanos_between(state.activity_start, state.activity_end).count();
+    u64 const duration = util::nanos_between(state.activity_start, state.activity_end);
     return duration;
   };
 

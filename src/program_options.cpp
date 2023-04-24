@@ -164,13 +164,13 @@ options_description po::make_image_options_description()
       value<string>(), make_str("Type of image content, /%s/.", make_image::regex_content()).c_str())
 
     (fmt(make_image::width()).c_str(),
-      value<u16>(), make_str("Image width, [1, %zu].", UINT16_MAX).c_str())
+      value<u16>(), make_str("Image width, [1, %zu].", std::numeric_limits<u16>::max()).c_str())
 
     (fmt(make_image::height()).c_str(),
-      value<u16>(), make_str("Image height, [1, %zu].", UINT16_MAX).c_str())
+      value<u16>(), make_str("Image height, [1, %zu].", std::numeric_limits<u16>::max()).c_str())
 
     (fmt(make_image::maxval()).c_str(),
-      value<u16>(), make_str("Maximum pixel value, [1, %zu].", UINT8_MAX).c_str())
+      value<u16>(), make_str("Maximum pixel value, [1, %zu].", std::numeric_limits<u8>::max()).c_str())
   ;
 
   return description;
@@ -528,9 +528,9 @@ void po::parse_make_states_options(
     auto const ant_col = get_required_option<i32>(opt_ac, vm, errors);
 
     if (grid_width.has_value() && ant_col.has_value()) {
-      if (grid_width.value() < 1 || grid_width.value() > UINT16_MAX) {
+      if (grid_width.value() < 1 || grid_width.value() > std::numeric_limits<u16>::max()) {
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
-          opt_gw.to_string().c_str(), UINT16_MAX));
+          opt_gw.to_string().c_str(), std::numeric_limits<u16>::max()));
       } else if (!util::in_range_incl_excl<u64>(ant_col.value(), 0, grid_width.value())) {
         errors.emplace_back(make_str("%s must be on grid x-axis [0, %zu)",
           opt_ac.to_string().c_str(), grid_width.value()));
@@ -549,9 +549,9 @@ void po::parse_make_states_options(
     auto const ant_row = get_required_option<i32>(opt_ar, vm, errors);
 
     if (grid_height.has_value() && ant_row.has_value()) {
-      if (grid_height.value() < 1 || grid_height.value() > UINT16_MAX) {
+      if (grid_height.value() < 1 || grid_height.value() > std::numeric_limits<u16>::max()) {
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
-          opt_gh.to_string().c_str(), UINT16_MAX));
+          opt_gh.to_string().c_str(), std::numeric_limits<u16>::max()));
       } else if (!util::in_range_incl_excl<u64>(ant_row.value(), 0, grid_height.value())) {
         errors.emplace_back(make_str("%s must be on grid y-axis [0, %zu)",
           opt_ar.to_string().c_str(), grid_height.value()));
@@ -624,9 +624,9 @@ void po::parse_make_image_options(
           u64 const equals_sign_pos = content.value().find_first_of('=');
           std::string const fill_val_str = content.value().substr(equals_sign_pos + 1);
           u64 const fill_val = std::stoull(fill_val_str);
-          if (fill_val > UINT8_MAX) {
+          if (fill_val > std::numeric_limits<u8>::max()) {
             errors.emplace_back(make_str("%s fill value must be <= %zu",
-              opt.to_string().c_str(), UINT8_MAX));
+              opt.to_string().c_str(), std::numeric_limits<u8>::max()));
           } else {
             out.fill_value = static_cast<i16>(fill_val);
           }
@@ -648,7 +648,7 @@ void po::parse_make_image_options(
     if (width.has_value()) {
       if (width.value() < 1)
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
-          opt.to_string().c_str(), UINT16_MAX));
+          opt.to_string().c_str(), std::numeric_limits<u16>::max()));
       else
         out.width = width.value();
     }
@@ -661,7 +661,7 @@ void po::parse_make_image_options(
     if (height.has_value()) {
       if (height.value() < 1)
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
-          opt.to_string().c_str(), UINT16_MAX));
+          opt.to_string().c_str(), std::numeric_limits<u16>::max()));
       else
         out.height = height.value();
     }
@@ -672,9 +672,9 @@ void po::parse_make_image_options(
     auto const maxval = get_required_option<u16>(opt, vm, errors);
 
     if (maxval.has_value()) {
-      if (maxval.value() < 1 || maxval.value() > UINT8_MAX)
+      if (maxval.value() < 1 || maxval.value() > std::numeric_limits<u8>::max())
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
-          opt.to_string().c_str(), UINT8_MAX));
+          opt.to_string().c_str(), std::numeric_limits<u8>::max()));
       else
         out.maxval = static_cast<u8>(maxval.value());
     }

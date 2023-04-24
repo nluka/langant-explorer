@@ -20,7 +20,7 @@ simulation::rules_t generate_rules(
 {
   simulation::rules_t rules{};
 
-  for (auto const [shade, rule] : scheme)
+  for (auto const &[shade, rule] : scheme)
     rules[shade] = rule;
 
   return rules;
@@ -189,7 +189,7 @@ i32 main()
 
     {
       u8 grid[5 * 6];
-      std::fill_n(grid, 5 * 6, 0ui8);
+      std::fill_n(grid, 5 * 6, u8(0));
 
       simulation::state expected_state{};
       expected_state.grid_width = 5;
@@ -862,7 +862,7 @@ i32 main()
       po::simulate_many_options const expected_options {
         "valid_dir", // state_dir_path
         "", // log_file_path
-        std::max(std::thread::hardware_concurrency(), 1ui32), // num_threads
+        std::max(std::thread::hardware_concurrency(), u32(1)), // num_threads
         {
           "", // save_path
           {}, // save_points
@@ -1041,7 +1041,7 @@ i32 main()
       po::make_image_options const expected_options {
         "valid_dir/image", // out_file_path
         "fill=42", // content
-        42ui8, // fill_value
+        42, // fill_value
         33, // width
         77, // height
         pgm8::format::RAW, // format

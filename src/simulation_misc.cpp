@@ -83,10 +83,10 @@ b8 simulation::state::can_step_forward(u64 const generation_limit) const noexcep
 
 u8 simulation::deduce_maxval_from_rules(simulation::rules_t const &rules)
 {
-  for (u8 shade = 255ui8; shade > 0ui8; --shade)
+  for (u8 shade = 255; shade > 0; --shade)
     if (rules[shade].turn_dir != simulation::turn_direction::NIL)
       return shade;
-  return 0ui8;
+  return 0;
 }
 
 simulation::activity_time_breakdown simulation::query_activity_time_breakdown(
@@ -103,7 +103,7 @@ simulation::activity_time_breakdown simulation::query_activity_time_breakdown(
 
   // we are in the middle of iterating or saving...
 
-  u64 const current_activity_duration_ns = util::nanos_between(state.activity_start, now).count();
+  u64 const current_activity_duration_ns = util::nanos_between(state.activity_start, now);
 
   if (state.current_activity == activity::ITERATING) {
     return {
@@ -120,12 +120,16 @@ simulation::activity_time_breakdown simulation::query_activity_time_breakdown(
 
 u64 simulation::state::num_pixels() const noexcept
 {
+  assert(this->grid_width >= 0);
+  assert(this->grid_height >= 0);
+
   return static_cast<u64>(this->grid_width) * this->grid_height;
 }
 
 u64 simulation::state::generations_completed() const noexcept
 {
   assert(generation >= start_generation);
+
   return generation - start_generation;
 }
 

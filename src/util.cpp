@@ -62,21 +62,25 @@ util::time_point_t util::current_time()
   return std::chrono::high_resolution_clock::now();
 }
 
-std::chrono::nanoseconds util::nanos_between(
+u64 util::nanos_between(
   time_point_t const start,
   time_point_t const end)
 {
-  return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  auto const nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  assert(nanos.count() >= 0);
+  return static_cast<u64>(nanos.count());
 }
 
 string util::make_str(char const *const fmt, ...)
 {
-  u64 const buf_len = 1024;
-  char buffer[buf_len];
+  i32 const buf_len = 1024;
+  static char buffer[buf_len];
 
   va_list args;
   va_start(args, fmt);
   [[maybe_unused]] i32 const cnt = vsnprintf(buffer, sizeof(buffer), fmt, args);
+  assert(cnt > 0);
+  assert(cnt < buf_len);
   va_end(args);
 
   return std::string(buffer);

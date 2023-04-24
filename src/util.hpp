@@ -34,9 +34,9 @@ namespace util
       u64 seconds;
   };
 
-  typedef std::chrono::steady_clock::time_point time_point_t;
+  typedef std::chrono::high_resolution_clock::time_point time_point_t;
   time_point_t current_time();
-  std::chrono::nanoseconds nanos_between(time_point_t start, time_point_t end);
+  u64 nanos_between(time_point_t start, time_point_t end);
 
   std::string make_str(char const *fmt, ...);
 

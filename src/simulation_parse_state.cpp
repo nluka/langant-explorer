@@ -306,7 +306,7 @@ b8 try_to_parse_and_set_grid_state(
     }
 
     // only try to allocate and setup grid if there are no errors
-    u64 const num_pixels = static_cast<u64>(state.grid_width) * state.grid_height;
+    u64 const num_pixels = state.num_pixels();
     try {
       state.grid = new u8[num_pixels];
     } catch (std::bad_alloc const &) {
@@ -342,7 +342,7 @@ b8 try_to_parse_and_set_grid_state(
 
     u64 const num_pixels = img_props.num_pixels();
     {
-      u64 const num_pixels_expected = static_cast<u64>(state.grid_width) * state.grid_height;
+      u64 const num_pixels_expected = state.num_pixels();
       if (num_pixels != num_pixels_expected) {
         if (state.grid_width != img_props.get_width()) {
           add_err(make_str("dimension mismatch, image width (%zu) does not correspond to grid width (%zu)",

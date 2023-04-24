@@ -122,7 +122,7 @@ void ui_loop(std::string const &sim_name)
     auto const time_breakdown = simulation::query_activity_time_breakdown(s_sim_state, time_now);
 
     u64 const
-      total_nanos_elapsed = util::nanos_between(start_time, time_now).count(),
+      total_nanos_elapsed = util::nanos_between(start_time, time_now),
       current_generation = s_sim_state.generation,
       gens_completed = s_sim_state.generations_completed(),
       gens_remaining = s_options.sim.generation_limit - gens_completed;

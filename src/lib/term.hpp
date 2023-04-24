@@ -29,7 +29,7 @@ namespace color {
 
   // Foreground.
   namespace fore {
-    int constexpr
+    unsigned int constexpr
       DEFAULT       = 0b00000000000000000000000000000000,
       RED           = 0b00000000000000000000000000000001,
       GREEN         = 0b00000000000000000000000000000010,
@@ -50,7 +50,7 @@ namespace color {
 
   // Background.
   namespace back {
-    int constexpr
+    unsigned int constexpr
       BLACK   = 0b10000000000000000000000000000000,
       RED     = 0b01000000000000000000000000000000,
       GREEN   = 0b00100000000000000000000000000000,
@@ -62,7 +62,7 @@ namespace color {
   } // namespace back
 
   // Sets stdout foreground and background color.
-  void set(int color);
+  void set(unsigned int color);
 
   // Wrapper for `printf` enabling colored printing.
   void printf(int color, char const *fmt, ...);

@@ -180,12 +180,12 @@ void ui_loop(std::vector<named_simulation> const &simulations)
       num_sims_failed = s_num_simulations_failed.load(),
       num_sims_in_progress = s_num_simulations_in_progress.load(),
       num_sims_remaining = simulations.size() - num_sims_completed,
-      total_nanos_elapsed = util::nanos_between(start_time, time_now).count();
+      total_nanos_elapsed = util::nanos_between(start_time, time_now);
     f64 const
       total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
       secs_elapsed_iterating = nanos_spent_iterating / 1'000'000'000.0,
       mega_gens_completed = gens_completed / 1'000'000.0,
-      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON),
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + std::numeric_limits<f64>::epsilon()),
       percent_sims_completed = ( static_cast<f64>(num_sims_completed) / simulations.size() ) * 100.0,
       percent_iteration = ( nanos_spent_iterating / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0,
       percent_saving    = ( nanos_spent_saving    / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0;
