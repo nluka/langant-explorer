@@ -37,7 +37,7 @@ void simulation::save_state(
       state.ant_row,
       state.last_step_res,
       state.ant_orientation,
-      state.maxval,
+      util::count_digits(state.maxval),
       state.rules);
   }
 
@@ -66,7 +66,7 @@ void simulation::print_state_json(
   i32 const ant_row,
   step_result::value_type const last_step_res,
   orientation::value_type const ant_orientation,
-  u8 const maxval,
+  u64 const maxval_digits,
   rules_t const &rules)
 {
   os
@@ -84,8 +84,6 @@ void simulation::print_state_json(
     << "\n"
     << "  \"rules\": [\n"
   ;
-
-  u8 const maxval_digits = util::count_digits(maxval);
 
   // rules elements
   {

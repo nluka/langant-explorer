@@ -143,7 +143,7 @@ namespace simulation
     i32 ant_row,
     step_result::value_type last_step_res,
     orientation::value_type ant_orientation,
-    u8 maxval,
+    u64 maxval_digits,
     rules_t const &rules);
 
   std::string extract_name_from_json_state_path(std::string const &);

@@ -2,6 +2,7 @@
 
 #include "lib/pgm8.hpp"
 #include "lib/json.hpp"
+#include "lib/fregex.hpp"
 
 #include "program_options.hpp"
 #include "util.hpp"
@@ -457,7 +458,13 @@ void po::parse_make_states_options(
       } else if (!fs::is_directory(out_dir_path.value())) {
         errors.emplace_back(make_str("%s is not a directory", opt.to_string().c_str()));
       } else {
-        out.out_dir_path = std::move(out_dir_path.value());
+        auto const json_files = fregex::find(out_dir_path.value(), "^.*\\.json$", fregex::entry_type::regular_file);
+        if (!json_files.empty()) {
+          errors.emplace_back(make_str("%s is an unclean directory, it contains %zu JSON files",
+            opt.to_string().c_str(), json_files.size()));
+        } else {
+          out.out_dir_path = std::move(out_dir_path.value());
+        }
       }
     }
   }

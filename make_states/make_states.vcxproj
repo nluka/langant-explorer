@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\lib\fregex.cpp" />
     <ClCompile Include="..\src\lib\pgm8.cpp" />
     <ClCompile Include="..\src\lib\term.cpp" />
     <ClCompile Include="..\src\make_states_main.cpp" />

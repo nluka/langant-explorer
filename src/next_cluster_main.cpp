@@ -16,7 +16,7 @@ i32 main(i32 const argc, char const *const *const argv) {
       "                            ^^^^^^^^^\n"
       "                            Y|y|1\n"
       "\n";
-    return -1;
+    return 0;
   }
 
   char const *const search_dir_cstr = argv[1];
@@ -24,11 +24,11 @@ i32 main(i32 const argc, char const *const *const argv) {
 
   if (!std::filesystem::exists(search_dir)) {
     util::print_err("path '%s' does not exist", search_dir_cstr);
-    return -1;
+    return 0;
   }
   if (!std::filesystem::is_directory(search_dir)) {
     util::print_err("path '%s' is not a directory", search_dir_cstr);
-    return -1;
+    return 0;
   }
 
   auto const clusters = fregex::find(
@@ -47,10 +47,10 @@ i32 main(i32 const argc, char const *const *const argv) {
   };
 
   if (clusters.size() >= INT32_MAX - 1) {
-    exit(-1);
+    exit(0);
   }
   if (clusters.empty()) {
-    exit(0);
+    exit(1);
   }
 
   i32 max_cluster_num = 0;

@@ -3,6 +3,7 @@
 #include <cinttypes>
 #include <regex>
 #include <random>
+#include <unordered_set>
 
 #include <boost/program_options.hpp>
 #include <boost/container/static_vector.hpp>
@@ -33,7 +34,7 @@ static std::atomic<u64> s_num_states_failed = 0;
 static std::atomic<u64> s_num_filename_conflicts = 0;
 
 simulation::rules_t make_random_rules(
-  char *turn_dirs_buffer,
+  std::string &turn_dirs_buffer,
   u64_distrib &dist_rules_len,
   u64_distrib &dist_turn_dir,
   std::mt19937 &num_generator);
@@ -55,7 +56,7 @@ try
     po::make_states_options_description().print(usage_msg, 6);
     usage_msg << '\n';
     std::cout << usage_msg.str();
-    std::exit(1);
+    return 1;
   }
 
   {
@@ -65,7 +66,7 @@ try
     if (!errors.empty()) {
       for (auto const &err : errors)
         print_err("%s", err.c_str());
-      die("%zu configuration errors", errors.size());
+      return 1;
     }
   }
 
@@ -97,9 +98,14 @@ try
     // only used if name_mode is randwords
     std::string rand_fname{};
 
+    std::string turn_dirs_buffer(256 + 1, '\0');
+    simulation::rules_t rand_rules{};
+    std::ofstream file;
+    std::unordered_set<std::string> names{};
+
     for (u64 i = 0; i < s_options.count; ++i) {
       try {
-        simulation::orientation::value_type const rand_ant_orient = [&]() {
+        simulation::orientation::value_type const rand_ant_orient = [&] {
           u64 const rand_idx = dist_ant_orient(rand_num_gener);
           char const rand_ant_orient_str[] {
             static_cast<char>(toupper(s_options.ant_orientations[rand_idx])),
@@ -108,8 +114,7 @@ try
           return simulation::orientation::from_cstr(rand_ant_orient_str);
         }();
 
-        char turn_dirs_buffer[256 + 1] { 0 };
-        simulation::rules_t const rand_rules = make_random_rules(
+        rand_rules = make_random_rules(
           turn_dirs_buffer,
           dist_rules_len,
           dist_turn_dir,
@@ -123,26 +128,31 @@ try
         }
         state_path.replace_extension(".json");
 
-        if (fs::exists(state_path)) {
+        if (names.contains(turn_dirs_buffer)) {
           ++s_num_filename_conflicts;
           continue;
         }
 
-        {
-          std::fstream file = util::open_file(state_path.string().c_str(), std::ios::out);
+        file.open(state_path.string().c_str(), std::ios::out);
 
-          simulation::print_state_json(
-            file,
-            s_options.grid_state,
-            0,
-            s_options.grid_width,
-            s_options.grid_height,
-            s_options.ant_col,
-            s_options.ant_row,
-            simulation::step_result::NIL,
-            rand_ant_orient,
-            static_cast<u8>(s_options.max_num_rules - 1),
-            rand_rules);
+        simulation::print_state_json(
+          file,
+          s_options.grid_state,
+          0,
+          s_options.grid_width,
+          s_options.grid_height,
+          s_options.ant_col,
+          s_options.ant_row,
+          simulation::step_result::NIL,
+          rand_ant_orient,
+          util::count_digits(s_options.max_num_rules - 1),
+          rand_rules);
+
+        file.close();
+
+        {
+          std::string const &name = turn_dirs_buffer;
+          names.emplace(name);
         }
 
         ++s_num_states_completed;
@@ -239,7 +249,7 @@ catch (...)
 }
 
 simulation::rules_t make_random_rules(
-  char *const turn_dirs_buffer,
+  std::string &turn_dirs_buffer,
   u64_distrib &dist_rules_len,
   u64_distrib &dist_turn_dir,
   std::mt19937 &num_generator)
@@ -251,12 +261,12 @@ simulation::rules_t make_random_rules(
   assert(rules_len <= 256);
 
   // fill `turn_dirs_buffer` with `rules_len` random turn directions
+  turn_dirs_buffer.clear();
   for (u64 i = 0; i < rules_len; ++i) {
     u64 const rand_idx = dist_turn_dir(num_generator);
     char const rand_turn_dir = static_cast<char>(toupper(s_options.turn_directions[rand_idx]));
-    turn_dirs_buffer[i] = rand_turn_dir;
+    turn_dirs_buffer += rand_turn_dir;
   }
-  turn_dirs_buffer[rules_len] = '\0';
 
   u64 const last_rule_idx = rules_len - 1;
 

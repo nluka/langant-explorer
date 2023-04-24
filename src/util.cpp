@@ -153,9 +153,9 @@ void util::die(char const *fmt, ...)
   [[maybe_unused]] i32 const retval = vprintf(fmt, args);
   va_end(args);
 
-  putc('\n', stdout);
-
   term::color::set(fore::DEFAULT | back::BLACK);
+
+  putc('\n', stdout);
 
   std::exit(1);
 }
@@ -171,9 +171,9 @@ int util::print_err(char const *fmt, ...)
   i32 const retval = vprintf(fmt, args);
   va_end(args);
 
-  putc('\n', stdout);
-
   term::color::set(fore::DEFAULT | back::BLACK);
+
+  putc('\n', stdout);
 
   return retval;
 }

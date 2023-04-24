@@ -44,7 +44,7 @@ i32 main(i32 const argc, char const *const *const argv) {
     po::simulate_one_options_description().print(usage_msg, 6);
     usage_msg << '\n';
     std::cout << usage_msg.str();
-    std::exit(1);
+    return 1;
   }
 
   {
@@ -55,7 +55,7 @@ i32 main(i32 const argc, char const *const *const argv) {
     if (!errors.empty()) {
       for (auto const &err : errors)
         print_err("%s", err.c_str());
-      die("%zu configuration errors", errors.size());
+      return 1;
     }
 
     s_sim_state = simulation::parse_state(
@@ -66,7 +66,7 @@ i32 main(i32 const argc, char const *const *const argv) {
     if (!errors.empty()) {
       for (auto const &err : errors)
         print_err("%s", err.c_str());
-      die("%zu state errors", errors.size());
+      return 1;
     }
   }
 
