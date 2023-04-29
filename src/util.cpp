@@ -39,7 +39,40 @@ util::time_span::time_span(u64 const seconds_elapsed) noexcept
   }
 }
 
-string util::time_span::to_string() const noexcept
+class static_streambuf : public std::streambuf {
+public:
+  static_streambuf(char *const base, u64 const size) {
+    setp(base, base + size);
+  }
+
+protected:
+  virtual int_type overflow(int_type const ch) override {
+    // Buffer is full, discard the character or handle overflow in another way
+    return traits_type::not_eof(ch);
+  }
+};
+
+char *util::time_span::stringify(char *const out, u64 const out_len) const
+{
+  static_streambuf buf(out, out_len);
+  std::ostream os(&buf);
+
+  if (this->days > 0) {
+    os << this->days << "d ";
+  }
+  if (this->hours > 0) {
+    os << this->hours << "h ";
+  }
+  if (this->minutes > 0) {
+    os << this->minutes << "m ";
+  }
+  os << this->seconds << 's';
+  os << '\0';
+
+  return out;
+}
+
+string util::time_span::to_string() const
 {
   std::stringstream ss;
 
@@ -176,6 +209,23 @@ int util::print_err(char const *fmt, ...)
   putc('\n', stdout);
 
   return retval;
+}
+
+std::string util::stringify_errors(util::errors_t const &errors)
+{
+  u64 length = 0;
+  for (auto const &err : errors)
+    length += err.length() + 2;
+
+  std::string out;
+  out.reserve(length);
+  for (auto const &err : errors)
+    out += err;
+    out += "; ";
+
+  out.pop_back(); // remove trailing space
+
+  return out;
 }
 
 b8 util::get_user_choice(std::string const &prompt)

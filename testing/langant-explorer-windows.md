@@ -1,6 +1,6 @@
 # langant-explorer-windows
 
-Mon Apr 24 00:34:22 2023
+Fri Apr 28 20:33:40 2023
 
 0 failed
 
@@ -108,107 +108,107 @@ Mon Apr 24 00:34:22 2023
 | ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=3 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-L [ --log_file_path ] required</span>,  *... 2 more* __]__ | main:818,19 | src/testing_main.cpp |
 | ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=1 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-o [ --save_path ] required</span>, __]__ | main:833,19 | src/testing_main.cpp |
 | ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=3 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-T [ --num_threads ] must be > 0</span>,  *... 2 more* __]__ | main:852,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:880,19 | src/testing_main.cpp |
-| ✅ | char* | len=0 | main:880,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 12 | main:880,19 | src/testing_main.cpp |
-| ✅ | char* | len=0 | main:880,19 | src/testing_main.cpp |
-| ✅ | std::vector\<unsigned __int64\> |  | main:880,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 0 | main:880,19 | src/testing_main.cpp |
-| ✅ | unsigned char | 5 | main:880,19 | src/testing_main.cpp |
-| ✅ | bool | false | main:880,19 | src/testing_main.cpp |
-| ✅ | bool | false | main:880,19 | src/testing_main.cpp |
-| ✅ | bool | false | main:880,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:917,19 | src/testing_main.cpp |
-| ✅ | char* | len=17 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir/</span> *... 7 more* | main:917,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 42 | main:917,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:917,19 | src/testing_main.cpp |
-| ✅ | std::vector\<unsigned __int64\> | sz=3 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>1</span>,  *... 2 more* __]__ | main:917,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 0 | main:917,19 | src/testing_main.cpp |
-| ✅ | unsigned char | 5 | main:917,19 | src/testing_main.cpp |
-| ✅ | bool | true | main:917,19 | src/testing_main.cpp |
-| ✅ | bool | true | main:917,19 | src/testing_main.cpp |
-| ✅ | bool | true | main:917,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:951,19 | src/testing_main.cpp |
-| ✅ | char* | len=17 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir/</span> *... 7 more* | main:951,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 1 | main:951,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:951,19 | src/testing_main.cpp |
-| ✅ | std::vector\<unsigned __int64\> |  | main:951,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 1000 | main:951,19 | src/testing_main.cpp |
-| ✅ | unsigned char | 2 | main:951,19 | src/testing_main.cpp |
-| ✅ | bool | false | main:951,19 | src/testing_main.cpp |
-| ✅ | bool | false | main:951,19 | src/testing_main.cpp |
-| ✅ | bool | false | main:951,19 | src/testing_main.cpp |
-| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=6 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-c [ --content ] required</span>,  *... 5 more* __]__ | main:1004,19 | src/testing_main.cpp |
-| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=6 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-c [ --content ] must match /^(noise)|(fill=[0-9]{1,3})$/</span>,  *... 5 more* __]__ | main:1027,19 | src/testing_main.cpp |
-| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=42</span> | main:1053,19 | src/testing_main.cpp |
-| ✅ | char* | len=15 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir/</span> *... 5 more* | main:1053,19 | src/testing_main.cpp |
-| ✅ | bool | true | main:1053,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 33 | main:1053,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 77 | main:1053,19 | src/testing_main.cpp |
-| ✅ | unsigned char | 5 | main:1053,19 | src/testing_main.cpp |
-| ✅ | unsigned char | 12 | main:1053,19 | src/testing_main.cpp |
-| ✅ | char* | len=5 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>noise</span> | main:1079,19 | src/testing_main.cpp |
-| ✅ | char* | len=15 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir/</span> *... 5 more* | main:1079,19 | src/testing_main.cpp |
-| ✅ | bool | true | main:1079,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 33 | main:1079,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 77 | main:1079,19 | src/testing_main.cpp |
-| ✅ | unsigned char | 2 | main:1079,19 | src/testing_main.cpp |
-| ✅ | unsigned char | 12 | main:1079,19 | src/testing_main.cpp |
-| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=7 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-N [ --count ] required</span>,  *... 6 more* __]__ | main:1139,19 | src/testing_main.cpp |
-| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=10 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-M [ --max_num_rules ] must be in range [2, 256]</span>,  *... 9 more* __]__ | main:1173,19 | src/testing_main.cpp |
-| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=5 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-M [ --max_num_rules ] must be in range [2, 256]</span>,  *... 4 more* __]__ | main:1198,19 | src/testing_main.cpp |
-| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=3 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-M [ --max_num_rules ] must be in range [2, 256]</span>,  *... 2 more* __]__ | main:1222,19 | src/testing_main.cpp |
-| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=2 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-M [ --max_num_rules ] must be >= -m [ --min_num_rules ]</span>,  *... 1 more* __]__ | main:1244,19 | src/testing_main.cpp |
-| ✅ | char* | len=10 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>turndirecs</span> | main:1279,19 | src/testing_main.cpp |
-| ✅ | char* | len=6 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=0</span> | main:1279,19 | src/testing_main.cpp |
-| ✅ | char* | len=2 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>LR</span> | main:1279,19 | src/testing_main.cpp |
-| ✅ | char* | len=3 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>asc</span> | main:1279,19 | src/testing_main.cpp |
-| ✅ | char* | len=4 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>NESW</span> | main:1279,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:1279,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 1 | main:1279,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 2 | main:1279,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 256 | main:1279,19 | src/testing_main.cpp |
-| ✅ | int | 1 | main:1279,19 | src/testing_main.cpp |
-| ✅ | int | 1 | main:1279,19 | src/testing_main.cpp |
-| ✅ | int | 0 | main:1279,19 | src/testing_main.cpp |
-| ✅ | int | 0 | main:1279,19 | src/testing_main.cpp |
-| ✅ | char* | len=11 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>randwords,</span> *... 1 more* | main:1321,19 | src/testing_main.cpp |
-| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=42</span> | main:1321,19 | src/testing_main.cpp |
-| ✅ | char* | len=6 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>LLLNNR</span> | main:1321,19 | src/testing_main.cpp |
-| ✅ | char* | len=3 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>asc</span> | main:1321,19 | src/testing_main.cpp |
-| ✅ | char* | len=2 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>NE</span> | main:1321,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:1321,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 42 | main:1321,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 10 | main:1321,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 30 | main:1321,19 | src/testing_main.cpp |
-| ✅ | int | 12 | main:1321,19 | src/testing_main.cpp |
-| ✅ | int | 22 | main:1321,19 | src/testing_main.cpp |
-| ✅ | int | 11 | main:1321,19 | src/testing_main.cpp |
-| ✅ | int | 21 | main:1321,19 | src/testing_main.cpp |
-| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>alpha,9</span> | main:1362,19 | src/testing_main.cpp |
-| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=42</span> | main:1362,19 | src/testing_main.cpp |
-| ✅ | char* | len=6 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>LLLNNR</span> | main:1362,19 | src/testing_main.cpp |
-| ✅ | char* | len=4 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>desc</span> | main:1362,19 | src/testing_main.cpp |
-| ✅ | char* | len=2 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>NE</span> | main:1362,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:1362,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 42 | main:1362,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 256 | main:1362,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 256 | main:1362,19 | src/testing_main.cpp |
-| ✅ | int | 12 | main:1362,19 | src/testing_main.cpp |
-| ✅ | int | 22 | main:1362,19 | src/testing_main.cpp |
-| ✅ | int | 11 | main:1362,19 | src/testing_main.cpp |
-| ✅ | int | 21 | main:1362,19 | src/testing_main.cpp |
-| ✅ | char* | len=10 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>turndirecs</span> | main:1404,19 | src/testing_main.cpp |
-| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=42</span> | main:1404,19 | src/testing_main.cpp |
-| ✅ | char* | len=6 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>LLLNNR</span> | main:1404,19 | src/testing_main.cpp |
-| ✅ | char* | len=4 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>rand</span> | main:1404,19 | src/testing_main.cpp |
-| ✅ | char* | len=2 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>NE</span> | main:1404,19 | src/testing_main.cpp |
-| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:1404,19 | src/testing_main.cpp |
-| ✅ | unsigned __int64 | 42 | main:1404,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 2 | main:1404,19 | src/testing_main.cpp |
-| ✅ | unsigned short | 2 | main:1404,19 | src/testing_main.cpp |
-| ✅ | int | 12 | main:1404,19 | src/testing_main.cpp |
-| ✅ | int | 22 | main:1404,19 | src/testing_main.cpp |
-| ✅ | int | 11 | main:1404,19 | src/testing_main.cpp |
-| ✅ | int | 21 | main:1404,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:882,19 | src/testing_main.cpp |
+| ✅ | char* | len=0 | main:882,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 12 | main:882,19 | src/testing_main.cpp |
+| ✅ | char* | len=0 | main:882,19 | src/testing_main.cpp |
+| ✅ | std::vector\<unsigned __int64\> |  | main:882,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 0 | main:882,19 | src/testing_main.cpp |
+| ✅ | unsigned char | 5 | main:882,19 | src/testing_main.cpp |
+| ✅ | bool | false | main:882,19 | src/testing_main.cpp |
+| ✅ | bool | false | main:882,19 | src/testing_main.cpp |
+| ✅ | bool | false | main:882,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:923,19 | src/testing_main.cpp |
+| ✅ | char* | len=17 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir/</span> *... 7 more* | main:923,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 42 | main:923,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:923,19 | src/testing_main.cpp |
+| ✅ | std::vector\<unsigned __int64\> | sz=3 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>1</span>,  *... 2 more* __]__ | main:923,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 0 | main:923,19 | src/testing_main.cpp |
+| ✅ | unsigned char | 5 | main:923,19 | src/testing_main.cpp |
+| ✅ | bool | true | main:923,19 | src/testing_main.cpp |
+| ✅ | bool | true | main:923,19 | src/testing_main.cpp |
+| ✅ | bool | true | main:923,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:959,19 | src/testing_main.cpp |
+| ✅ | char* | len=17 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir/</span> *... 7 more* | main:959,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 1 | main:959,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:959,19 | src/testing_main.cpp |
+| ✅ | std::vector\<unsigned __int64\> |  | main:959,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 1000 | main:959,19 | src/testing_main.cpp |
+| ✅ | unsigned char | 2 | main:959,19 | src/testing_main.cpp |
+| ✅ | bool | false | main:959,19 | src/testing_main.cpp |
+| ✅ | bool | false | main:959,19 | src/testing_main.cpp |
+| ✅ | bool | false | main:959,19 | src/testing_main.cpp |
+| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=6 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-c [ --content ] required</span>,  *... 5 more* __]__ | main:1012,19 | src/testing_main.cpp |
+| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=6 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-c [ --content ] must match /^(noise)|(fill=[0-9]{1,3})$/</span>,  *... 5 more* __]__ | main:1035,19 | src/testing_main.cpp |
+| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=42</span> | main:1061,19 | src/testing_main.cpp |
+| ✅ | char* | len=15 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir/</span> *... 5 more* | main:1061,19 | src/testing_main.cpp |
+| ✅ | bool | true | main:1061,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 33 | main:1061,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 77 | main:1061,19 | src/testing_main.cpp |
+| ✅ | unsigned char | 5 | main:1061,19 | src/testing_main.cpp |
+| ✅ | unsigned char | 12 | main:1061,19 | src/testing_main.cpp |
+| ✅ | char* | len=5 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>noise</span> | main:1087,19 | src/testing_main.cpp |
+| ✅ | char* | len=15 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir/</span> *... 5 more* | main:1087,19 | src/testing_main.cpp |
+| ✅ | bool | true | main:1087,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 33 | main:1087,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 77 | main:1087,19 | src/testing_main.cpp |
+| ✅ | unsigned char | 2 | main:1087,19 | src/testing_main.cpp |
+| ✅ | unsigned char | 12 | main:1087,19 | src/testing_main.cpp |
+| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=7 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-N [ --count ] required</span>,  *... 6 more* __]__ | main:1147,19 | src/testing_main.cpp |
+| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=10 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-M [ --max_num_rules ] must be in range [2, 256]</span>,  *... 9 more* __]__ | main:1181,19 | src/testing_main.cpp |
+| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=5 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-M [ --max_num_rules ] must be in range [2, 256]</span>,  *... 4 more* __]__ | main:1206,19 | src/testing_main.cpp |
+| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=3 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-M [ --max_num_rules ] must be in range [2, 256]</span>,  *... 2 more* __]__ | main:1230,19 | src/testing_main.cpp |
+| ✅ | std::vector\<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>\> | sz=2 __[__ <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;' title='index 0'>-M [ --max_num_rules ] must be >= -m [ --min_num_rules ]</span>,  *... 1 more* __]__ | main:1252,19 | src/testing_main.cpp |
+| ✅ | char* | len=10 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>turndirecs</span> | main:1287,19 | src/testing_main.cpp |
+| ✅ | char* | len=6 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=0</span> | main:1287,19 | src/testing_main.cpp |
+| ✅ | char* | len=2 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>LR</span> | main:1287,19 | src/testing_main.cpp |
+| ✅ | char* | len=3 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>asc</span> | main:1287,19 | src/testing_main.cpp |
+| ✅ | char* | len=4 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>NESW</span> | main:1287,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:1287,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 1 | main:1287,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 2 | main:1287,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 256 | main:1287,19 | src/testing_main.cpp |
+| ✅ | int | 1 | main:1287,19 | src/testing_main.cpp |
+| ✅ | int | 1 | main:1287,19 | src/testing_main.cpp |
+| ✅ | int | 0 | main:1287,19 | src/testing_main.cpp |
+| ✅ | int | 0 | main:1287,19 | src/testing_main.cpp |
+| ✅ | char* | len=11 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>randwords,</span> *... 1 more* | main:1329,19 | src/testing_main.cpp |
+| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=42</span> | main:1329,19 | src/testing_main.cpp |
+| ✅ | char* | len=6 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>LLLNNR</span> | main:1329,19 | src/testing_main.cpp |
+| ✅ | char* | len=3 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>asc</span> | main:1329,19 | src/testing_main.cpp |
+| ✅ | char* | len=2 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>NE</span> | main:1329,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:1329,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 42 | main:1329,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 10 | main:1329,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 30 | main:1329,19 | src/testing_main.cpp |
+| ✅ | int | 12 | main:1329,19 | src/testing_main.cpp |
+| ✅ | int | 22 | main:1329,19 | src/testing_main.cpp |
+| ✅ | int | 11 | main:1329,19 | src/testing_main.cpp |
+| ✅ | int | 21 | main:1329,19 | src/testing_main.cpp |
+| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>alpha,9</span> | main:1370,19 | src/testing_main.cpp |
+| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=42</span> | main:1370,19 | src/testing_main.cpp |
+| ✅ | char* | len=6 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>LLLNNR</span> | main:1370,19 | src/testing_main.cpp |
+| ✅ | char* | len=4 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>desc</span> | main:1370,19 | src/testing_main.cpp |
+| ✅ | char* | len=2 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>NE</span> | main:1370,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:1370,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 42 | main:1370,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 256 | main:1370,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 256 | main:1370,19 | src/testing_main.cpp |
+| ✅ | int | 12 | main:1370,19 | src/testing_main.cpp |
+| ✅ | int | 22 | main:1370,19 | src/testing_main.cpp |
+| ✅ | int | 11 | main:1370,19 | src/testing_main.cpp |
+| ✅ | int | 21 | main:1370,19 | src/testing_main.cpp |
+| ✅ | char* | len=10 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>turndirecs</span> | main:1412,19 | src/testing_main.cpp |
+| ✅ | char* | len=7 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>fill=42</span> | main:1412,19 | src/testing_main.cpp |
+| ✅ | char* | len=6 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>LLLNNR</span> | main:1412,19 | src/testing_main.cpp |
+| ✅ | char* | len=4 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>rand</span> | main:1412,19 | src/testing_main.cpp |
+| ✅ | char* | len=2 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>NE</span> | main:1412,19 | src/testing_main.cpp |
+| ✅ | char* | len=9 <span style='border: 1px solid darkgray;font-family: monospace;padding: 2px;white-space: pre-wrap;'>valid_dir</span> | main:1412,19 | src/testing_main.cpp |
+| ✅ | unsigned __int64 | 42 | main:1412,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 2 | main:1412,19 | src/testing_main.cpp |
+| ✅ | unsigned short | 2 | main:1412,19 | src/testing_main.cpp |
+| ✅ | int | 12 | main:1412,19 | src/testing_main.cpp |
+| ✅ | int | 22 | main:1412,19 | src/testing_main.cpp |
+| ✅ | int | 11 | main:1412,19 | src/testing_main.cpp |
+| ✅ | int | 21 | main:1412,19 | src/testing_main.cpp |
 

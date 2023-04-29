@@ -14,6 +14,7 @@ using po::options_description;
 using json_t = nlohmann::json;
 
 namespace fs = std::filesystem;
+namespace bpo = boost::program_options;
 
 struct option
 {
@@ -91,8 +92,12 @@ namespace simulate_one
 namespace simulate_many
 {
   option num_threads()    { return { "num_threads",    'T' }; }
+  option queue_size()     { return { "queue_size",     'Q' }; }
   option state_dir_path() { return { "state_dir_path", 'S' }; }
+  option log_to_stdout()  { return { "log_to_stdout",  'C' }; }
   option log_file_path()  { return { "log_file_path",  'L' }; }
+
+  u16 chunk_size_default() { return 50; }
 }
 
 template <typename Ty>
@@ -328,11 +333,17 @@ options_description po::simulate_many_options_description()
     (fmt(simulate_many::num_threads()).c_str(),
       value<u32>(), "Number of threads in thread pool.")
 
+    (fmt(simulate_many::queue_size()).c_str(),
+      value<u16>(), "Number of simulations per processing chunk.")
+
     (fmt(simulate_many::state_dir_path()).c_str(),
       value<string>(), "Path to directory containing initial JSON state files.")
 
     (fmt(simulate_many::log_file_path()).c_str(),
       value<string>(), "Log file path.")
+
+    (fmt(simulate_many::log_to_stdout()).c_str(),
+      /* flag */ "Log to standard output.")
   ;
 
   description.add(simulation_options_description());
@@ -538,7 +549,7 @@ void po::parse_make_states_options(
       if (grid_width.value() < 1 || grid_width.value() > std::numeric_limits<u16>::max()) {
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
           opt_gw.to_string().c_str(), std::numeric_limits<u16>::max()));
-      } else if (!util::in_range_incl_excl<u64>(ant_col.value(), 0, grid_width.value())) {
+      } else if (!util::in_range_incl_excl<i32>(ant_col.value(), 0, grid_width.value())) {
         errors.emplace_back(make_str("%s must be on grid x-axis [0, %zu)",
           opt_ac.to_string().c_str(), grid_width.value()));
       } else {
@@ -559,7 +570,7 @@ void po::parse_make_states_options(
       if (grid_height.value() < 1 || grid_height.value() > std::numeric_limits<u16>::max()) {
         errors.emplace_back(make_str("%s must be in range [1, %zu]",
           opt_gh.to_string().c_str(), std::numeric_limits<u16>::max()));
-      } else if (!util::in_range_incl_excl<u64>(ant_row.value(), 0, grid_height.value())) {
+      } else if (!util::in_range_incl_excl<i32>(ant_row.value(), 0, grid_height.value())) {
         errors.emplace_back(make_str("%s must be on grid y-axis [0, %zu)",
           opt_ar.to_string().c_str(), grid_height.value()));
       } else {
@@ -906,16 +917,39 @@ void po::parse_simulate_many_options(
 
   {
     option const opt = simulate_many::num_threads();
-    auto num_threads = get_nonrequired_option<u32>(simulate_many::num_threads(), vm, errors);
+    auto num_threads = get_nonrequired_option<u32>(opt, vm, errors);
 
     if (num_threads.has_value()) {
       if (num_threads.value() == 0)
-        errors.emplace_back(make_str("%s must be > 0",
-          opt.to_string().c_str()));
+        errors.emplace_back(make_str("%s must be > 0", opt.to_string().c_str()));
       else
         out.num_threads = num_threads.value();
     } else {
-      out.num_threads = std::max(std::thread::hardware_concurrency(), 1ui32);
+      out.num_threads = std::max(std::thread::hardware_concurrency(), u32(1));
     }
   }
+
+  {
+    option const opt = simulate_many::queue_size();
+    auto queue_size = get_nonrequired_option<u16>(opt, vm, errors);
+
+    if (queue_size.has_value()) {
+      if (queue_size.value() == 0)
+        errors.emplace_back(make_str("%s must be > 0", opt.to_string().c_str()));
+      else
+        out.queue_size = queue_size.value();
+    } else {
+      out.queue_size = simulate_many::chunk_size_default();
+    }
+  }
+
+  {
+    b8 const log_to_stdout = get_flag_option(simulate_many::log_to_stdout(), vm);
+    out.log_to_stdout = log_to_stdout;
+  }
+}
+
+b8 po::simulate_many_options::any_logging_enabled() const noexcept
+{
+  return this->log_file_path != "" || this->log_to_stdout;
 }

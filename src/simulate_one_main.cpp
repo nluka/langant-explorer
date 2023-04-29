@@ -20,6 +20,7 @@
 #include "simulation.hpp"
 #include "logger.hpp"
 #include "program_options.hpp"
+#include "platform.hpp"
 
 namespace fs = std::filesystem;
 using util::errors_t;
@@ -95,7 +96,7 @@ i32 main(i32 const argc, char const *const *const argv) {
     delete[] s_sim_state.grid;
   });
 
-#ifdef _WIN32
+#if ON_WINDOWS
   SetPriorityClass(sim_thread.native_handle(), HIGH_PRIORITY_CLASS);
 #endif
 

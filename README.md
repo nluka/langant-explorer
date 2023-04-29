@@ -183,10 +183,14 @@ Usage:
 General options:
   -T [ --num_threads ] arg
       Number of threads in thread pool.
+  -Q [ --queue_size ] arg
+      Number of simulations per processing chunk.
   -S [ --state_dir_path ] arg
       Path to directory containing initial JSON state files.
   -L [ --log_file_path ] arg
       Log file path.
+  -C [ --log_to_stdout ]
+      Log to standard output.
 
 Simulation options:
   -g [ --generation_limit ] arg
@@ -206,6 +210,12 @@ Simulation options:
       Specific generations (points) to save.
   -v [ --save_interval ] arg
       Generation interval at which to save.
+
+Additional Notes:
+  - Each queue slot requires 624 bytes for the duration of the program
+  - Each in-flight simulation (# determined by thread pool size) requires 624 bytes of storage
+     plus whatever the grid (image) requires, where each cell (pixel) occupies 1 byte
+  - Each simulation requires 48 bytes of storage for the duration of the program
 ```
 
 ## State Format

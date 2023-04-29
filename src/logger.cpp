@@ -108,7 +108,7 @@ void assert_file_opened(std::ofstream const &file) {
   }
 }
 
-void logger::log(event_type const evType, char const *const fmt, ...) {
+void logger::log(event_type const ev_type, char const *const fmt, ...) {
   {
 #if LOGGER_THREADSAFE
     std::scoped_lock const lock{s_events_mutex};
@@ -121,7 +121,7 @@ void logger::log(event_type const evType, char const *const fmt, ...) {
     vsnprintf(msg, len, fmt, varArgs);
     va_end(varArgs);
 
-    s_events.emplace_back(evType, msg);
+    s_events.emplace_back(ev_type, msg);
   }
 
   if (s_auto_flush) {

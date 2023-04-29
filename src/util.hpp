@@ -25,7 +25,8 @@ namespace util
   {
     time_span(u64 seconds_elapsed) noexcept;
 
-    std::string to_string() const noexcept;
+    char *stringify(char *out, u64 out_len) const;
+    std::string to_string() const;
 
     private:
       u64 days;
@@ -41,6 +42,7 @@ namespace util
   std::string make_str(char const *fmt, ...);
 
   i32 print_err(char const *fmt, ...);
+  std::string stringify_errors(errors_t const &);
 
   [[noreturn]] void die(char const *fmt, ...);
 

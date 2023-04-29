@@ -120,8 +120,11 @@ int ansi_color_code_back(int const color) {
 
 void term::color::set(unsigned int const color) {
   int const fg = ansi_color_code_fore(color);
-  int const bg = ansi_color_code_back(color);
-  std::printf("\033[%dm\033[%dm", fg, bg);
+  std::printf("\033[%dm", fg);
+  if (color & 0b11111111000000000000000000000000) {
+    int const bg = ansi_color_code_back(color);
+    std::printf("\033[%dm", bg);
+  }
 }
 
 void term::color::printf(int const color, char const *fmt, ...) {

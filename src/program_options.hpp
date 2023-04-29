@@ -97,7 +97,11 @@ namespace po
     std::string state_dir_path;
     std::string log_file_path;
     u32 num_threads;
+    u16 queue_size;
+    b8 log_to_stdout;
     simulation_options sim;
+
+    [[nodiscard]] b8 any_logging_enabled() const noexcept;
   };
 
   void parse_simulate_many_options(

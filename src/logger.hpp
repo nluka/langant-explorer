@@ -23,7 +23,7 @@ enum class event_type : uint8_t {
   // Simulation start
   SIM_START = 0,
 
-  // Savepoint
+  // Save point
   SAVE_PNT,
 
   // Simulation end
@@ -35,6 +35,8 @@ enum class event_type : uint8_t {
   // Number of event types
   COUNT,
 };
+
+// static_assert(u8(event_type::COUNT) <= 0b01111111, "Too many logger::event_type enum members, we have 8 bits and need to reserve 1 for stdout bit.");
 
 // Logs an event with formatted message. If `LOGGER_THREADSAFE` is non-zero, this operation is threadsafe.
 void log(event_type, char const *fmt, ...);

@@ -863,6 +863,8 @@ i32 main()
         "valid_dir", // state_dir_path
         "", // log_file_path
         std::max(std::thread::hardware_concurrency(), u32(1)), // num_threads
+        u16(50), // queue_size
+        false, // log_to_stdout
         {
           "", // save_path
           {}, // save_points
@@ -884,6 +886,7 @@ i32 main()
       char const *const argv[] {
         "simulate_many",
         "-T", "42",
+        "-Q", "13",
         "-S", "valid_dir",
         "-L", "valid_dir/log.txt",
         "-o", "valid_dir",
@@ -894,12 +897,15 @@ i32 main()
         "-s",
         "-l",
         "-y",
+        "-C",
       };
 
       po::simulate_many_options const expected_options {
         "valid_dir", // state_dir_path
         "valid_dir/log.txt", // log_file_path
-        42, // num_threads
+        u32(42), // num_threads
+        u16(13), // queue_size
+        true, // log_to_stdout
         {
           "valid_dir", // save_path
           { 1, 20, 300 }, // save_points
@@ -933,7 +939,9 @@ i32 main()
       po::simulate_many_options const expected_options {
         "valid_dir", // state_dir_path
         "valid_dir/log.txt", // log_file_path
-        1, // num_threads
+        u32(1), // num_threads
+        u16(50), // queue_size
+        true, // log_to_stdout
         {
           "valid_dir", // save_path
           {}, // save_points

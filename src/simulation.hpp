@@ -157,9 +157,9 @@ namespace simulation
       HIT_EDGE,
     };
 
-    code code = code::NIL;
     u64 num_save_points_successful = 0;
     u64 num_save_points_failed = 0;
+    code code = code::NIL;
   };
 
   run_result run(
