@@ -8,8 +8,8 @@
 #include <string>
 
 #include <boost/program_options.hpp>
-#include "lib/pgm8.hpp"
 
+#include "pgm8.hpp"
 #include "util.hpp"
 
 namespace po

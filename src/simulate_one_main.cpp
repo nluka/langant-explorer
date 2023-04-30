@@ -12,9 +12,8 @@
 #  undef max // because it conflicts with std::max
 #endif
 
-#include "lib/json.hpp"
-#include "lib/term.hpp"
-
+#include "json.hpp"
+#include "term.hpp"
 #include "primitives.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
@@ -131,7 +130,7 @@ void ui_loop(std::string const &sim_name)
       total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
       secs_elapsed_iterating = time_breakdown.nanos_spent_iterating / 1'000'000'000.0,
       mega_gens_completed = gens_completed / 1'000'000.0,
-      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + DBL_EPSILON),
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + std::numeric_limits<f64>::epsilon()),
       percent_completion = ((gens_completed / gens_remaining) * 100.0),
       percent_iteration = ( time_breakdown.nanos_spent_iterating / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0,
       percent_saving    = ( time_breakdown.nanos_spent_saving    / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0;

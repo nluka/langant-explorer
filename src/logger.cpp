@@ -6,7 +6,9 @@
 #include <mutex>
 #include <sstream>
 #include <vector>
+#include <iostream>
 
+#include "term.hpp"
 #include "logger.hpp"
 
 // CONFIGURATION:
@@ -30,18 +32,19 @@ void logger::set_autoflush(bool const b) {
   s_auto_flush = b;
 }
 
+static bool s_write_to_stdout = false;
+void logger::set_stdout_logging(bool const b) {
+  s_write_to_stdout = b;
+}
+
 using logger::event_type;
 
 static char const *event_type_to_str(event_type const ev_type) {
   switch (ev_type) {
-    case event_type::SIM_START:
-      return "SIM_START ";
-    case event_type::SAVE_PNT:
-      return "SAVE_POINT";
-    case event_type::SIM_END:
-      return "SIM_END   ";
-    case event_type::ERR:
-      return "ERROR     ";
+    case event_type::SIM_START: return "SIM_START ";
+    case event_type::SAVE_PNT:  return "SAVE_POINT";
+    case event_type::SIM_END:   return "SIM_END   ";
+    case event_type::ERR:       return "ERROR     ";
 
     case event_type::COUNT:
     default:
@@ -49,30 +52,35 @@ static char const *event_type_to_str(event_type const ev_type) {
   }
 }
 
-class Event {
+class log_event {
 private:
-  event_type const m_type;
   std::string const m_msg;
-  std::chrono::system_clock::time_point const m_time_point =
-      std::chrono::system_clock::now();
+  std::chrono::system_clock::time_point const m_time_point = std::chrono::system_clock::now();
+  unsigned int m_color;
+  event_type const m_type;
 
 public:
-  Event(event_type const type, char const *const msg)
-    : m_type{type}, m_msg{msg} {}
+  log_event(event_type const type, unsigned int const color, char const *const msg)
+    : m_msg{msg}
+    , m_color{color}
+    , m_type{type}
+  {}
+
+  [[nodiscard]] unsigned int color() const noexcept { return m_color; };
 
   std::string stringify() const {
-    std::stringstream ss{};
+    static std::stringstream ss{};
 
     ss << '[' << event_type_to_str(m_type) << ']' << ' ';
 
     std::time_t const time = std::chrono::system_clock::to_time_t(m_time_point);
 
     // timestamp
-    #if 0
+#if 0
     char const *const raw_time_stamp = ctime(&time); // has a \n at the end
     std::string_view time_stamp(raw_time_stamp, std::strlen(raw_time_stamp) - 1);
     ss << '(' << time_stamp << ')' << ' ';
-    #else
+#else
     {
       struct tm const *local = localtime(&time);
 
@@ -86,15 +94,21 @@ public:
         << std::setw(2) << local->tm_sec
       << ") ";
     }
-    #endif
+#endif
 
     ss << m_msg;
 
-    return ss.str();
+    std::string retval = ss.str();
+
+    // reset `ss`
+    ss.str("");
+    ss.seekp(0);
+
+    return retval;
   }
 };
 
-static std::vector<Event> s_events{};
+static std::vector<log_event> s_events{};
 #if LOGGER_THREADSAFE
 static std::mutex s_events_mutex{};
 #endif
@@ -109,19 +123,29 @@ void assert_file_opened(std::ofstream const &file) {
 }
 
 void logger::log(event_type const ev_type, char const *const fmt, ...) {
+  static constexpr
+  term::color::value_type s_event_type_to_color_map[u64(event_type::COUNT)] {
+    term::color::fore::DEFAULT,
+    term::color::fore::YELLOW,
+    term::color::fore::GREEN,
+    term::color::fore::RED,
+  };
+
   {
 #if LOGGER_THREADSAFE
     std::scoped_lock const lock{s_events_mutex};
 #endif
 
-    va_list varArgs;
-    va_start(varArgs, fmt);
     constexpr size_t len = MAX_MSG_LEN + 1; // +1 for NUL
-    char msg[len];
-    vsnprintf(msg, len, fmt, varArgs);
-    va_end(varArgs);
+    static char msg[len];
 
-    s_events.emplace_back(ev_type, msg);
+    va_list var_args;
+    va_start(var_args, fmt);
+    vsnprintf(msg, len, fmt, var_args);
+    va_end(var_args);
+
+    term::color::value_type const color = s_event_type_to_color_map[u64(ev_type)];
+    s_events.emplace_back(ev_type, color, msg);
   }
 
   if (s_auto_flush) {
@@ -130,29 +154,39 @@ void logger::log(event_type const ev_type, char const *const fmt, ...) {
 }
 
 void logger::flush() {
+#if LOGGER_THREADSAFE
+  std::scoped_lock const lock{s_events_mutex};
+#endif
+
   static bool s_file_ready = false;
-  if (!s_file_ready) {
+
+  if (s_out_file_path != "" && !s_file_ready) {
     std::ofstream file(s_out_file_path); // clear file
     assert_file_opened(file);
     s_file_ready = true;
   }
 
-#if LOGGER_THREADSAFE
-  std::scoped_lock const lock{s_events_mutex};
-#endif
-
   if (s_events.empty()) {
     return;
   }
 
-  std::ofstream file(s_out_file_path, std::ios_base::app);
-  assert_file_opened(file);
+  std::optional<std::ofstream> file = std::nullopt;
+  if (s_out_file_path != "") {
+    file = std::ofstream(s_out_file_path, std::ios_base::app);
+    assert_file_opened(file.value());
+  }
 
   for (auto const &evt : s_events) {
-    if (!file.good()) {
-      throw "logger::flush failed - bad file";
+    if (!file) {
+      throw std::runtime_error("logger::flush failed - bad file");
     }
-    file << evt.stringify() << s_delim;
+
+    std::string const event_str = evt.stringify();
+
+    if (file.has_value())
+      file.value() << event_str << s_delim;
+    if (s_write_to_stdout)
+      term::color::printf(evt.color(), "%s%s", event_str.c_str(), s_delim);
   }
 
   s_events.clear();

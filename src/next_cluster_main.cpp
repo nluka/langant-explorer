@@ -2,8 +2,7 @@
 #include <filesystem>
 #include <cinttypes>
 
-#include "lib/fregex.hpp"
-
+#include "fregex.hpp"
 #include "primitives.hpp"
 #include "util.hpp"
 

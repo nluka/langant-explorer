@@ -19,18 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\lib\fregex.cpp" />
-    <ClCompile Include="..\src\lib\ntest.cpp" />
-    <ClCompile Include="..\src\lib\pgm8.cpp" />
-    <ClCompile Include="..\src\lib\term.cpp" />
-    <ClCompile Include="..\src\logger.cpp" />
-    <ClCompile Include="..\src\program_options.cpp" />
-    <ClCompile Include="..\src\simulation_misc.cpp" />
-    <ClCompile Include="..\src\simulation_parse_state.cpp" />
-    <ClCompile Include="..\src\simulation_run.cpp" />
-    <ClCompile Include="..\src\simulation_save_state.cpp" />
+    <ClCompile Include="..\src\core_source_libs.cpp" />
+    <ClCompile Include="..\src\ntest.cpp" />
+    <ClCompile Include="..\src\simulation.cpp" />
     <ClCompile Include="..\src\testing_main.cpp" />
-    <ClCompile Include="..\src\util.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -156,7 +148,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
@@ -176,7 +168,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>

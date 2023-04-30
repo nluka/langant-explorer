@@ -3,8 +3,8 @@
 #include <filesystem>
 
 #include <boost/program_options.hpp>
-#include "lib/pgm8.hpp"
 
+#include "pgm8.hpp"
 #include "primitives.hpp"
 #include "util.hpp"
 #include "program_options.hpp"

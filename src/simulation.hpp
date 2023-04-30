@@ -10,8 +10,8 @@
 #include <ostream>
 
 #include <boost/program_options.hpp>
-#include "lib/pgm8.hpp"
 
+#include "pgm8.hpp"
 #include "primitives.hpp"
 #include "util.hpp"
 
@@ -150,7 +150,7 @@ namespace simulation
 
   struct run_result
   {
-    enum code : u8
+    enum class code : u8
     {
       NIL = 0,
       REACHED_GENERATION_LIMIT,
@@ -172,7 +172,9 @@ namespace simulation
     std::filesystem::path const &save_dir,
     b8 save_final_state,
     b8 create_logs,
-    b8 save_image_only);
+    b8 save_image_only,
+    std::atomic<u64> *num_simulations_processed = nullptr,
+    u64 total = 0);
 }
 
 #endif // SIMULATION_HPP

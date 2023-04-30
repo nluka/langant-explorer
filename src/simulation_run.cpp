@@ -6,8 +6,8 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "lib/json.hpp"
-
+#include "json.hpp"
+#include "term.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
 #include "logger.hpp"
@@ -70,12 +70,18 @@ simulation::run_result simulation::run(
   std::filesystem::path const &save_dir,
   b8 const save_final_cfg,
   b8 const create_logs,
-  b8 const save_image_only)
+  b8 const save_image_only,
+  std::atomic<u64> *const num_simulations_processed,
+  u64 const total)
 {
+  using logger::log;
   using logger::event_type;
 
+  u64 const max_name_display_len = 32;
+  u64 const num_digits_in_total = util::count_digits(total);
+
   if (create_logs) {
-    logger::log(event_type::SIM_START, name.c_str());
+    log(event_type::SIM_START, "%*.*s", max_name_display_len, max_name_display_len, name.c_str());
   }
 
   run_result result{};
@@ -96,17 +102,26 @@ simulation::run_result simulation::run(
   };
 
   auto const do_save = [&] {
+    b8 failed = false;
+
     try {
       simulation::save_state(state, name.c_str(), save_dir, img_fmt, save_image_only);
       ++result.num_save_points_successful;
+
       if (create_logs) {
-        logger::log(logger::event_type::SAVE_PNT, "%s @ %zu", name.c_str(), state.generation);
+        f64 const percent_of_gen_limit = (state.generation / f64(generation_limit)) * 100.0;
+
+        log(event_type::SAVE_PNT, "%*.*s | %6.2lf %%, %zu",
+          max_name_display_len, max_name_display_len, name.c_str(), percent_of_gen_limit, state.generation);
       }
-    } catch (std::runtime_error const &) {
-      ++result.num_save_points_failed;
+    // } catch (std::runtime_error const &) {
+    //   failed = true;
     } catch (...) {
-      ++result.num_save_points_failed;
+      failed = true;
     }
+
+    static_assert(true == u8(1));
+    result.num_save_points_failed += static_cast<u8>(failed);
   };
 
   // sort save_points in descending order, so we can pop them off the back as we complete them
@@ -143,7 +158,7 @@ simulation::run_result simulation::run(
       dist_to_gen_limit,
     };
 
-    enum stop_reason : u64
+    enum class stop_reason : u64
     {
       SAVE_INTERVAL = 0,
       SAVE_POINT,
@@ -214,14 +229,35 @@ done:
   begin_new_activity(activity::NIL);
 
   if (create_logs) {
-    logger::log(
-      event_type::SIM_END,
-      "%s %s",
+    f64 const
+      mega_gens_completed = state.generations_completed() / 1'000'000.0,
+      secs_spent_iterating = query_activity_time_breakdown(state).nanos_spent_iterating / 1'000'000'000.0,
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + std::numeric_limits<f64>::epsilon());
+
+    char const *const result_cstr = [code = result.code] {
+      switch (code) {
+        default:
+        case simulation::run_result::code::NIL:                      return "nil";
+        case simulation::run_result::code::REACHED_GENERATION_LIMIT: return "reached_gen_limit";
+        case simulation::run_result::code::HIT_EDGE:                 return "hit_grid_edge";
+      }
+    }();
+
+    u64 const simulation_number = num_simulations_processed != nullptr
+      ? num_simulations_processed->load() + 1
+      : 0;
+    f64 const percent_of_total = total > 0 ?
+      (simulation_number / f64(total)) * 100.0
+      : std::nan("percent_of_total");
+
+    log(event_type::SIM_END, "%*.*s | (%*zu/%zu, %6.2lf %%) %6.2lf Mgens/s, %-18s",
+      max_name_display_len, max_name_display_len,
       name.c_str(),
-      (result.code == simulation::run_result::REACHED_GENERATION_LIMIT
-        ? util::make_str("reached generation limit of %zu", generation_limit).c_str()
-        : util::make_str("hit edge @ %zu", state.generation).c_str())
-    );
+      num_digits_in_total, simulation_number,
+      total,
+      percent_of_total,
+      mega_gens_per_sec,
+      result_cstr);
   }
 
   return result;
@@ -230,7 +266,7 @@ done:
 simulation::step_result::value_type simulation::attempt_step_forward(
   simulation::state &state)
 {
-  u64 const curr_cell_idx = (state.ant_row * state.grid_width) + state.ant_col;
+  u64 const curr_cell_idx = (u64(state.ant_row) * u64(state.grid_width)) + u64(state.ant_col);
   u8 const curr_cell_shade = state.grid[curr_cell_idx];
   auto const &curr_cell_rule = state.rules[curr_cell_shade];
 
@@ -244,9 +280,8 @@ simulation::step_result::value_type simulation::attempt_step_forward(
   // update current cell shade
   state.grid[curr_cell_idx] = curr_cell_rule.replacement_shade;
 
-#if 0
-
   i32 next_col, next_row;
+#if 0
   if (state.ant_orientation == orientation::NORTH) {
     next_col = state.ant_col;
     next_row = state.ant_row - 1;
@@ -260,10 +295,7 @@ simulation::step_result::value_type simulation::attempt_step_forward(
     next_col = state.ant_col - 1;
     next_row = state.ant_row;
   }
-
 #else
-
-  i32 next_col;
   if (state.ant_orientation == orientation::EAST)
     next_col = state.ant_col + 1;
   else if (state.ant_orientation == orientation::WEST)
@@ -271,14 +303,12 @@ simulation::step_result::value_type simulation::attempt_step_forward(
   else
     next_col = state.ant_col;
 
-  i32 next_row;
   if (state.ant_orientation == orientation::NORTH)
     next_row = state.ant_row - 1;
   else if (state.ant_orientation == orientation::SOUTH)
     next_row = state.ant_row + 1;
   else
     next_row = state.ant_row;
-
 #endif
 
   if (

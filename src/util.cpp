@@ -5,9 +5,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "lib/json.hpp"
-#include "lib/term.hpp"
-
+#include "json.hpp"
+#include "term.hpp"
 #include "primitives.hpp"
 #include "util.hpp"
 

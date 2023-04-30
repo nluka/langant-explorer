@@ -3,8 +3,7 @@
 #include <sstream>
 #include <string>
 
-#include "lib/json.hpp"
-
+#include "json.hpp"
 #include "primitives.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
@@ -29,22 +28,22 @@ b8 try_to_parse_and_set_uint(
     val = json[property].get<uintmax_t>();
   } catch (json_t::basic_json::type_error const &except) {
     add_err(
-      make_str("invalid `%s` -> %s", property, util::nlohmann_json_extract_sentence(except)));
+      make_str("bad %s, %s", property, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
   if (!json[property].is_number_unsigned()) {
-    add_err(make_str("invalid `%s` -> not an unsigned integer", property));
+    add_err(make_str("bad %s, not an unsigned integer", property));
     return false;
   }
 
   if (val < min) {
-    add_err(make_str("invalid `%s` -> cannot be < %" PRIuMAX, property, min));
+    add_err(make_str("bad %s, cannot be < %" PRIuMAX, property, min));
     return false;
   }
 
   if (val > max) {
-    add_err(make_str("invalid `%s` -> cannot be > %" PRIuMAX, property, max));
+    add_err(make_str("bad %s, cannot be > %" PRIuMAX, property, max));
     return false;
   }
 
@@ -66,7 +65,7 @@ b8 try_to_parse_and_set_enum(
     parsed_text = json[property].get<std::string>();
   } catch (json_t::basic_json::type_error const &except) {
     add_err(
-      make_str("invalid `%s` -> %s", property, util::nlohmann_json_extract_sentence(except)));
+      make_str("bad %s, %s", property, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -86,7 +85,7 @@ b8 try_to_parse_and_set_enum(
   }
   std::string allowed_values_str = allowed_values_stream.str();
   allowed_values_str.pop_back(); // remove trailing pipe
-  add_err(make_str("invalid `%s` -> not one of %s", property, allowed_values_str.c_str()));
+  add_err(make_str("bad %s, not one of %s", property, allowed_values_str.c_str()));
   return false;
 }
 
@@ -98,22 +97,22 @@ b8 try_to_parse_and_set_rule(
   std::function<void(std::string &&)> const &add_err)
 {
   if (!rule.is_object()) {
-    add_err("invalid `rules` -> not an array of objects");
+    add_err("bad rules, not an array of objects");
     return false;
   }
 
   if (rule.count("on") == 0) {
-    add_err(make_str("invalid `rules` -> [%zu].on not defined", index));
+    add_err(make_str("bad rules, [%zu].on not defined", index));
     return false;
   }
 
   if (rule.count("replace_with") == 0) {
-    add_err(make_str("invalid `rules` -> [%zu].replace_with not defined", index));
+    add_err(make_str("bad rules, [%zu].replace_with not defined", index));
     return false;
   }
 
   if (rule.count("turn") == 0) {
-    add_err(make_str("invalid `rules` -> [%zu].turn not defined", index));
+    add_err(make_str("bad rules, [%zu].turn not defined", index));
     return false;
   }
 
@@ -122,14 +121,14 @@ b8 try_to_parse_and_set_rule(
 
   try {
     if (!rule["on"].is_number_unsigned()) {
-      add_err(make_str("invalid `rules` -> [%zu].on is not an unsigned integer", index));
+      add_err(make_str("bad rules, [%zu].on is not an unsigned integer", index));
       return false;
     }
 
     uintmax_t const temp = rule["on"].get<uintmax_t>();
 
     if (temp > UINT8_MAX) {
-      add_err(make_str("invalid `rules` -> [%zu].on is > %" PRIu8, index, UINT8_MAX));
+      add_err(make_str("bad rules, [%zu].on is > %" PRIu8, index, UINT8_MAX));
       return false;
     }
 
@@ -137,30 +136,30 @@ b8 try_to_parse_and_set_rule(
 
     if (out[shade].turn_dir != simulation::turn_direction::NIL) {
       // rule already set
-      add_err(make_str("invalid `rules` -> more than one rule for shade %" PRIu8, shade));
+      add_err(make_str("bad rules, more than one rule for shade %" PRIu8, shade));
       return false;
     }
   } catch (json_t::basic_json::type_error const &except) {
-    add_err(make_str("invalid `rules` -> [%zu].on %s", index, util::nlohmann_json_extract_sentence(except)));
+    add_err(make_str("bad rules, [%zu].on %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
   try {
     if (!rule["replace_with"].is_number_unsigned()) {
-      add_err(make_str("invalid `rules` -> [%zu].replace_with is not an unsigned integer", index));
+      add_err(make_str("bad rules, [%zu].replace_with is not an unsigned integer", index));
       return false;
     }
 
     uintmax_t const temp = rule["replace_with"].get<uintmax_t>();
 
     if (temp > UINT8_MAX) {
-      add_err(make_str("invalid `rules` -> [%zu].replace_with is > %" PRIu8, index, UINT8_MAX));
+      add_err(make_str("bad rules, [%zu].replace_with is > %" PRIu8, index, UINT8_MAX));
       return false;
     }
 
     replacement = rule["replace_with"].get<u8>();
   } catch (json_t::basic_json::type_error const &except) {
-    add_err(make_str("invalid `rules` -> [%zu].replace_with %s", index, util::nlohmann_json_extract_sentence(except)));
+    add_err(make_str("bad rules, [%zu].replace_with %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
@@ -168,21 +167,21 @@ b8 try_to_parse_and_set_rule(
     std::string const turn = rule["turn"].get<std::string>();
 
     if (turn.empty()) {
-      add_err(make_str("invalid `rules` -> [%zu].turn is empty", index));
+      add_err(make_str("bad rules, [%zu].turn is empty", index));
       return false;
     }
     if (turn.length() > 1) {
-      add_err(make_str("invalid `rules` -> [%zu].turn not recognized", index));
+      add_err(make_str("bad rules, [%zu].turn not recognized", index));
       return false;
     }
 
     turn_dir = simulation::turn_direction::from_char(turn.front());
 
   } catch (json_t::basic_json::type_error const &except) {
-    add_err(make_str("invalid `rules` -> [%zu].turn %s", index, util::nlohmann_json_extract_sentence(except)));
+    add_err(make_str("bad rules, [%zu].turn %s", index, util::nlohmann_json_extract_sentence(except)));
     return false;
   } catch (std::runtime_error const &) {
-    add_err(make_str("invalid `rules` -> [%zu].turn not recognized", index));
+    add_err(make_str("bad rules, [%zu].turn not recognized", index));
     return false;
   }
 
@@ -200,12 +199,12 @@ b8 try_to_parse_and_set_rules(
   try {
     rules = json["rules"].get<json_t::array_t>();
   } catch (json_t::basic_json::type_error const &except) {
-    add_err(make_str("invalid `rules` -> %s", util::nlohmann_json_extract_sentence(except)));
+    add_err(make_str("bad rules, %s", util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
   if (rules.size() > 256) {
-    add_err(make_str("invalid `rules` -> max 256 allowed, but got " PRIu64, rules.size()));
+    add_err(make_str("bad rules, max 256 allowed, but got " PRIu64, rules.size()));
     return false;
   }
 
@@ -233,7 +232,7 @@ b8 try_to_parse_and_set_rules(
     }
 
     if (num_defined_rules < 2) {
-      add_err("invalid `rules` -> fewer than 2 defined");
+      add_err("bad rules, fewer than 2 defined");
       return false;
     }
 
@@ -247,7 +246,7 @@ b8 try_to_parse_and_set_rules(
     }
 
     if (num_non_zero_occurences < 2 || num_non_two_occurences > 0) {
-      add_err("invalid `rules` -> don't form a closed chain");
+      add_err("bad rules, don't form a closed chain");
       return false;
     }
   }
@@ -270,17 +269,17 @@ b8 try_to_parse_and_set_grid_state(
     grid_state = json["grid_state"].get<std::string>();
   } catch (json_t::basic_json::type_error const &except) {
     add_err(
-      make_str("invalid `grid_state` -> %s", util::nlohmann_json_extract_sentence(except)));
+      make_str("bad grid_state, %s", util::nlohmann_json_extract_sentence(except)));
     return false;
   }
 
   if (grid_state == "") {
-    add_err("invalid `grid_state` -> cannot be blank");
+    add_err("bad grid_state, cannot be blank");
     return false;
   }
 
   if (std::regex_match(grid_state, std::regex("^fill=-{1,}[0-9]{1,}$", std::regex_constants::icase))) {
-    add_err("invalid `grid_state` -> fill shade cannot be negative");
+    add_err("bad grid_state, fill shade cannot be negative");
     return false;
   }
 
@@ -292,7 +291,7 @@ b8 try_to_parse_and_set_grid_state(
     uintmax_t const fill_val = strtoumax(num_str, nullptr, 10);
 
     if (fill_val > UINT8_MAX) {
-      add_err(make_str("invalid `grid_state` -> fill shade must be <= %" PRIu8, UINT8_MAX));
+      add_err(make_str("bad grid_state, fill shade must be <= %" PRIu8, UINT8_MAX));
       return false;
     }
 
@@ -301,7 +300,7 @@ b8 try_to_parse_and_set_grid_state(
     }
 
     if (state.rules[fill_val].turn_dir == simulation::turn_direction::NIL) {
-      add_err("invalid `grid_state` -> fill shade has no governing rule");
+      add_err("bad grid_state, fill shade has no governing rule");
       return false;
     }
 
@@ -322,7 +321,7 @@ b8 try_to_parse_and_set_grid_state(
 
     if (!fs::exists(img_path)) {
       add_err(
-        make_str("invalid `grid_state` -> file \"%s\" does not exist", grid_state.c_str()));
+        make_str("bad grid_state, file \"%s\" does not exist", grid_state.c_str()));
       return false;
     }
 
@@ -455,15 +454,15 @@ simulation::state simulation::parse_state(
   );
 
   if (grid_width_parse_success && (state.grid_width < 1 || state.grid_width > UINT16_MAX)) {
-    add_err(make_str("invalid `grid_width` -> must be in range [1, %" PRIu16 "]", UINT16_MAX));
+    add_err(make_str("bad grid_width, must be in range [1, %" PRIu16 "]", UINT16_MAX));
   } else if (ant_col_parse_success && !util::in_range_incl_excl(state.ant_col, 0, state.grid_width)) {
-    add_err(make_str("invalid `ant_col` -> not in grid x-axis [0, %d)", state.grid_width));
+    add_err(make_str("bad ant_col, not in grid x-axis [0, %d)", state.grid_width));
   }
 
   if (grid_height_parse_success && (state.grid_height < 1 || state.grid_height > UINT16_MAX)) {
-    add_err(make_str("invalid `grid_height` -> must be in range [1, %" PRIu16 "]", UINT16_MAX));
+    add_err(make_str("bad grid_height, must be in range [1, %" PRIu16 "]", UINT16_MAX));
   } else if (ant_row_parse_success && !util::in_range_incl_excl(state.ant_row, 0, state.grid_height)) {
-    add_err(make_str("invalid `ant_row` -> not in grid y-axis [0, %d)", state.grid_width));
+    add_err(make_str("bad ant_row, not in grid y-axis [0, %d)", state.grid_width));
   }
 
   [[maybe_unused]] b8 const last_step_res_parse_success = try_to_parse_and_set_enum<

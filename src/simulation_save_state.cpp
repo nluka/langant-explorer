@@ -1,5 +1,4 @@
-#include "lib/json.hpp"
-
+#include "json.hpp"
 #include "simulation.hpp"
 
 namespace fs = std::filesystem;

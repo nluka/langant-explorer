@@ -7,9 +7,9 @@
 
 #include <boost/program_options.hpp>
 #include <boost/container/static_vector.hpp>
-#include "lib/json.hpp"
-#include "lib/term.hpp"
 
+#include "json.hpp"
+#include "term.hpp"
 #include "primitives.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
@@ -200,7 +200,7 @@ try
 
     print_line([&] {
       printf("States/sec : ");
-      printf(fore::WHITE | back::MAGENTA, "%.2lf", states_per_sec);
+      printf(fore::LIGHT_BLUE, "%.2lf", states_per_sec);
     });
 
     print_line([&] {

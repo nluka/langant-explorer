@@ -1,9 +1,8 @@
 #include <regex>
 
-#include "lib/pgm8.hpp"
-#include "lib/json.hpp"
-#include "lib/fregex.hpp"
-
+#include "pgm8.hpp"
+#include "json.hpp"
+#include "fregex.hpp"
 #include "program_options.hpp"
 #include "util.hpp"
 

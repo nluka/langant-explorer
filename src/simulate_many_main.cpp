@@ -10,22 +10,15 @@
 
 #include <boost/program_options.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include "lib/BS_thread_pool.hpp"
-#include "lib/json.hpp"
-#include "lib/term.hpp"
-#include "lib/fregex.hpp"
 
 #ifdef _WIN32
 #  include <Windows.h>
 #  undef max // because it conflicts with std::max
 #endif
 
-#include "primitives.hpp"
-#include "util.hpp"
-#include "simulation.hpp"
-#include "logger.hpp"
+#include "core_source_libs.hpp"
 #include "program_options.hpp"
-#include "platform.hpp"
+#include "simulation.hpp"
 
 namespace fs = std::filesystem;
 namespace bpo = boost::program_options;
@@ -36,8 +29,6 @@ using util::make_str;
 using util::die;
 
 static po::simulate_many_options s_options{};
-static std::mutex stdout_mutex{};
-static std::mutex stderr_mutex{};
 
 i32 main(i32 const argc, char const *const *const argv)
 try
@@ -87,10 +78,10 @@ try
     }
   }
 
-  if (s_options.log_file_path != "") {
-    logger::set_out_file_path(s_options.log_file_path);
-    logger::set_autoflush(true);
-  }
+  logger::set_out_file_path(s_options.log_file_path);
+  logger::set_stdout_logging(s_options.log_to_stdout);
+  logger::set_autoflush(true);
+  logger::set_delim("\n");
 
   std::vector<fs::path> const state_files = fregex::find(
     s_options.state_dir_path.c_str(),
@@ -115,7 +106,7 @@ try
   simulation_queue.clear();
   completed_simulations.reserve(state_files.size());
 
-  // For processing multiple simulations at once
+  // for processing multiple simulations at once
   BS::thread_pool t_pool(s_options.num_threads);
 
 #if ON_WINDOWS
@@ -146,12 +137,7 @@ try
         if (!errors.empty()) {
           if (s_options.any_logging_enabled()) {
             std::string const err = make_str("failed to parse %s: %s", path_str.c_str(), util::stringify_errors(errors).c_str());
-            if (s_options.log_file_path != "")
-              logger::log(logger::event_type::ERR, "%s", err.c_str());
-            if (s_options.log_to_stdout) {
-              std::scoped_lock stdout_lock(stdout_mutex);
-              std::printf("%s\n", err.c_str());
-            }
+            logger::log(logger::event_type::ERR, "%s", err.c_str());
           }
         } else {
           simulation_queue.emplace_back(simulation::extract_name_from_json_state_path(path_str), state);
@@ -161,16 +147,8 @@ try
     }
   });
 
-  auto const simulation_task = [&](named_simulation &sim) {
+  auto const simulation_task = [&](named_simulation &sim, u64 const total) {
     time_point_t const start_time = util::current_time();
-
-    if (s_options.log_to_stdout) {
-      std::scoped_lock stdout_lock(stdout_mutex);
-      auto const time = std::time(NULL);
-      char *const time_cstr = ctime(&time);
-      time_cstr[std::strlen(time_cstr) - 1] = '\0'; // remove trailing \n
-      std::printf("[%s] %s\n", time_cstr, sim.name.c_str());
-    }
 
     try {
       auto const result = simulation::run(
@@ -183,8 +161,9 @@ try
         s_options.sim.save_path,
         s_options.sim.save_final_state,
         s_options.sim.create_logs,
-        s_options.sim.save_image_only
-      );
+        s_options.sim.save_image_only,
+        &num_simulations_processed,
+        total);
 
       [[maybe_unused]] time_point_t const end_time = util::current_time();
       auto const time_breakdown = simulation::query_activity_time_breakdown(sim.state);
@@ -193,44 +172,15 @@ try
         std::scoped_lock compl_sims_lock(completed_simulations_mutex);
         completed_simulations.emplace_back(sim.state.generation, time_breakdown, result);
       }
-
-      if (s_options.log_to_stdout) {
-        auto const time = std::time(NULL);
-        char *const time_cstr = ctime(&time);
-        time_cstr[std::strlen(time_cstr) - 1] = '\0'; // remove trailing \n
-        u64 const
-          which_sim_num = num_simulations_processed.load() + 1,
-          gens_completed = sim.state.generations_completed();
-        f64 const
-          percent_to_gen_limit = (gens_completed / static_cast<f64>(s_options.sim.generation_limit)) * 100.0,
-          mega_gens_completed = gens_completed / 1'000'000.0,
-          mega_gens_per_sec = mega_gens_completed / (time_breakdown.nanos_spent_iterating / 1'000'000'000.0),
-          seconds_elapsed = util::nanos_between(start_time, end_time) / 1'000'000'000.0;
-        // std::string const time_elapsed = util::time_span(static_cast<u64>(seconds_elapsed)).to_string();
-        char time_elapsed[64];
-        util::time_span(static_cast<u64>(seconds_elapsed)).stringify(time_elapsed, util::lengthof(time_elapsed));
-
-        std::scoped_lock stdout_lock(stdout_mutex);
-
-        term::color::printf(fore::GREEN, "[%s] (%zu/%zu) %s | %zu (%.1lf %%) | %s | %.2lf Mgens/sec\n",
-          time_cstr, which_sim_num, state_files.size(), sim.name.c_str(),
-          gens_completed, percent_to_gen_limit, time_elapsed, mega_gens_per_sec);
-      }
     } catch (std::exception const &except) {
       if (s_options.any_logging_enabled()) {
         std::string const err = make_str("%s failed: %s", except.what());
-        if (s_options.log_file_path != "")
-          logger::log(logger::event_type::ERR, "%s", err.c_str());
-        if (s_options.log_to_stdout)
-          print_err("%s", err.c_str());
+        logger::log(logger::event_type::ERR, "%s", err.c_str());
       }
     } catch (...) {
       if (s_options.any_logging_enabled()) {
-        std::string const err = make_str("%s failed, unknown cause", sim.name.c_str());
-        if (s_options.log_file_path != "")
-          logger::log(logger::event_type::ERR, "%s", err.c_str());
-        if (s_options.log_to_stdout)
-          print_err("%s", err.c_str());
+        std::string const err = make_str("%s failed, unknown cause - catch (...)", sim.name.c_str());
+        logger::log(logger::event_type::ERR, "%s", err.c_str());
       }
     }
 
@@ -244,7 +194,7 @@ try
       sem_full.acquire();
       {
         std::scoped_lock sim_q_lock(simulation_queue_mutex);
-        t_pool.push_task(simulation_task, std::move(simulation_queue.back()));
+        t_pool.push_task(simulation_task, std::move(simulation_queue.back()), state_files.size());
         simulation_queue.pop_back();
       }
       sem_empty.release();
@@ -273,41 +223,41 @@ try
     total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
     secs_spent_iterating = nanos_spent_iterating / 1'000'000'000.0,
     mega_gens_completed = gens_completed / 1'000'000.0,
-    mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + DBL_EPSILON),
-    percent_iteration = ( nanos_spent_iterating / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0,
-    percent_saving    = ( nanos_spent_saving    / (static_cast<f64>(nanos_spent_iterating + nanos_spent_saving)) ) * 100.0;
+    mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + std::numeric_limits<f64>::epsilon()),
+    percent_iteration = ( nanos_spent_iterating / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0,
+    percent_saving    = ( nanos_spent_saving    / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0;
 
-  std::printf("------------------------------\n");
-  std::printf("Mgens/sec : %.1lf\n", mega_gens_per_sec);
-  std::printf("I/S Ratio : %.1lf / %.1lf\n",
+  printf(fore::GRAY, "---------------------------------\n");
+  std::printf("Avg Mgens/sec : %.2lf\n", mega_gens_per_sec);
+  std::printf("Avg I/S Ratio : %.2lf / %.2lf\n",
       std::isnan(percent_iteration) ? 0.0 : percent_iteration,
       std::isnan(percent_saving)    ? 0.0 : percent_saving);
-  std::printf("Elapsed   : %s\n", util::time_span(static_cast<u64>(total_secs_elapsed)).to_string().c_str());
-  std::printf("------------------------------\n");
+
+  {
+    char time_elapsed[64];
+    util::time_span(static_cast<u64>(total_secs_elapsed)).stringify(time_elapsed, util::lengthof(time_elapsed));
+    std::printf("Time Elapsed  : %s\n", time_elapsed);
+  }
 
   return 0;
 }
 catch (std::exception const &except)
 {
-  std::scoped_lock stderr_lock(stderr_mutex);
   std::cerr << except.what() << '\n';
   return 1;
 }
 catch (std::string const &except)
 {
-  std::scoped_lock stderr_lock(stderr_mutex);
   std::cerr << except << '\n';
   return 1;
 }
 catch (char const *const except)
 {
-  std::scoped_lock stderr_lock(stderr_mutex);
   std::cerr << except << '\n';
   return 1;
 }
 catch (...)
 {
-  std::scoped_lock stderr_lock(stderr_mutex);
-  std::cerr << "unknown error - catch (...)" << '\n';
+  std::cerr << "unknown error - catch (...)\n";
   return 1;
 }

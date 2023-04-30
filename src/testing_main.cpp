@@ -1,7 +1,6 @@
-#include "lib/json.hpp"
-#include "lib/ntest.hpp"
-#include "lib/fregex.hpp"
-
+#include "json.hpp"
+#include "ntest.hpp"
+#include "fregex.hpp"
 #include "util.hpp"
 #include "simulation.hpp"
 #include "platform.hpp"
@@ -91,100 +90,100 @@ i32 main()
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `generation` -> type must be number, but is string",
-      "invalid `grid_width` -> type must be number, but is object",
-      "invalid `grid_height` -> type must be number, but is array",
-      "invalid `ant_col` -> type must be number, but is null",
-      "invalid `ant_row` -> type must be number, but is string",
-      "invalid `last_step_result` -> type must be string, but is number",
-      "invalid `ant_orientation` -> type must be string, but is number",
-      "invalid `rules` -> type must be array, but is object",
-      "invalid `grid_state` -> type must be string, but is boolean",
+      "bad generation, type must be number, but is string",
+      "bad grid_width, type must be number, but is object",
+      "bad grid_height, type must be number, but is array",
+      "bad ant_col, type must be number, but is null",
+      "bad ant_row, type must be number, but is string",
+      "bad last_step_result, type must be string, but is number",
+      "bad ant_orientation, type must be string, but is number",
+      "bad rules, type must be array, but is object",
+      "bad grid_state, type must be string, but is boolean",
     }, "type_errors_0.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `generation` -> type must be number, but is null",
-      "invalid `grid_width` -> type must be number, but is array",
-      "invalid `grid_height` -> type must be number, but is object",
-      "invalid `ant_col` -> type must be number, but is string",
-      "invalid `ant_row` -> type must be number, but is null",
-      "invalid `last_step_result` -> type must be string, but is boolean",
-      "invalid `ant_orientation` -> type must be string, but is boolean",
-      "invalid `rules` -> not an array of objects",
-      "invalid `grid_state` -> type must be string, but is number",
+      "bad generation, type must be number, but is null",
+      "bad grid_width, type must be number, but is array",
+      "bad grid_height, type must be number, but is object",
+      "bad ant_col, type must be number, but is string",
+      "bad ant_row, type must be number, but is null",
+      "bad last_step_result, type must be string, but is boolean",
+      "bad ant_orientation, type must be string, but is boolean",
+      "bad rules, not an array of objects",
+      "bad grid_state, type must be string, but is number",
     }, "type_errors_1.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `generation` -> not an unsigned integer",
-      "invalid `grid_width` -> not an unsigned integer",
-      "invalid `grid_height` -> not an unsigned integer",
-      "invalid `ant_col` -> not an unsigned integer",
-      "invalid `ant_row` -> not an unsigned integer",
-      "invalid `last_step_result` -> not one of nil|success|hit_edge",
-      "invalid `ant_orientation` -> not one of N|E|S|W",
-      "invalid `rules` -> [0].on is not an unsigned integer",
-      "invalid `grid_state` -> cannot be blank",
+      "bad generation, not an unsigned integer",
+      "bad grid_width, not an unsigned integer",
+      "bad grid_height, not an unsigned integer",
+      "bad ant_col, not an unsigned integer",
+      "bad ant_row, not an unsigned integer",
+      "bad last_step_result, not one of nil|success|hit_edge",
+      "bad ant_orientation, not one of N|E|S|W",
+      "bad rules, [0].on is not an unsigned integer",
+      "bad grid_state, cannot be blank",
     }, "value_errors_0.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `grid_width` -> cannot be > 65535",
-      "invalid `grid_height` -> cannot be > 65535",
-      "invalid `ant_col` -> cannot be > 65535",
-      "invalid `ant_row` -> cannot be > 65535",
-      "invalid `last_step_result` -> not one of nil|success|hit_edge",
-      "invalid `ant_orientation` -> not one of N|E|S|W",
-      "invalid `rules` -> [0].on is > 255",
-      "invalid `grid_state` -> fill shade cannot be negative",
+      "bad grid_width, cannot be > 65535",
+      "bad grid_height, cannot be > 65535",
+      "bad ant_col, cannot be > 65535",
+      "bad ant_row, cannot be > 65535",
+      "bad last_step_result, not one of nil|success|hit_edge",
+      "bad ant_orientation, not one of N|E|S|W",
+      "bad rules, [0].on is > 255",
+      "bad grid_state, fill shade cannot be negative",
     }, "value_errors_1.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `ant_col` -> not in grid x-axis [0, 65535)",
-      "invalid `ant_row` -> not in grid y-axis [0, 65535)",
-      "invalid `rules` -> [0].replace_with is not an unsigned integer",
-      "invalid `grid_state` -> fill shade must be <= 255",
+      "bad ant_col, not in grid x-axis [0, 65535)",
+      "bad ant_row, not in grid y-axis [0, 65535)",
+      "bad rules, [0].replace_with is not an unsigned integer",
+      "bad grid_state, fill shade must be <= 255",
     }, "value_errors_2.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `grid_width` -> must be in range [1, 65535]",
-      "invalid `grid_height` -> must be in range [1, 65535]",
-      "invalid `rules` -> [0].replace_with is > 255",
-      "invalid `grid_state` -> file \"non_existent_file\" does not exist",
+      "bad grid_width, must be in range [1, 65535]",
+      "bad grid_height, must be in range [1, 65535]",
+      "bad rules, [0].replace_with is > 255",
+      "bad grid_state, file \"non_existent_file\" does not exist",
     }, "value_errors_3.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `rules` -> [0].turn not recognized",
-      "invalid `grid_state` -> file \"fake_file\" does not exist",
+      "bad rules, [0].turn not recognized",
+      "bad grid_state, file \"fake_file\" does not exist",
     }, "value_errors_4.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `rules` -> [0].turn is empty"
+      "bad rules, [0].turn is empty"
     }, "value_errors_5.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `rules` -> fewer than 2 defined"
+      "bad rules, fewer than 2 defined"
     }, "value_errors_6.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `rules` -> don't form a closed chain",
+      "bad rules, don't form a closed chain",
     }, "value_errors_7.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `grid_state` -> fill shade has no governing rule",
+      "bad grid_state, fill shade has no governing rule",
     }, "value_errors_8.json");
 
     assert_parse({/* state */}, {
       // errors:
-      "invalid `rules` -> don't form a closed chain"
+      "bad rules, don't form a closed chain"
     }, "value_errors_9.json");
 
     {
