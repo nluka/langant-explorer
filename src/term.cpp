@@ -4,7 +4,8 @@
 
 #include "term.hpp"
 
-// super useful reference:
+// super useful references:
+// https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
 // https://www2.math.upenn.edu/~kazdan/210/computer/ansi.html
 
 void term::clear_screen() {
@@ -67,68 +68,79 @@ void term::cursor::restore_pos() {
 }
 
 static
-int ansi_color_code_fore(int const color) {
-  int const fgComponent = color & 0b00000000000000000111111111111111;
+int ansi_color_code_fore(term::color::value_type const color) {
+  term::color::value_type const fg_component = color & 0b00000000000000001111111111111111;
 
-  switch (fgComponent) {
+  int ansi_color_code;
+
+  switch (fg_component) {
     using namespace term::color;
 
-    case fore::DEFAULT: return 0;
-    case fore::RED: return 31;
-    case fore::GREEN: return 32;
-    case fore::YELLOW: return 33;
-    case fore::BLUE: return 34;
-    case fore::MAGENTA: return 35;
-    case fore::CYAN: return 36;
+    case fore::DEFAULT: ansi_color_code = 0; break;
+    case fore::RED: ansi_color_code = 31; break;
+    case fore::GREEN: ansi_color_code = 32; break;
+    case fore::YELLOW: ansi_color_code = 33; break;
+    case fore::BLUE: ansi_color_code = 34; break;
+    case fore::MAGENTA: ansi_color_code = 35; break;
+    case fore::CYAN: ansi_color_code = 36; break;
 
-    case fore::GRAY: return 90;
-    case fore::GREY: return 90;
-    case fore::LIGHT_RED: return 91;
-    case fore::LIGHT_GREEN: return 92;
-    case fore::LIGHT_YELLOW: return 93;
-    case fore::LIGHT_BLUE: return 94;
-    case fore::LIGHT_MAGENTA: return 95;
-    case fore::LIGHT_CYAN: return 96;
-    case fore::WHITE: return 97;
+    case fore::GRAY: ansi_color_code = 90; break;
+    case fore::GREY: ansi_color_code = 90; break;
+    case fore::LIGHT_RED: ansi_color_code = 91; break;
+    case fore::LIGHT_GREEN: ansi_color_code = 92; break;
+    case fore::LIGHT_YELLOW: ansi_color_code = 93; break;
+    case fore::LIGHT_BLUE: ansi_color_code = 94; break;
+    case fore::LIGHT_MAGENTA: ansi_color_code = 95; break;
+    case fore::LIGHT_CYAN: ansi_color_code = 96; break;
+    case fore::WHITE: ansi_color_code = 97; break;
 
     default: throw std::runtime_error(
       "ansi_color_code_fore: bad term::color::fore `color`"
     );
   }
+
+  return ansi_color_code;
 }
 
 static
-int ansi_color_code_back(int const color) {
-  int const bgComponent = color & 0b11111111000000000000000000000000;
+int ansi_color_code_back(term::color::value_type const color) {
+  term::color::value_type const bg_component = color & 0b11111111100000000000000000000000;
 
-  switch (bgComponent) {
+  int ansi_color_code;
+
+  switch (bg_component) {
     using namespace term::color;
 
-    case back::BLACK: return 40;
-    case back::RED: return 41;
-    case back::GREEN: return 42;
-    case back::YELLOW: return 43;
-    case back::BLUE: return 44;
-    case back::MAGENTA: return 45;
-    case back::CYAN: return 46;
-    case back::WHITE: return 47;
+    case back::BLACK: ansi_color_code = 40; break;
+    case back::RED: ansi_color_code = 41; break;
+    case back::GREEN: ansi_color_code = 42; break;
+    case back::YELLOW: ansi_color_code = 43; break;
+    case back::BLUE: ansi_color_code = 44; break;
+    case back::MAGENTA: ansi_color_code = 45; break;
+    case back::CYAN: ansi_color_code = 46; break;
+    case back::WHITE: ansi_color_code = 47; break;
+    case back::DEFAULT: ansi_color_code = 49; break;
 
     default: throw std::runtime_error(
       "ansi_color_code_back: bad term::color::back `color`"
     );
   }
+
+  return ansi_color_code;
 }
 
-void term::color::set(unsigned int const color) {
-  int const fg = ansi_color_code_fore(color);
-  std::printf("\033[%dm", fg);
-  if (color & 0b11111111000000000000000000000000) {
+void term::color::set(term::color::value_type const color) {
+  if (color & 0b00000000000000001111111111111111) {
+    int const fg = ansi_color_code_fore(color);
+    std::printf("\033[%dm", fg);
+  }
+  if (color & 0b11111111100000000000000000000000) {
     int const bg = ansi_color_code_back(color);
     std::printf("\033[%dm", bg);
   }
 }
 
-void term::color::printf(int const color, char const *fmt, ...) {
+void term::color::printf(term::color::value_type const color, char const *fmt, ...) {
   color::set(color);
 
   va_list args;
@@ -136,5 +148,5 @@ void term::color::printf(int const color, char const *fmt, ...) {
   vprintf(fmt, args);
   va_end(args);
 
-  color::set(fore::DEFAULT | back::BLACK);
+  color::set(fore::DEFAULT | back::DEFAULT);
 }

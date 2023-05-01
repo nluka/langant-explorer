@@ -129,7 +129,7 @@ void pgm8::read_pixels(
   }
 }
 
-void pgm8::write(
+bool pgm8::write(
   std::fstream &file,
   image_properties const props,
   uint8_t const *pixels)
@@ -169,4 +169,6 @@ void pgm8::write(
       file << '\n';
     }
   }
+
+  return !file.bad();
 }

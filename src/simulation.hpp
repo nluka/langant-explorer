@@ -126,15 +126,22 @@ namespace simulation
 
   u8 deduce_maxval_from_rules(rules_t const &rules);
 
-  void save_state(
+  struct save_state_result
+  {
+    b8 state_write_succes;
+    b8 image_write_success;
+  };
+
+  save_state_result save_state(
     state const &state,
     const char *name,
     std::filesystem::path const &dir,
     pgm8::format img_fmt,
     b8 image_only);
 
-  void print_state_json(
+  bool print_state_json(
     std::ostream &os,
+    std::string const &file_path,
     std::string const &grid_state,
     u64 generation,
     i32 grid_width,

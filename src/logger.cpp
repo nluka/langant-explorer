@@ -131,6 +131,10 @@ void logger::log(event_type const ev_type, char const *const fmt, ...) {
     term::color::fore::RED,
   };
 
+  if (s_out_file_path == "" && !s_write_to_stdout) {
+    return;
+  }
+
   {
 #if LOGGER_THREADSAFE
     std::scoped_lock const lock{s_events_mutex};

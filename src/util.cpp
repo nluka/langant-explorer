@@ -176,7 +176,7 @@ void util::die(char const *fmt, ...)
 {
   using namespace term::color;
 
-  term::color::set(fore::RED | back::BLACK);
+  term::color::set(fore::RED);
 
   printf("fatal: ");
 
@@ -185,7 +185,7 @@ void util::die(char const *fmt, ...)
   [[maybe_unused]] i32 const retval = vprintf(fmt, args);
   va_end(args);
 
-  term::color::set(fore::DEFAULT | back::BLACK);
+  term::color::set(fore::DEFAULT | back::DEFAULT);
 
   putc('\n', stdout);
 

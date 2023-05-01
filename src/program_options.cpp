@@ -458,8 +458,9 @@ void po::parse_make_states_options(
           try {
             fs::create_directories(out_dir_path.value());
             out.out_dir_path = std::move(out_dir_path.value());
-          } catch (fs::filesystem_error const &except) {
-            print_err("unable to create directory: %s", except.what());
+          } catch (fs::filesystem_error const &) {
+            errors.emplace_back(make_str("unable to create directory '%s'",
+              fs::path(out_dir_path.value()).generic_string().c_str()));
           }
         } else {
           errors.emplace_back(make_str("%s does not exist, specify %s to create it",

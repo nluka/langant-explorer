@@ -53,32 +53,30 @@ namespace term {
         LIGHT_BLUE    = (1u << 11),
         LIGHT_MAGENTA = (1u << 12),
         LIGHT_CYAN    = (1u << 13),
-        WHITE         = (1u << 14),
-        num_bits      = 16;
+        WHITE         = (1u << 14);
     } // namespace fore
 
     /// Background color constants.
     namespace back {
       color::value_type constexpr
-        BLACK    = (1u << 31),
-        RED      = (1u << 30),
-        GREEN    = (1u << 29),
-        YELLOW   = (1u << 28),
-        BLUE     = (1u << 27),
-        MAGENTA  = (1u << 26),
-        CYAN     = (1u << 25),
-        WHITE    = (1u << 24),
-        num_bits = 8;
+        DEFAULT  = (1u << 31),
+        BLACK    = (1u << 30),
+        RED      = (1u << 29),
+        GREEN    = (1u << 28),
+        YELLOW   = (1u << 27),
+        BLUE     = (1u << 26),
+        MAGENTA  = (1u << 25),
+        CYAN     = (1u << 24),
+        WHITE    = (1u << 23);
     } // namespace back
 
-    static_assert(back::num_bits + fore::num_bits <= sizeof(value_type) * 8);
     static_assert(back::WHITE > fore::WHITE);
 
     /// Sets stdout foreground and background color.
-    void set(unsigned int color);
+    void set(color::value_type color);
 
     /// Wrapper for `printf` enabling colored printing.
-    void printf(int color, char const *fmt, ...);
+    void printf(color::value_type color, char const *fmt, ...);
 
   } // namespace color
 

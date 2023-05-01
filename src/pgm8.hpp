@@ -51,7 +51,7 @@ void read_pixels(
   uint8_t *buffer
 );
 
-void write(
+bool write(
   std::fstream &file,
   image_properties props,
   uint8_t const *pixels

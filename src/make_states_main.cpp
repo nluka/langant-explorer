@@ -8,12 +8,8 @@
 #include <boost/program_options.hpp>
 #include <boost/container/static_vector.hpp>
 
-#include "json.hpp"
-#include "term.hpp"
-#include "primitives.hpp"
-#include "util.hpp"
+#include "core_source_libs.hpp"
 #include "simulation.hpp"
-#include "program_options.hpp"
 
 namespace fs = std::filesystem;
 namespace bpo = boost::program_options;
@@ -28,10 +24,16 @@ typedef std::uniform_int_distribution<u64> u64_distrib;
 
 static std::string s_words{};
 static std::vector<u64> s_words_newline_positions{};
+
 static po::make_states_options s_options{};
+
 static std::atomic<u64> s_num_states_completed = 0;
 static std::atomic<u64> s_num_states_failed = 0;
+static std::atomic<u64> s_num_consecutive_states_failed = 0;
 static std::atomic<u64> s_num_filename_conflicts = 0;
+
+static std::atomic<b8> s_terminate = false;
+static std::mutex s_stdout_mutex{};
 
 simulation::rules_t make_random_rules(
   std::string &turn_dirs_buffer,
@@ -46,6 +48,8 @@ void get_rand_name(
 i32 main(i32 const argc, char const *const *const argv)
 try
 {
+  term::color::set(term::color::fore::DEFAULT | term::color::back::DEFAULT);
+
   if (argc < 2) {
     std::ostringstream usage_msg;
     usage_msg <<
@@ -70,6 +74,8 @@ try
     }
   }
 
+  logger::set_stdout_logging(true);
+
   // initialization for when name_mode is randwords
   if (s_options.name_mode.starts_with("randwords")) {
     try {
@@ -84,6 +90,8 @@ try
         s_words_newline_positions.push_back(i);
   }
 
+  time_point_t finish_time{}; // set upon completion of last state
+
   std::thread states_writer([&]()
   {
     std::random_device rand_device;
@@ -94,7 +102,7 @@ try
     u64_distrib dist_ant_orient(u64(0), s_options.ant_orientations.length() - 1);
 
     // will be reused for each generated state file
-    fs::path state_path = fs::path(s_options.out_dir_path) / "blank.json";
+    fs::path state_file_path = fs::path(s_options.out_dir_path) / "blank.json";
     // only used if name_mode is randwords
     std::string rand_fname{};
 
@@ -104,6 +112,17 @@ try
     std::unordered_set<std::string> names{};
 
     for (u64 i = 0; i < s_options.count; ++i) {
+      {
+        b8 const should_terminate = s_terminate.load();
+        if (should_terminate) {
+          break;
+        }
+      }
+
+      // the try block below might write to stdout, so lock it to avoid conflict
+      // from the UI loop
+      std::scoped_lock stdout_lock(s_stdout_mutex);
+
       try {
         simulation::orientation::value_type const rand_ant_orient = [&] {
           u64 const rand_idx = dist_ant_orient(rand_num_gener);
@@ -121,22 +140,30 @@ try
           rand_num_gener);
 
         if (s_options.name_mode == "turndirecs") {
-          state_path.replace_filename(turn_dirs_buffer);
+          state_file_path.replace_filename(turn_dirs_buffer);
         } else {
           get_rand_name(rand_fname, rand_num_gener);
-          state_path.replace_filename(rand_fname);
+          state_file_path.replace_filename(rand_fname);
         }
-        state_path.replace_extension(".json");
+        state_file_path.replace_extension(".json");
 
         if (names.contains(turn_dirs_buffer)) {
           ++s_num_filename_conflicts;
           continue;
         }
 
-        file.open(state_path.string().c_str(), std::ios::out);
+        std::string const state_file_path_str = state_file_path.generic_string();
+        file.open(state_file_path_str.c_str(), std::ios::out);
 
-        simulation::print_state_json(
+        if (!file) {
+          ++s_num_states_failed;
+          ++s_num_consecutive_states_failed;
+          continue;
+        }
+
+        b8 const write_success = simulation::print_state_json(
           file,
+          state_file_path_str,
           s_options.grid_state,
           0,
           s_options.grid_width,
@@ -148,92 +175,92 @@ try
           util::count_digits(s_options.max_num_rules - 1),
           rand_rules);
 
-        file.close();
-
-        {
+        if (write_success) {
           std::string const &name = turn_dirs_buffer;
           names.emplace(name);
+          ++s_num_states_completed;
+          s_num_consecutive_states_failed.store(0);
+        } else {
+          ++s_num_states_failed;
+          ++s_num_consecutive_states_failed;
         }
 
-        ++s_num_states_completed;
+        file.close();
 
-      } catch (std::runtime_error const &) {
-        ++s_num_states_failed;
-        // print_err(except.what());
       } catch (...) {
         ++s_num_states_failed;
+        ++s_num_consecutive_states_failed;
       }
     }
+
+    finish_time = util::current_time();
   });
 
-  term::cursor::hide();
-  std::atexit(term::cursor::show);
-
-  std::string const horizontal_rule(30, '-');
+  u8 const digits_in_num_states = util::count_digits(s_options.count);
   time_point_t const start_time = util::current_time();
+  char time_elapsed[64];
 
   // UI loop
   while (true) {
-    using namespace term::color;
+    namespace fore = term::color::fore;
+    namespace back = term::color::back;
+    auto const cprintf = term::color::printf;
 
-    time_point_t const time_now = util::current_time();
+    // if the last state has been written, finish_time will be set and thus
+    // we use it as the final timestamp for computing our statistics
+    time_point_t const time_now = (finish_time == time_point_t{})
+      ? util::current_time()
+      : finish_time;
 
     u64 const
-      completed = s_num_states_completed.load(),
+      succeeded = s_num_states_completed.load(),
       failed = s_num_states_failed.load(),
+      consecutive_fails = s_num_consecutive_states_failed.load(),
       filename_conflicts = s_num_filename_conflicts.load(),
-      total_done = completed + failed + filename_conflicts,
+      total_done = succeeded + failed + filename_conflicts,
       total_nanos_elapsed = util::nanos_between(start_time, time_now);
     f64 const
       total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
       percent_done = (total_done / static_cast<f64>(s_options.count)) * 100.0,
-      states_per_sec = completed / total_secs_elapsed;
+      states_per_sec = succeeded / total_secs_elapsed;
 
-    u64 num_lines_printed = 0;
+    util::time_span(u64(total_secs_elapsed)).stringify(time_elapsed, util::lengthof(time_elapsed));
 
-    auto const print_line = [&num_lines_printed](std::function<void ()> const &func) {
-      func();
-      term::clear_to_end_of_line();
+    cprintf(fore::GREEN, "[%*zu/%zu] %6.2lf %%", digits_in_num_states, succeeded, s_options.count, percent_done);
+    std::printf(", ");
+
+    cprintf(fore::LIGHT_BLUE, "%7.2lf states/s", states_per_sec);
+    std::printf(", ");
+
+    if (failed > 0) {
+      cprintf(fore::LIGHT_RED, "%zu failed", failed);
+      std::printf(", ");
+    }
+
+    if (filename_conflicts > 0) {
+      cprintf(fore::LIGHT_RED, "%zu filename conflicts", filename_conflicts);
+      std::printf(", ");
+    }
+
+    printf("%s elapsed\n", time_elapsed);
+
+    if (consecutive_fails > 3) {
+      s_terminate.store(true);
+      cprintf(fore::LIGHT_RED, "%zu consecutive failures - did you run out of disk space?");
       putc('\n', stdout);
-      ++num_lines_printed;
-    };
-
-    print_line([&] {
-      printf("States/sec : ");
-      printf(fore::LIGHT_BLUE, "%.2lf", states_per_sec);
-    });
-
-    print_line([&] {
-      printf("Progress   : ");
-      printf("%.1lf %%", percent_done);
-    });
-
-    print_line([&] {
-      printf("Completed  : ");
-      printf(fore::LIGHT_GREEN | back::BLACK, "%zu", completed);
-    });
-
-    print_line([&] {
-      printf("Failed     : ");
-      printf(fore::LIGHT_RED | back::BLACK, "%zu", failed + filename_conflicts);
-      if (filename_conflicts > 0)
-        printf(" (%zu name conflicts)", filename_conflicts);
-    });
-
-    print_line([&] { printf("Elapsed    : %s",
-      util::time_span(static_cast<u64>(total_secs_elapsed)).to_string().c_str()); });
+      break;
+    }
 
     if (total_done == s_options.count) {
       break;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
-    term::cursor::move_up(num_lines_printed);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
 
   states_writer.join();
 
-  return 0;
+  return s_num_states_failed.load() > 0;
 }
 catch (std::exception const &except)
 {

@@ -5,7 +5,7 @@ namespace fs = std::filesystem;
 using json_t = nlohmann::json;
 using util::make_str;
 
-void simulation::save_state(
+simulation::save_state_result simulation::save_state(
   simulation::state const &state,
   const char *const name,
   fs::path const &save_dir,
@@ -16,18 +16,21 @@ void simulation::save_state(
     throw std::runtime_error(make_str("save_dir '%s' is not a directory", save_dir.generic_string().c_str()));
   }
 
+  save_state_result result{};
+
   std::string const name_with_gen = make_str("%s(%zu)", name, state.generation);
 
-  std::filesystem::path p = save_dir / (name_with_gen + ".json");
+  std::filesystem::path file_path = save_dir / (name_with_gen + ".json");
 
   if (!image_only) {
     // write state file
 
-    std::string const state_path_str = p.string();
-    std::fstream state_file = util::open_file(state_path_str, std::ios::out);
+    std::string const state_file_path_str = file_path.generic_string();
+    std::fstream state_file = util::open_file(state_file_path_str, std::ios::out);
 
-    print_state_json(
+    b8 const success = print_state_json(
       state_file,
+      state_file_path_str,
       name_with_gen + ".pgm",
       state.generation,
       state.grid_width,
@@ -38,6 +41,8 @@ void simulation::save_state(
       state.ant_orientation,
       util::count_digits(state.maxval),
       state.rules);
+
+    result.state_write_succes = success;
   }
 
   // write image file
@@ -48,15 +53,20 @@ void simulation::save_state(
     img_props.set_height(static_cast<u16>(state.grid_height));
     img_props.set_maxval(state.maxval);
 
-    p.replace_extension(".pgm");
-    std::string const img_path_str = p.string();
+    file_path.replace_extension(".pgm");
+    std::string const img_path_str = file_path.string();
     std::fstream img_file = util::open_file(img_path_str, std::ios::out);
-    pgm8::write(img_file, img_props, state.grid);
+    b8 const success = pgm8::write(img_file, img_props, state.grid);
+
+    result.image_write_success = success;
   }
+
+  return result;
 }
 
-void simulation::print_state_json(
+bool simulation::print_state_json(
   std::ostream &os,
+  std::string const &file_path,
   std::string const &grid_state,
   u64 const generation,
   i32 const grid_width,
@@ -68,6 +78,9 @@ void simulation::print_state_json(
   u64 const maxval_digits,
   rules_t const &rules)
 {
+  using logger::log;
+  using logger::event_type;
+
   os
     << "{\n"
     << "  \"generation\": " << generation << ",\n"
@@ -122,4 +135,11 @@ void simulation::print_state_json(
     << "  ]\n"
     << "}\n"
   ;
+
+  if (os.bad()) {
+    log(event_type::ERR, "failed to write '%s', maybe not enough disk space?", file_path.c_str());
+    return false;
+  } else {
+    return true;
+  }
 }
