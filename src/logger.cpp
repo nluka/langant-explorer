@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include <iostream>
+#include <optional>
 
 #include "term.hpp"
 #include "logger.hpp"
@@ -66,7 +67,7 @@ public:
     , m_type{type}
   {}
 
-  [[nodiscard]] unsigned int color() const noexcept { return m_color; };
+  [[nodiscard]] unsigned int font_effects() const noexcept { return m_color; };
 
   std::string stringify() const {
     static std::stringstream ss{};
@@ -124,11 +125,11 @@ void assert_file_opened(std::ofstream const &file) {
 
 void logger::log(event_type const ev_type, char const *const fmt, ...) {
   static constexpr
-  term::color::value_type s_event_type_to_color_map[u64(event_type::COUNT)] {
-    term::color::fore::DEFAULT,
-    term::color::fore::YELLOW,
-    term::color::fore::GREEN,
-    term::color::fore::RED,
+  term::font_effects_t s_event_type_to_font_effects_map[u64(event_type::COUNT)] {
+    0,
+    term::FG_YELLOW,
+    term::FG_GREEN,
+    term::FG_RED,
   };
 
   if (s_out_file_path == "" && !s_write_to_stdout) {
@@ -148,8 +149,8 @@ void logger::log(event_type const ev_type, char const *const fmt, ...) {
     vsnprintf(msg, len, fmt, var_args);
     va_end(var_args);
 
-    term::color::value_type const color = s_event_type_to_color_map[u64(ev_type)];
-    s_events.emplace_back(ev_type, color, msg);
+    term::font_effects_t const effects = s_event_type_to_font_effects_map[u64(ev_type)];
+    s_events.emplace_back(ev_type, effects, msg);
   }
 
   if (s_auto_flush) {
@@ -190,7 +191,7 @@ void logger::flush() {
     if (file.has_value())
       file.value() << event_str << s_delim;
     if (s_write_to_stdout)
-      term::color::printf(evt.color(), "%s%s", event_str.c_str(), s_delim);
+      term::printf(evt.font_effects(), "%s%s", event_str.c_str(), s_delim);
   }
 
   s_events.clear();

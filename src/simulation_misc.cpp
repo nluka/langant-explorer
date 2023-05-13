@@ -1,5 +1,35 @@
 #include "simulation.hpp"
 
+u8 simulation::next_cluster(std::vector<std::filesystem::path> const &clusters)
+{
+  // [0]   is the number of times "cluster1" occurred,
+  // [254] is the number of times "cluster255" occurred
+  std::array<u64, 255> cluster_num_occurences{};
+
+  for (auto const &cluster : clusters) {
+    char const *const cluster_num_cstr = std::strpbrk(cluster.string().c_str(), "0123456789");
+
+    if (cluster_num_cstr != nullptr) {
+      u64 const cluster_num = std::stoull(cluster_num_cstr);
+
+      if (cluster_num == 0 || cluster_num > std::numeric_limits<cluster_t>::max())
+        continue;
+
+      ++cluster_num_occurences[cluster_num - 1];
+    }
+  }
+
+  for (u64 i = 0; i < cluster_num_occurences.size(); ++i) {
+    u64 const cluster_occurences = cluster_num_occurences[i];
+
+    if (cluster_occurences == 0)
+      return static_cast<cluster_t>(i + 1);
+  }
+
+  // all clusters [1, 255] exist, no cluster opportunity available
+  return NO_CLUSTER;
+}
+
 char const *simulation::orientation::to_cstr(orientation::value_type const orient)
 {
   switch (orient) {

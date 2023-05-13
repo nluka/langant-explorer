@@ -6,12 +6,15 @@ bin
 interm*
 out
 staging
+temp
 
 # files
 *.exe
 *.pdb
 *.log
 *.psd
+*.elf
+test
 
 # testing
 testing/*.expected

@@ -174,9 +174,9 @@ vector<u64> util::parse_json_array_u64(char const *str)
 
 void util::die(char const *fmt, ...)
 {
-  using namespace term::color;
+  using namespace term;
 
-  term::color::set(fore::RED);
+  term::set_font_effects(FG_RED);
 
   printf("fatal: ");
 
@@ -185,7 +185,7 @@ void util::die(char const *fmt, ...)
   [[maybe_unused]] i32 const retval = vprintf(fmt, args);
   va_end(args);
 
-  term::color::set(fore::DEFAULT | back::DEFAULT);
+  term::reset_font_effects();
 
   putc('\n', stdout);
 
@@ -194,16 +194,16 @@ void util::die(char const *fmt, ...)
 
 int util::print_err(char const *fmt, ...)
 {
-  using namespace term::color;
+  using namespace term;
 
-  term::color::set(fore::RED | back::BLACK);
+  term::set_font_effects(FG_RED);
 
   va_list args;
   va_start(args, fmt);
   i32 const retval = vprintf(fmt, args);
   va_end(args);
 
-  term::color::set(fore::DEFAULT | back::BLACK);
+  term::reset_font_effects();
 
   putc('\n', stdout);
 
@@ -218,9 +218,10 @@ std::string util::stringify_errors(util::errors_t const &errors)
 
   std::string out;
   out.reserve(length);
-  for (auto const &err : errors)
+  for (auto const &err : errors) {
     out += err;
     out += "; ";
+  }
 
   out.pop_back(); // remove trailing space
 
@@ -230,8 +231,8 @@ std::string util::stringify_errors(util::errors_t const &errors)
 b8 util::get_user_choice(std::string const &prompt)
 {
   {
-    using namespace term::color;
-    printf(fore::YELLOW | back::BLACK, "%s [y/n] ", prompt.c_str());
+    using namespace term;
+    printf(FG_YELLOW, "%s [y/n] ", prompt.c_str());
   }
 
   std::string input;

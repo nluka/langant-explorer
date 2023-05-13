@@ -99,8 +99,8 @@ i32 main(i32 const argc, char const *const *const argv) {
   SetPriorityClass(sim_thread.native_handle(), HIGH_PRIORITY_CLASS);
 #endif
 
-  term::cursor::hide();
-  std::atexit(term::cursor::show);
+  term::hide_cursor();
+  std::atexit(term::unhide_cursor);
 
   ui_loop(true_sim_name); // blocks until simulation completes
   sim_thread.join();
@@ -110,7 +110,7 @@ i32 main(i32 const argc, char const *const *const argv) {
 
 void ui_loop(std::string const &sim_name)
 {
-  using namespace term::color;
+  using namespace term;
   using util::time_point_t;
 
   std::string const horizontal_rule(sim_name.length(), '-');
@@ -147,40 +147,41 @@ void ui_loop(std::string const &sim_name)
 
     print_line([&] {
       printf("Name       : ");
-      printf(fore::CYAN | back::BLACK, "%s", sim_name.c_str());
+      printf(FG_CYAN, "%s", sim_name.c_str());
       term::clear_to_end_of_line();
       putc('\n', stdout);
     });
 
     print_line([&] {
-      printf("Result     : ");
-      if (!is_simulation_done) {
-        printf("TBD");
-      } else {
-        printf([] {
-          switch (s_sim_state.last_step_res) {
-            default:
-            case simulation::step_result::NIL:      return "nil step result";
-            case simulation::step_result::SUCCESS:  return "reached generation limit";
-            case simulation::step_result::HIT_EDGE: return "hit edge";
+      printf("Result     : %s",
+        [&] {
+          if (!is_simulation_done) {
+            return "TBD";
+          } else {
+            switch (s_sim_state.last_step_res) {
+              default:
+              case simulation::step_result::NIL:      return "nil step result";
+              case simulation::step_result::SUCCESS:  return "reached generation limit";
+              case simulation::step_result::HIT_EDGE: return "hit edge";
+            }
           }
-        }());
-      }
+        }()
+      );
+
     });
 
     print_line([&] {
       printf("Mgens/sec  : ");
-      printf(fore::WHITE | back::MAGENTA, "%.2lf", mega_gens_per_sec);
+      printf(FG_MAGENTA, "%.2lf", mega_gens_per_sec);
     });
 
     print_line([&] {
       printf("Completion : ");
-      printf(fore::LIGHT_GREEN | back::BLACK, "%.1lf %%",
-        std::isinf(percent_completion) ? 0.0 : percent_completion);
+      printf(FG_BRIGHT_GREEN, "%.1lf %%", std::isinf(percent_completion) ? 0.0 : percent_completion);
     });
 
     print_line([&] {
-      printf("Generation : %llu", current_generation);
+      printf("Generation : %zu", current_generation);
     });
 
     print_line([&] {
@@ -208,6 +209,6 @@ void ui_loop(std::string const &sim_name)
       return;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    term::cursor::move_up(num_lines_printed);
+    term::move_cursor_up(num_lines_printed);
   }
 }

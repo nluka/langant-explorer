@@ -11,14 +11,14 @@
 #include <boost/program_options.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 
-#ifdef _WIN32
-#  include <Windows.h>
-#  undef max // because it conflicts with std::max
-#endif
-
 #include "core_source_libs.hpp"
 #include "program_options.hpp"
 #include "simulation.hpp"
+
+#ifdef ON_WINDOWS
+#  include <Windows.h>
+#  undef max // because it conflicts with std::max
+#endif
 
 namespace fs = std::filesystem;
 namespace bpo = boost::program_options;
@@ -33,7 +33,7 @@ static po::simulate_many_options s_options{};
 i32 main(i32 const argc, char const *const *const argv)
 try
 {
-  using namespace term::color;
+  using namespace term;
 
   struct named_simulation
   {
@@ -148,8 +148,6 @@ try
   });
 
   auto const simulation_task = [&](named_simulation &sim, u64 const total) {
-    time_point_t const start_time = util::current_time();
-
     try {
       auto const result = simulation::run(
         sim.state,
@@ -227,7 +225,7 @@ try
     percent_iteration = ( nanos_spent_iterating / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0,
     percent_saving    = ( nanos_spent_saving    / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0;
 
-  printf(fore::GRAY, "---------------------------------\n");
+  std::printf("---------------------------------\n");
   std::printf("Avg Mgens/sec : %.2lf\n", mega_gens_per_sec);
   std::printf("Avg I/S Ratio : %.2lf / %.2lf\n",
       std::isnan(percent_iteration) ? 0.0 : percent_iteration,

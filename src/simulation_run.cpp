@@ -5,6 +5,7 @@
 #include <regex>
 #include <sstream>
 #include <unordered_map>
+#include <atomic>
 
 #include "json.hpp"
 #include "term.hpp"

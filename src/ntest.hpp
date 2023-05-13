@@ -13,11 +13,30 @@
 
 namespace ntest {
 
+struct assertion
+{
+  // for passed assertions: "type\0expected"
+  // for failed assertions: "type\0expected\0actual\0"
+  std::string serialized_vals;
+  std::source_location loc;
+
+  struct serialized
+  {
+    char const *type;
+    char const *expected;
+    char const *actual;
+  };
+
+  serialized extract_serialized_values(bool passed) const;
+};
+
 namespace config {
 
   void set_max_str_preview_len(size_t);
 
   void set_max_arr_preview_len(size_t);
+
+  void set_show_column_numbers(bool);
 
 } // namespace config
 
@@ -44,7 +63,21 @@ namespace concepts {
 
 namespace internal {
 
-  std::string escape(std::string const &);
+  template <typename Ty, size_t Length>
+  consteval
+  size_t lengthof(Ty (&)[Length])
+  {
+    return Length;
+  }
+
+  typedef std::vector<std::pair<char, char>> special_chars_table_t;
+
+  special_chars_table_t const &special_chars_serial_file();
+  special_chars_table_t const &special_chars_markdown_preview();
+
+  std::string escape(
+    std::string const &string_to_escape,
+    special_chars_table_t const &special_chars);
 
   char const *preview_style();
 
@@ -52,21 +85,13 @@ namespace internal {
 
   size_t max_arr_preview_len();
 
-  std::string make_stringified_file_path(std::source_location const &, char const *extension);
+  std::string make_serialized_file_path(std::source_location const &, char const *extension);
 
-  void throw_if_file_not_open(std::fstream const &, char const *pathname);
+  void throw_if_file_not_open(std::fstream const &, char const *path);
 
-  struct assertion
-  {
-    // for passed assertions: "type | expected"
-    // for failed assertions: "type | expected | actual"
-    std::string serialized_vals;
-    std::source_location loc;
-  };
+  void register_passed_assertion(std::stringstream const &, std::source_location const &);
 
-  void register_passed_assertion(std::stringstream &&, std::source_location const &);
-
-  void register_failed_assertion(std::stringstream &&, std::source_location const &);
+  void register_failed_assertion(std::stringstream const &, std::source_location const &);
 
   template <typename Ty>
   requires std::integral<Ty>
@@ -81,12 +106,14 @@ namespace internal {
   template <typename Ty>
   requires concepts::printable<Ty>
   void write_arr_to_file(
-    std::string const &pathname,
+    std::string const &path,
     Ty const *const arr,
     size_t const size)
   {
-    std::fstream file(pathname, std::ios::out);
-    ntest::internal::throw_if_file_not_open(file, pathname.c_str());
+    std::fstream file(path, std::ios::out);
+    ntest::internal::throw_if_file_not_open(file, path.c_str());
+
+    std::stringstream element{};
 
     for (size_t i = 0; i < size; ++i)
     {
@@ -95,15 +122,20 @@ namespace internal {
         // some integrals like uint8_t are treated strangely by ostream insertion,
         // so casting must be done
         if constexpr (std::is_unsigned_v<Ty>)
-          file << static_cast<uintmax_t>(arr[i]);
+          element << static_cast<uintmax_t>(arr[i]);
         else
-          file << static_cast<intmax_t>(arr[i]);
+          element << static_cast<intmax_t>(arr[i]);
       }
       else
       {
-        file << arr[i];
+        element << arr[i];
       }
+
+      file << ntest::internal::escape(element.str(), ntest::internal::special_chars_serial_file());
       file << '\n';
+
+      element.clear();
+      element.str(std::string());
     }
   }
 
@@ -132,97 +164,97 @@ namespace internal {
     size_t const size,
     std::stringstream &ss)
   {
-    std::stringstream serial{};
+    std::stringstream preview{};
 
-    serial << "sz=" << size;
+    preview << "sz=" << size;
 
     if (size == 0)
       return;
 
-    serial << " __[__ ";
+    preview << " __[__ ";
 
     size_t const max_len = std::min(size, ntest::internal::max_arr_preview_len());
     for (size_t i = 0; i < max_len; ++i)
     {
-      serial << "<span style='" << internal::preview_style() << "' title='index " << i << "'>";
+      preview << "<span style='" << internal::preview_style() << "' title='index " << i << "'>";
       if constexpr (std::is_integral_v<Ty>)
       {
         // some integrals like uint8_t are treated strangely by ostream insertion,
         // so casting must be done
         if constexpr (std::is_unsigned_v<Ty>)
-          serial << static_cast<uintmax_t>(arr[i]);
+          preview << static_cast<uintmax_t>(arr[i]);
         else
-          serial << static_cast<intmax_t>(arr[i]);
+          preview << static_cast<intmax_t>(arr[i]);
       }
       else
       {
-        serial << arr[i];
+        preview << arr[i];
       }
-      serial << "</span>, ";
+      preview << "</span>, ";
     }
 
     if (size > max_len)
     {
-      serial << " *... " << (size - max_len) << " more* ";
+      preview << " *... " << (size - max_len) << " more* ";
     }
-    serial << "__]__";
+    preview << "__]__";
 
-    ss << ntest::internal::escape(serial.str());
+    ss << ntest::internal::escape(preview.str(), ntest::internal::special_chars_markdown_preview());
   }
 
   std::string beautify_typeid_name(char const *name);
 
 } // namespace internal
 
-void assert_bool(
+bool assert_bool(
   bool expected,
   bool actual,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_int8(
+bool assert_int8(
   int8_t expected,
   int8_t actual,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_uint8(
+bool assert_uint8(
   uint8_t expected,
   uint8_t actual,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_int16(
+bool assert_int16(
   int16_t expected,
   int16_t actual,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_uint16(
+bool assert_uint16(
   uint16_t expected,
   uint16_t actual,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_int32(
+bool assert_int32(
   int32_t expected,
   int32_t actual,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_uint32(
+bool assert_uint32(
   uint32_t expected,
   uint32_t actual,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_int64(
+bool assert_int64(
   int64_t expected,
   int64_t actual,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_uint64(
+bool assert_uint64(
   uint64_t expected,
   uint64_t actual,
   std::source_location loc = std::source_location::current()
@@ -235,14 +267,14 @@ struct str_opts
 
 str_opts default_str_opts();
 
-void assert_cstr(
+bool assert_cstr(
   char const *expected,
   char const *actual,
   str_opts const &options = default_str_opts(),
   std::source_location loc = std::source_location::current()
 );
 
-void assert_cstr(
+bool assert_cstr(
   char const *expected,
   size_t expected_len,
   char const *actual,
@@ -251,7 +283,7 @@ void assert_cstr(
   std::source_location loc = std::source_location::current()
 );
 
-void assert_stdstr(
+bool assert_stdstr(
   std::string const &expected,
   std::string const &actual,
   str_opts const &options = default_str_opts(),
@@ -260,7 +292,7 @@ void assert_stdstr(
 
 template <typename Ty>
 requires concepts::comparable_neq<Ty> && concepts::printable<Ty>
-void assert_arr(
+bool assert_arr(
   Ty const *const expected,
   size_t const expected_size,
   Ty const *const actual,
@@ -282,39 +314,39 @@ void assert_arr(
     throw std::runtime_error(err.str());
   }
 
-  bool const passed = ntest::internal::arr_eq(
-    expected, expected_size, actual, actual_size);
+  bool const passed = ntest::internal::arr_eq(expected, expected_size, actual, actual_size);
 
   std::stringstream serialized_vals{};
-  serialized_vals
-    << ntest::internal::beautify_typeid_name(typeid(Ty).name())
-    << " [] | ";
+  serialized_vals << ntest::internal::beautify_typeid_name(typeid(Ty).name()) << " []" << '\0';
 
   if (passed)
   {
     ntest::internal::serialize_arr_preview(expected, expected_size, serialized_vals);
-    ntest::internal::register_passed_assertion(std::move(serialized_vals), loc);
+    serialized_vals << '\0';
+    ntest::internal::register_passed_assertion(serialized_vals, loc);
   }
   else // failed
   {
     std::string const
-      expected_pathname = internal::make_stringified_file_path(loc, "expected"),
-      actual_pathname = internal::make_stringified_file_path(loc, "actual");
+      expected_path = internal::make_serialized_file_path(loc, "expected"),
+      actual_path = internal::make_serialized_file_path(loc, "actual");
 
-    ntest::internal::write_arr_to_file(expected_pathname, expected, expected_size);
-    ntest::internal::write_arr_to_file(actual_pathname, actual, actual_size);
+    ntest::internal::write_arr_to_file(expected_path, expected, expected_size);
+    ntest::internal::write_arr_to_file(actual_path, actual, actual_size);
 
     serialized_vals
-      << '[' << expected_pathname << "](" << expected_pathname
-      << ") | [" << actual_pathname << "](" << actual_pathname << ')';
+      << '[' << expected_path << "](" << expected_path << ')' << '\0'
+      << '[' << actual_path << "](" << actual_path << ')' << '\0';
 
     ntest::internal::register_failed_assertion(std::move(serialized_vals), loc);
   }
+
+  return passed;
 }
 
 template <typename Ty>
 requires concepts::comparable_neq<Ty> && concepts::printable<Ty>
-void assert_stdvec(
+bool assert_stdvec(
   std::vector<Ty> const &expected,
   std::vector<Ty> const &actual,
   std::source_location const loc = std::source_location::current())
@@ -326,33 +358,36 @@ void assert_stdvec(
   serialized_vals
     << "std::vector\\<"
     << ntest::internal::beautify_typeid_name(typeid(Ty).name())
-    << "\\> | ";
+    << "\\>" << '\0';
 
   if (passed)
   {
     ntest::internal::serialize_arr_preview(expected.data(), expected.size(), serialized_vals);
-    ntest::internal::register_passed_assertion(std::move(serialized_vals), loc);
+    serialized_vals << '\0';
+    ntest::internal::register_passed_assertion(serialized_vals, loc);
   }
   else // failed
   {
     std::string const
-      expected_pathname = internal::make_stringified_file_path(loc, "expected"),
-      actual_pathname = internal::make_stringified_file_path(loc, "actual");
+      expected_path = internal::make_serialized_file_path(loc, "expected"),
+      actual_path = internal::make_serialized_file_path(loc, "actual");
 
-    ntest::internal::write_arr_to_file(expected_pathname, expected.data(), expected.size());
-    ntest::internal::write_arr_to_file(actual_pathname, actual.data(), actual.size());
+    ntest::internal::write_arr_to_file(expected_path, expected.data(), expected.size());
+    ntest::internal::write_arr_to_file(actual_path, actual.data(), actual.size());
 
     serialized_vals
-      << '[' << expected_pathname << "](" << expected_pathname
-      << ") | [" << actual_pathname << "](" << actual_pathname << ')';
+      << '[' << expected_path << "](" << expected_path << ')' << '\0'
+      << '[' << actual_path << "](" << actual_path << ')' << '\0';
 
     ntest::internal::register_failed_assertion(std::move(serialized_vals), loc);
   }
+
+  return passed;
 }
 
 template <typename Ty, size_t Size>
 requires concepts::comparable_neq<Ty> && concepts::printable<Ty>
-void assert_stdarr(
+bool assert_stdarr(
   std::array<Ty, Size> const &expected,
   std::array<Ty, Size> const &actual,
   std::source_location const loc = std::source_location::current())
@@ -364,28 +399,31 @@ void assert_stdarr(
   serialized_vals
     << "std::array\\<"
     << ntest::internal::beautify_typeid_name(typeid(Ty).name())
-    << ", " << Size << "\\> | ";
+    << ", " << Size << "\\>" << '\0';
 
   if (passed)
   {
     ntest::internal::serialize_arr_preview(expected.data(), expected.size(), serialized_vals);
-    ntest::internal::register_passed_assertion(std::move(serialized_vals), loc);
+    serialized_vals << '\0';
+    ntest::internal::register_passed_assertion(serialized_vals, loc);
   }
   else // failed
   {
     std::string const
-      expected_pathname = internal::make_stringified_file_path(loc, "expected"),
-      actual_pathname = internal::make_stringified_file_path(loc, "actual");
+      expected_path = internal::make_serialized_file_path(loc, "expected"),
+      actual_path = internal::make_serialized_file_path(loc, "actual");
 
-    ntest::internal::write_arr_to_file(expected_pathname, expected.data(), expected.size());
-    ntest::internal::write_arr_to_file(actual_pathname, actual.data(), actual.size());
+    ntest::internal::write_arr_to_file(expected_path, expected.data(), expected.size());
+    ntest::internal::write_arr_to_file(actual_path, actual.data(), actual.size());
 
     serialized_vals
-      << '[' << expected_pathname << "](" << expected_pathname
-      << ") | [" << actual_pathname << "](" << actual_pathname << ')';
+      << '[' << expected_path << "](" << expected_path << ')' << '\0'
+      << '[' << actual_path << "](" << actual_path << ')' << '\0';
 
     ntest::internal::register_failed_assertion(std::move(serialized_vals), loc);
   }
+
+  return passed;
 }
 
 struct text_file_opts
@@ -395,40 +433,40 @@ struct text_file_opts
 
 text_file_opts default_text_file_opts();
 
-void assert_text_file(
-  char const *expected_pathname,
-  char const *actual_pathname,
+bool assert_text_file(
+  char const *expected_path,
+  char const *actual_path,
   text_file_opts const &options = default_text_file_opts(),
   std::source_location loc = std::source_location::current()
 );
 
-void assert_text_file(
-  std::string const &expected_pathname,
-  std::string const &actual_pathname,
+bool assert_text_file(
+  std::string const &expected_path,
+  std::string const &actual_path,
   text_file_opts const &options = default_text_file_opts(),
   std::source_location loc = std::source_location::current()
 );
 
-void assert_text_file(
+bool assert_text_file(
   std::filesystem::path const &expected,
   std::filesystem::path const &actual,
   text_file_opts const &options = default_text_file_opts(),
   std::source_location loc = std::source_location::current()
 );
 
-void assert_binary_file(
-  char const *expected_pathname,
-  char const *actual_pathname,
+bool assert_binary_file(
+  char const *expected_path,
+  char const *actual_path,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_binary_file(
-  std::string const &expected_pathname,
-  std::string const &actual_pathname,
+bool assert_binary_file(
+  std::string const &expected_path,
+  std::string const &actual_path,
   std::source_location loc = std::source_location::current()
 );
 
-void assert_binary_file(
+bool assert_binary_file(
   std::filesystem::path const &expected,
   std::filesystem::path const &actual,
   std::source_location loc = std::source_location::current()
@@ -465,22 +503,22 @@ requires concepts::derives_from_std_exception<ExceptTy>
   }
 
   std::stringstream serialized_vals{};
-  serialized_vals << ntest::internal::beautify_typeid_name(typeid(ExceptTy).name()) << " | ";
+  serialized_vals << ntest::internal::beautify_typeid_name(typeid(ExceptTy).name()) << '\0';
 
   if (threw_correct_except) // passed
   {
-    serialized_vals << "to be thrown";
-    ntest::internal::register_passed_assertion(std::move(serialized_vals), loc);
+    serialized_vals << "to be thrown" << '\0';
+    ntest::internal::register_passed_assertion(serialized_vals, loc);
   }
   else if (threw_incorrect_except) // failed
   {
-    serialized_vals << "to be thrown | different exception type was thrown";
-    ntest::internal::register_failed_assertion(std::move(serialized_vals), loc);
+    serialized_vals << "to be thrown" << '\0' << "different exception type was thrown" << '\0';
+    ntest::internal::register_failed_assertion(serialized_vals, loc);
   }
   else // failed, didn't throw anything
   {
-    serialized_vals << "to be thrown | nothing was thrown";
-    ntest::internal::register_failed_assertion(std::move(serialized_vals), loc);
+    serialized_vals << "to be thrown" << '\0' << "nothing was thrown" << '\0';
+    ntest::internal::register_failed_assertion(serialized_vals, loc);
   }
 
   return what_str;
@@ -500,7 +538,9 @@ struct report_result
   size_t num_fails;
 };
 
-report_result generate_report(char const *name);
+report_result generate_report(
+  char const *name,
+  void (*assertion_callback)(assertion const &, bool) = nullptr);
 
 size_t pass_count();
 

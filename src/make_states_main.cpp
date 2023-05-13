@@ -27,13 +27,14 @@ static std::vector<u64> s_words_newline_positions{};
 
 static po::make_states_options s_options{};
 
-static std::atomic<u64> s_num_states_completed = 0;
-static std::atomic<u64> s_num_states_failed = 0;
-static std::atomic<u64> s_num_consecutive_states_failed = 0;
-static std::atomic<u64> s_num_filename_conflicts = 0;
+static u64 s_num_states_completed = 0;
+static u64 s_num_states_failed = 0;
+static u64 s_num_consecutive_states_failed = 0;
+static u64 s_num_filename_conflicts = 0;
 
-static std::atomic<b8> s_terminate = false;
-static std::mutex s_stdout_mutex{};
+void write_progress_log(
+  time_point_t start_time,
+  std::optional<time_point_t> end_time);
 
 simulation::rules_t make_random_rules(
   std::string &turn_dirs_buffer,
@@ -48,8 +49,6 @@ void get_rand_name(
 i32 main(i32 const argc, char const *const *const argv)
 try
 {
-  term::color::set(term::color::fore::DEFAULT | term::color::back::DEFAULT);
-
   if (argc < 2) {
     std::ostringstream usage_msg;
     usage_msg <<
@@ -90,177 +89,120 @@ try
         s_words_newline_positions.push_back(i);
   }
 
-  time_point_t finish_time{}; // set upon completion of last state
+  std::random_device rand_device;
+  std::mt19937 rand_num_gener(rand_device());
 
-  std::thread states_writer([&]()
-  {
-    std::random_device rand_device;
-    std::mt19937 rand_num_gener(rand_device());
+  u64_distrib dist_rules_len(s_options.min_num_rules, s_options.max_num_rules);
+  u64_distrib dist_turn_dir(u64(0), s_options.turn_directions.length() - 1);
+  u64_distrib dist_ant_orient(u64(0), s_options.ant_orientations.length() - 1);
 
-    u64_distrib dist_rules_len(s_options.min_num_rules, s_options.max_num_rules);
-    u64_distrib dist_turn_dir(u64(0), s_options.turn_directions.length() - 1);
-    u64_distrib dist_ant_orient(u64(0), s_options.ant_orientations.length() - 1);
+  // will be reused for each generated state file
+  fs::path state_file_path = fs::path(s_options.out_dir_path) / "blank.json";
+  // only used if name_mode is randwords
+  std::string rand_fname{};
 
-    // will be reused for each generated state file
-    fs::path state_file_path = fs::path(s_options.out_dir_path) / "blank.json";
-    // only used if name_mode is randwords
-    std::string rand_fname{};
+  std::string turn_dirs_buffer(256 + 1, '\0');
+  simulation::rules_t rand_rules{};
+  std::ofstream file;
+  std::unordered_set<std::string> names{};
 
-    std::string turn_dirs_buffer(256 + 1, '\0');
-    simulation::rules_t rand_rules{};
-    std::ofstream file;
-    std::unordered_set<std::string> names{};
+  time_point_t const start_time = util::current_time();
 
-    for (u64 i = 0; i < s_options.count; ++i) {
-      {
-        b8 const should_terminate = s_terminate.load();
-        if (should_terminate) {
-          break;
-        }
+  write_progress_log(start_time, std::nullopt);
+  time_point_t last_progress_log_time = util::current_time();
+
+  for (u64 i = 0; i < s_options.count; ++i) {
+    try {
+      simulation::orientation::value_type const rand_ant_orient = [&] {
+        u64 const rand_idx = dist_ant_orient(rand_num_gener);
+        char const rand_ant_orient_str[] {
+          static_cast<char>(toupper(s_options.ant_orientations[rand_idx])),
+          '\0'
+        };
+        return simulation::orientation::from_cstr(rand_ant_orient_str);
+      }();
+
+      rand_rules = make_random_rules(
+        turn_dirs_buffer,
+        dist_rules_len,
+        dist_turn_dir,
+        rand_num_gener);
+
+      if (s_options.name_mode == "turndirecs") {
+        state_file_path.replace_filename(turn_dirs_buffer);
+      } else {
+        get_rand_name(rand_fname, rand_num_gener);
+        state_file_path.replace_filename(rand_fname);
+      }
+      state_file_path.replace_extension(".json");
+
+      if (names.contains(turn_dirs_buffer)) {
+        ++s_num_filename_conflicts;
+        continue;
       }
 
-      // the try block below might write to stdout, so lock it to avoid conflict
-      // from the UI loop
-      std::scoped_lock stdout_lock(s_stdout_mutex);
+      std::string const state_file_path_str = state_file_path.generic_string();
+      file.open(state_file_path_str.c_str(), std::ios::out);
 
-      try {
-        simulation::orientation::value_type const rand_ant_orient = [&] {
-          u64 const rand_idx = dist_ant_orient(rand_num_gener);
-          char const rand_ant_orient_str[] {
-            static_cast<char>(toupper(s_options.ant_orientations[rand_idx])),
-            '\0'
-          };
-          return simulation::orientation::from_cstr(rand_ant_orient_str);
-        }();
+      if (!file) {
+        ++s_num_states_failed;
+        ++s_num_consecutive_states_failed;
+        continue;
+      }
 
-        rand_rules = make_random_rules(
-          turn_dirs_buffer,
-          dist_rules_len,
-          dist_turn_dir,
-          rand_num_gener);
+      b8 const write_success = simulation::print_state_json(
+        file,
+        state_file_path_str,
+        s_options.grid_state,
+        0,
+        s_options.grid_width,
+        s_options.grid_height,
+        s_options.ant_col,
+        s_options.ant_row,
+        simulation::step_result::NIL,
+        rand_ant_orient,
+        util::count_digits(s_options.max_num_rules - 1),
+        rand_rules);
 
-        if (s_options.name_mode == "turndirecs") {
-          state_file_path.replace_filename(turn_dirs_buffer);
-        } else {
-          get_rand_name(rand_fname, rand_num_gener);
-          state_file_path.replace_filename(rand_fname);
-        }
-        state_file_path.replace_extension(".json");
-
-        if (names.contains(turn_dirs_buffer)) {
-          ++s_num_filename_conflicts;
-          continue;
-        }
-
-        std::string const state_file_path_str = state_file_path.generic_string();
-        file.open(state_file_path_str.c_str(), std::ios::out);
-
-        if (!file) {
-          ++s_num_states_failed;
-          ++s_num_consecutive_states_failed;
-          continue;
-        }
-
-        b8 const write_success = simulation::print_state_json(
-          file,
-          state_file_path_str,
-          s_options.grid_state,
-          0,
-          s_options.grid_width,
-          s_options.grid_height,
-          s_options.ant_col,
-          s_options.ant_row,
-          simulation::step_result::NIL,
-          rand_ant_orient,
-          util::count_digits(s_options.max_num_rules - 1),
-          rand_rules);
-
-        if (write_success) {
-          std::string const &name = turn_dirs_buffer;
-          names.emplace(name);
-          ++s_num_states_completed;
-          s_num_consecutive_states_failed.store(0);
-        } else {
-          ++s_num_states_failed;
-          ++s_num_consecutive_states_failed;
-        }
-
-        file.close();
-
-      } catch (...) {
+      if (write_success) {
+        std::string const &name = turn_dirs_buffer;
+        names.emplace(name);
+        ++s_num_states_completed;
+        s_num_consecutive_states_failed = 0;
+      } else {
         ++s_num_states_failed;
         ++s_num_consecutive_states_failed;
       }
+
+      file.close();
+
+      // once every ~2 seconds, we print a progress update to stdout
+      {
+        time_point_t const now = util::current_time();
+        u64 const
+          nanos_since_last_progress_log = util::nanos_between(last_progress_log_time, now),
+          millis_since_last_progress_log = nanos_since_last_progress_log / 1'000'000;
+
+        if (millis_since_last_progress_log > 2000) {
+          write_progress_log(start_time, std::nullopt);
+          last_progress_log_time = util::current_time();
+        }
+      }
+
+    } catch (...) {
+      ++s_num_states_failed;
+      ++s_num_consecutive_states_failed;
+
+      if (s_num_consecutive_states_failed > 3) {
+        print_err("%zu consecutive failures - exiting... (did you run out of disk space?)");
+        std::exit(1);
+      }
     }
-
-    finish_time = util::current_time();
-  });
-
-  u8 const digits_in_num_states = util::count_digits(s_options.count);
-  time_point_t const start_time = util::current_time();
-  char time_elapsed[64];
-
-  // UI loop
-  while (true) {
-    namespace fore = term::color::fore;
-    namespace back = term::color::back;
-    auto const cprintf = term::color::printf;
-
-    // if the last state has been written, finish_time will be set and thus
-    // we use it as the final timestamp for computing our statistics
-    time_point_t const time_now = (finish_time == time_point_t{})
-      ? util::current_time()
-      : finish_time;
-
-    u64 const
-      succeeded = s_num_states_completed.load(),
-      failed = s_num_states_failed.load(),
-      consecutive_fails = s_num_consecutive_states_failed.load(),
-      filename_conflicts = s_num_filename_conflicts.load(),
-      total_done = succeeded + failed + filename_conflicts,
-      total_nanos_elapsed = util::nanos_between(start_time, time_now);
-    f64 const
-      total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
-      percent_done = (total_done / static_cast<f64>(s_options.count)) * 100.0,
-      states_per_sec = succeeded / total_secs_elapsed;
-
-    util::time_span(u64(total_secs_elapsed)).stringify(time_elapsed, util::lengthof(time_elapsed));
-
-    cprintf(fore::GREEN, "[%*zu/%zu] %6.2lf %%", digits_in_num_states, succeeded, s_options.count, percent_done);
-    std::printf(", ");
-
-    cprintf(fore::LIGHT_BLUE, "%7.2lf states/s", states_per_sec);
-    std::printf(", ");
-
-    if (failed > 0) {
-      cprintf(fore::LIGHT_RED, "%zu failed", failed);
-      std::printf(", ");
-    }
-
-    if (filename_conflicts > 0) {
-      cprintf(fore::LIGHT_RED, "%zu filename conflicts", filename_conflicts);
-      std::printf(", ");
-    }
-
-    printf("%s elapsed\n", time_elapsed);
-
-    if (consecutive_fails > 3) {
-      s_terminate.store(true);
-      cprintf(fore::LIGHT_RED, "%zu consecutive failures - did you run out of disk space?");
-      putc('\n', stdout);
-      break;
-    }
-
-    if (total_done == s_options.count) {
-      break;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
 
-  states_writer.join();
+  write_progress_log(start_time, util::current_time());
 
-  return s_num_states_failed.load() > 0;
+  return s_num_states_failed > 0;
 }
 catch (std::exception const &except)
 {
@@ -269,6 +211,53 @@ catch (std::exception const &except)
 catch (...)
 {
   die("unknown error");
+}
+
+void write_progress_log(
+  time_point_t const start_time,
+  std::optional<time_point_t> const end_time)
+{
+  using namespace term;
+  using term::printf;
+
+  static u8 const digits_in_num_states = util::count_digits(s_options.count);
+  static char time_elapsed[64];
+
+  // if the last state has been written, finish_time will be set and thus
+  // we use it as the final timestamp for computing our statistics
+  time_point_t const time_now = end_time.value_or(util::current_time());
+
+  u64 const
+    succeeded = s_num_states_completed,
+    failed = s_num_states_failed,
+    // consecutive_fails = s_num_consecutive_states_failed,
+    filename_conflicts = s_num_filename_conflicts,
+    total_done = succeeded + failed + filename_conflicts,
+    total_nanos_elapsed = util::nanos_between(start_time, time_now);
+  f64 const
+    total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
+    percent_done = (total_done / static_cast<f64>(s_options.count)) * 100.0,
+    states_per_sec = succeeded / total_secs_elapsed;
+
+  util::time_span(u64(total_secs_elapsed)).stringify(time_elapsed, util::lengthof(time_elapsed));
+
+  printf(FG_GREEN, "[%*zu/%zu] %6.2lf %%", digits_in_num_states, succeeded, s_options.count, percent_done);
+  std::printf(", ");
+
+  printf(FG_BRIGHT_BLUE, "%7.2lf states/s", states_per_sec);
+  std::printf(", ");
+
+  if (failed > 0) {
+    printf(FG_RED, "%zu failed", failed);
+    std::printf(", ");
+  }
+
+  if (filename_conflicts > 0) {
+    printf(FG_RED, "%zu filename conflicts", filename_conflicts);
+    std::printf(", ");
+  }
+
+  std::printf("%s elapsed\n", time_elapsed);
 }
 
 simulation::rules_t make_random_rules(

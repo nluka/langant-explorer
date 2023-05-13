@@ -1,9 +1,8 @@
-#include "json.hpp"
+#include <thread>
+
 #include "ntest.hpp"
-#include "fregex.hpp"
-#include "util.hpp"
 #include "simulation.hpp"
-#include "platform.hpp"
+#include "core_source_libs.hpp"
 #include "program_options.hpp"
 
 namespace fs = std::filesystem;
@@ -27,14 +26,19 @@ simulation::rules_t generate_rules(
 
 i32 main()
 {
+  using namespace term;
+
+  printf(FG_BLUE, "std::filesystem::current_path() = %s\n", fs::current_path().string().c_str());
+
   ntest::config::set_max_arr_preview_len(1);
   ntest::config::set_max_str_preview_len(10);
 
   {
     auto const res = ntest::init();
-    std::cout
-      << res.num_files_removed << " residual files removed, "
-      << res.num_files_removed << " files failed to be removed\n";
+    printf(FG_BLUE, "%zu residual files removed", res.num_files_removed);
+    if (res.num_files_failed_to_remove > 0)
+      printf(FG_YELLOW, " (%zu files failed to be removed)", res.num_files_failed_to_remove);
+    printf("\n");
   }
 
   #if 1 // simulation::parse_state
@@ -46,14 +50,14 @@ i32 main()
       std::source_location const loc = std::source_location::current())
     {
       std::string const json_str = util::extract_txt_file_contents(
-        std::string("parse/") + state_path,
+        std::string("testing/parse/") + state_path,
         true);
 
       errors_t actual_errors{};
 
       simulation::state const actual_state = simulation::parse_state(
         json_str,
-        (std::filesystem::current_path() / "parse"),
+        fs::path("testing/parse/"),
         actual_errors);
 
       if (!expected_errors.empty()) {
@@ -270,9 +274,7 @@ i32 main()
       char const *const act_json_name_cstr,
       std::source_location const loc = std::source_location::current())
     {
-      // [[maybe_unused]] auto cwd = fs::current_path();
-
-      std::string const base = "run/";
+      std::string const base = "testing/run/";
 
       std::string const
         exp_json_pathname = base + exp_json_name_cstr,
@@ -309,12 +311,12 @@ i32 main()
       ntest::assert_bool(true, match, loc);
     };
 
-    fs::path const save_dir = fs::current_path() / "run";
+    fs::path const save_dir = "testing/run/";
     errors_t errors{};
 
     // starting from generation 0, plain image
     {
-      std::string const json_str = util::extract_txt_file_contents("run/RL-init.json", false);
+      std::string const json_str = util::extract_txt_file_contents("testing/run/RL-init.json", false);
       simulation::state state = simulation::parse_state(json_str, save_dir, errors);
       assert(errors.empty());
 
@@ -351,7 +353,7 @@ i32 main()
 
     // starting from generation 16, plain image
     {
-      std::string const json_str = util::extract_txt_file_contents("run/RL_plain.expect(16).json", false);
+      std::string const json_str = util::extract_txt_file_contents("testing/run/RL_plain.expect(16).json", false);
       simulation::state state = simulation::parse_state(json_str, save_dir, errors);
       assert(errors.empty());
 
@@ -386,7 +388,7 @@ i32 main()
 
     // starting from generation 0, raw image
     {
-      std::string const json_str = util::extract_txt_file_contents("run/RL-init.json", false);
+      std::string const json_str = util::extract_txt_file_contents("testing/run/RL-init.json", false);
       simulation::state state = simulation::parse_state(json_str, save_dir, errors);
       assert(errors.empty());
 
@@ -423,7 +425,7 @@ i32 main()
 
     // starting from generation 16, raw image
     {
-      std::string const json_str = util::extract_txt_file_contents("run/RL_raw.expect(16).json", false);
+      std::string const json_str = util::extract_txt_file_contents("testing/run/RL_raw.expect(16).json", false);
       simulation::state state = simulation::parse_state(json_str, save_dir, errors);
       assert(errors.empty());
 
@@ -539,9 +541,9 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_one",
-        "-S", "valid_dir",
+        "-S", "testing/valid_dir",
         "-g", "0",
-        "-o", "valid_dir",
+        "-o", "testing/valid_dir",
       };
 
       errors_t expected_errors {
@@ -554,7 +556,7 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_one",
-        "-S", "valid_dir/valid_regular_file",
+        "-S", "testing/valid_dir/valid_regular_file",
         "-g", "0",
         "-f", "unknown",
         "-l", // therefore -L is required
@@ -573,7 +575,7 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_one",
-        "-S", "valid_dir/valid_regular_file",
+        "-S", "testing/valid_dir/valid_regular_file",
         "-g", "0",
         "-p", "[1,2,3]", // therefore -o is required
       };
@@ -588,7 +590,7 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_one",
-        "-S", "valid_dir/valid_regular_file",
+        "-S", "testing/valid_dir/valid_regular_file",
         "-g", "0",
         "-s", // therefore -o is required
         "-p", "1,2,3", // missing []
@@ -605,13 +607,13 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_one",
-        "-S", "valid_dir/valid_regular_file",
+        "-S", "testing/valid_dir/valid_regular_file",
         "-g", "0",
       };
 
       po::simulate_one_options const expected_options {
         "", // name
-        "valid_dir/valid_regular_file", // state_file_path
+        "testing/valid_dir/valid_regular_file", // state_file_path
         "", // log_file_path
         {
           "", // save_path
@@ -634,9 +636,9 @@ i32 main()
       char const *const argv[] {
         "simulate_one",
         "-N", "name",
-        "-S", "valid_dir/valid_regular_file",
-        "-L", "valid_dir/log.txt",
-        "-o", "valid_dir",
+        "-S", "testing/valid_dir/valid_regular_file",
+        "-L", "testing/valid_dir/log.txt",
+        "-o", "testing/valid_dir",
         "-p", "[1,20,300]",
         "-g", "0",
         "-v", "10",
@@ -648,10 +650,10 @@ i32 main()
 
       po::simulate_one_options const expected_options {
         "name", // name
-        "valid_dir/valid_regular_file", // state_file_path
-        "valid_dir/log.txt", // log_file_path
+        "testing/valid_dir/valid_regular_file", // state_file_path
+        "testing/valid_dir/log.txt", // log_file_path
         {
-          "valid_dir", // save_path
+          "testing/valid_dir", // save_path
           { 1, 20, 300 }, // save_points
           0, // generation_limit
           10, // save_interval
@@ -671,9 +673,9 @@ i32 main()
       char const *const argv[] {
         "simulate_one",
         "-N", "name2",
-        "-S", "valid_dir/valid_regular_file",
-        "-L", "valid_dir/log.txt",
-        "-o", "valid_dir",
+        "-S", "testing/valid_dir/valid_regular_file",
+        "-L", "testing/valid_dir/log.txt",
+        "-o", "testing/valid_dir",
         "-p", "[]",
         "-g", "1000",
         "-v", "42",
@@ -682,10 +684,10 @@ i32 main()
 
       po::simulate_one_options const expected_options {
         "name2", // name
-        "valid_dir/valid_regular_file", // state_file_path
-        "valid_dir/log.txt", // log_file_path
+        "testing/valid_dir/valid_regular_file", // state_file_path
+        "testing/valid_dir/log.txt", // log_file_path
         {
-          "valid_dir", // save_path
+          "testing/valid_dir", // save_path
           {}, // save_points
           1000, // generation_limit
           42, // save_interval
@@ -786,9 +788,9 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_many",
-        "-S", "valid_dir/valid_regular_file",
+        "-S", "testing/valid_dir/valid_regular_file",
         "-g", "0",
-        "-o", "valid_dir",
+        "-o", "testing/valid_dir",
       };
 
       errors_t expected_errors {
@@ -801,7 +803,7 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_many",
-        "-S", "valid_dir",
+        "-S", "testing/valid_dir",
         "-g", "0",
         "-f", "unknown",
         "-l", // therefore -L is required
@@ -820,7 +822,7 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_many",
-        "-S", "valid_dir",
+        "-S", "testing/valid_dir",
         "-g", "0",
         "-p", "[1,2,3]", // therefore -o is required
       };
@@ -835,7 +837,7 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_many",
-        "-S", "valid_dir",
+        "-S", "testing/valid_dir",
         "-T", "0",
         "-g", "0",
         "-s", // therefore -o is required
@@ -854,12 +856,12 @@ i32 main()
     {
       char const *const argv[] {
         "simulate_many",
-        "-S", "valid_dir",
+        "-S", "testing/valid_dir",
         "-g", "0",
       };
 
       po::simulate_many_options const expected_options {
-        "valid_dir", // state_dir_path
+        "testing/valid_dir", // state_dir_path
         "", // log_file_path
         std::max(std::thread::hardware_concurrency(), u32(1)), // num_threads
         u16(50), // queue_size
@@ -886,9 +888,9 @@ i32 main()
         "simulate_many",
         "-T", "42",
         "-Q", "13",
-        "-S", "valid_dir",
-        "-L", "valid_dir/log.txt",
-        "-o", "valid_dir",
+        "-S", "testing/valid_dir",
+        "-L", "testing/valid_dir/log.txt",
+        "-o", "testing/valid_dir",
         "-p", "[1,20,300]",
         "-g", "0",
         "-v", "10",
@@ -900,13 +902,13 @@ i32 main()
       };
 
       po::simulate_many_options const expected_options {
-        "valid_dir", // state_dir_path
-        "valid_dir/log.txt", // log_file_path
+        "testing/valid_dir", // state_dir_path
+        "testing/valid_dir/log.txt", // log_file_path
         u32(42), // num_threads
         u16(13), // queue_size
         true, // log_to_stdout
         {
-          "valid_dir", // save_path
+          "testing/valid_dir", // save_path
           { 1, 20, 300 }, // save_points
           0, // generation_limit
           10, // save_interval
@@ -926,9 +928,9 @@ i32 main()
       char const *const argv[] {
         "simulate_many",
         "-T", "1",
-        "-S", "valid_dir",
-        "-L", "valid_dir/log.txt",
-        "-o", "valid_dir",
+        "-S", "testing/valid_dir",
+        "-L", "testing/valid_dir/log.txt",
+        "-o", "testing/valid_dir",
         "-p", "[]",
         "-g", "1000",
         "-v", "42",
@@ -936,13 +938,13 @@ i32 main()
       };
 
       po::simulate_many_options const expected_options {
-        "valid_dir", // state_dir_path
-        "valid_dir/log.txt", // log_file_path
+        "testing/valid_dir", // state_dir_path
+        "testing/valid_dir/log.txt", // log_file_path
         u32(1), // num_threads
         u16(50), // queue_size
         true, // log_to_stdout
         {
-          "valid_dir", // save_path
+          "testing/valid_dir", // save_path
           {}, // save_points
           1000, // generation_limit
           42, // save_interval
@@ -1037,7 +1039,7 @@ i32 main()
     {
       char const *const argv[] {
         "make_image",
-        "-o", "valid_dir/image",
+        "-o", "testing/valid_dir/image",
         "-c", "fill=42",
         "-f", "raw",
         "-w", "33",
@@ -1046,7 +1048,7 @@ i32 main()
       };
 
       po::make_image_options const expected_options {
-        "valid_dir/image", // out_file_path
+        "testing/valid_dir/image", // out_file_path
         "fill=42", // content
         42, // fill_value
         33, // width
@@ -1063,7 +1065,7 @@ i32 main()
     {
       char const *const argv[] {
         "make_image",
-        "-o", "valid_dir/image",
+        "-o", "testing/valid_dir/image",
         "-c", "noise",
         "-f", "plain",
         "-w", "33",
@@ -1072,7 +1074,7 @@ i32 main()
       };
 
       po::make_image_options const expected_options {
-        "valid_dir/image", // out_file_path
+        "testing/valid_dir/image", // out_file_path
         "noise", // content
         -1, // fill_value
         33, // width
@@ -1184,7 +1186,7 @@ i32 main()
       char const *const argv[] {
         "make_states",
         "--name_mode", "randwords,10",
-        "--out_dir_path", "valid_dir",
+        "--out_dir_path", "testing/valid_dir",
         "--count", "1",
         "--min_num_rules", "1",
         "--max_num_rules", "257",
@@ -1209,8 +1211,8 @@ i32 main()
       char const *const argv[] {
         "make_states",
         "--name_mode", "randwords,4",
-        "--word_file_path", "valid_dir",
-        "--out_dir_path", "valid_dir",
+        "--word_file_path", "testing/valid_dir",
+        "--out_dir_path", "testing/valid_dir",
         "--count", "1",
         "--min_num_rules", "257",
         "--max_num_rules", "1",
@@ -1233,7 +1235,7 @@ i32 main()
       char const *const argv[] {
         "make_states",
         "--name_mode", "randwords,4",
-        "--out_dir_path", "valid_dir",
+        "--out_dir_path", "testing/valid_dir",
         "--count", "1",
         "--min_num_rules", "10",
         "--max_num_rules", "3",
@@ -1255,7 +1257,7 @@ i32 main()
       char const *const argv[] {
         "make_states",
         "--name_mode", "turndirecs",
-        "--out_dir_path", "valid_dir",
+        "--out_dir_path", "testing/valid_dir",
         "--count", "1",
         "--grid_width", "1",
         "--grid_height", "1",
@@ -1269,7 +1271,7 @@ i32 main()
         "LR", // turn_directions
         "asc", // shade_order
         "NESW", // ant_orientations
-        "valid_dir", // out_dir_path
+        "testing/valid_dir", // out_dir_path
         "", // word_file_path
         1, // count
         2, // min_num_rules
@@ -1290,9 +1292,9 @@ i32 main()
       char const *const argv[] {
         "make_states",
         "--name_mode", "randwords,4",
-        "--word_file_path", "valid_dir/valid_regular_file",
+        "--word_file_path", "testing/valid_dir/valid_regular_file",
         "--grid_state", "fill=42",
-        "--out_dir_path", "valid_dir",
+        "--out_dir_path", "testing/valid_dir",
         "--turn_directions", "LLLNNR",
         "--ant_orientations", "NE",
         "--shade_order", "asc",
@@ -1311,8 +1313,8 @@ i32 main()
         "LLLNNR", // turn_directions
         "asc", // shade_order
         "NE", // ant_orientations
-        "valid_dir", // out_dir_path
-        "valid_dir/valid_regular_file", // word_file_path
+        "testing/valid_dir", // out_dir_path
+        "testing/valid_dir/valid_regular_file", // word_file_path
         42, // count
         10, // min_num_rules
         30, // max_num_rules
@@ -1333,7 +1335,7 @@ i32 main()
         "make_states",
         "--name_mode", "alpha,9",
         "--grid_state", "fill=42",
-        "--out_dir_path", "valid_dir",
+        "--out_dir_path", "testing/valid_dir",
         "--turn_directions", "LLLNNR",
         "--ant_orientations", "NE",
         "--shade_order", "desc",
@@ -1352,7 +1354,7 @@ i32 main()
         "LLLNNR", // turn_directions
         "desc", // shade_order
         "NE", // ant_orientations
-        "valid_dir", // out_dir_path
+        "testing/valid_dir", // out_dir_path
         "", // word_file_path
         42, // count
         256, // min_num_rules
@@ -1374,7 +1376,7 @@ i32 main()
         "make_states",
         "--name_mode", "turndirecs",
         "--grid_state", "fill=42",
-        "--out_dir_path", "valid_dir",
+        "--out_dir_path", "testing/valid_dir",
         "--turn_directions", "LLLNNR",
         "--ant_orientations", "NE",
         "--shade_order", "rand",
@@ -1394,7 +1396,7 @@ i32 main()
         "LLLNNR", // turn_directions
         "rand", // shade_order
         "NE", // ant_orientations
-        "valid_dir", // out_dir_path
+        "testing/valid_dir", // out_dir_path
         "", // word_file_path
         42, // count
         2, // min_num_rules
@@ -1413,6 +1415,38 @@ i32 main()
   }
   #endif // po::parse_make_state_options
 
+  #if 1 // simulation::next_cluster
+  {
+    ntest::assert_uint8(1, simulation::next_cluster({}));
+
+    ntest::assert_uint8(1, simulation::next_cluster({ "cluster0", }));
+
+    ntest::assert_uint8(2, simulation::next_cluster({ "cluster1", }));
+
+    ntest::assert_uint8(3, simulation::next_cluster({ "cluster1", "cluster2", }));
+
+    ntest::assert_uint8(1, simulation::next_cluster({ "cluster2", }));
+
+    ntest::assert_uint8(1, simulation::next_cluster({ "cluster2", "cluster3" }));
+
+    ntest::assert_uint8(3, simulation::next_cluster({ "cluster1", "cluster2", "cluster4", }));
+
+    {
+      std::vector<fs::path> clusters{};
+      clusters.reserve(255);
+
+      std::string cluster{};
+
+      for (u64 i = 1; i <= 255; ++i) {
+        cluster = std::to_string(i);
+        clusters.emplace_back("cluster" + cluster);
+      }
+
+      ntest::assert_uint8(simulation::NO_CLUSTER, simulation::next_cluster(clusters));
+    }
+  }
+  #endif // simulation::next_cluster
+
   {
     char const *report_name = nullptr;
 
@@ -1422,8 +1456,22 @@ i32 main()
     report_name = "langant-explorer-windows";
     #endif
 
-    auto const res = ntest::generate_report(report_name);
-    std::cout << res.num_fails << " failed, " << res.num_passes << " passed\n";
-    return static_cast<i32>(res.num_fails);
+    auto const res = ntest::generate_report(report_name, [](ntest::assertion const &a, bool const passed) {
+      if (!passed)
+        util::print_err("failed: %s:%zu", a.loc.file_name(), a.loc.line());
+    });
+
+    if ((res.num_fails + res.num_passes) == 0) {
+      printf(BG_YELLOW, "No tests defined");
+    } else {
+      if (res.num_fails > 0) {
+        printf(BG_BRIGHT_RED | FG_BLACK,   " %zu failed ", res.num_fails);
+        printf(BG_BRIGHT_GREEN | FG_BLACK, " %zu passed ", res.num_passes);
+      } else
+        printf(BG_BRIGHT_GREEN | FG_BLACK, " All %zu tests passed ", res.num_passes);
+    }
+    printf("\n");
+
+    return 0;
   }
 }

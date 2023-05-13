@@ -1,6 +1,9 @@
 #include <cstdarg>
 #include <cstdio>
-#include <sstream>
+#include <cstring>
+#include <string>
+#include <cassert>
+#include <stdexcept>
 
 #include "term.hpp"
 
@@ -9,144 +12,216 @@
 // https://www2.math.upenn.edu/~kazdan/210/computer/ansi.html
 
 void term::clear_screen() {
-  printf("\033[2J");
+  std::printf("\033[2J");
 }
 
-void term::clear_curr_line() {
-  printf("\33[2K\r");
+void term::clear_current_line() {
+  std::printf("\33[2K\r");
 }
 
 void term::clear_to_end_of_line() {
-  printf("\033[K");
+  std::printf("\033[K");
 }
 
-void term::cursor::hide() {
-  printf("\33[?25l");
+void term::hide_cursor() {
+  std::printf("\33[?25l");
 }
 
-void term::cursor::show() {
-  printf("\33[?25h");
+void term::unhide_cursor() {
+  std::printf("\33[?25h");
 }
 
-void term::cursor::disable_blinking() {
-  printf("\33[?12l");
+void term::disable_cursor_blink() {
+  std::printf("\33[?12l");
 }
 
-void term::cursor::move_to(size_t const x, size_t const y) {
-  // row;col
-  // ^^^ ^^^
-  // start from 1 rather than 0 so we must add 1 to `x` and `y` accordingly
-  printf("\33[%zu;%zuH", y + 1, x + 1);
+void term::move_cursor_to(size_t const row, size_t const col) {
+  std::printf("\33[%zu;%zuH", row, col);
 }
 
-void term::cursor::move_up(size_t const n) {
-  printf("\33[%zuA", n);
+void term::move_cursor_up(size_t const n) {
+  std::printf("\33[%zuA", n);
 }
 
-void term::cursor::move_down(size_t const n) {
-  printf("\33[%zuB", n);
+void term::move_cursor_down(size_t const n) {
+  std::printf("\33[%zuB", n);
 }
 
-void term::cursor::move_right(size_t const n) {
-  printf("\33[%zuC", n);
+void term::move_cursor_right(size_t const n) {
+  std::printf("\33[%zuC", n);
 }
 
-void term::cursor::move_left(size_t const n) {
-  printf("\33[%zuD", n);
+void term::move_cursor_left(size_t const n) {
+  std::printf("\33[%zuD", n);
 }
 
-void term::cursor::move_to_top_left() {
-  printf("\33[;H");
+void term::save_cursor_position() {
+  std::printf("\33[s");
 }
 
-void term::cursor::save_pos() {
-  printf("\33[s");
+void term::restore_cursor_position() {
+  std::printf("\33[u");
 }
 
-void term::cursor::restore_pos() {
-  printf("\33[u");
-}
+std::string &term::compute_font_effects_str(font_effects_t const effects, std::string &out) {
+  out.clear();
 
-static
-int ansi_color_code_fore(term::color::value_type const color) {
-  term::color::value_type const fg_component = color & 0b00000000000000001111111111111111;
+  auto const append_code_if_effect_set = [&](
+    font_effects_t const effect_to_check,
+    char const *code
+  ) -> size_t {
+    if (effects & effect_to_check) {
+      out += code;
+      out += ';';
+      return 1;
+    } else {
+      return 0;
+    }
+  };
 
-  int ansi_color_code;
+  {
+    size_t num_set = 0;
 
-  switch (fg_component) {
-    using namespace term::color;
-
-    case fore::DEFAULT: ansi_color_code = 0; break;
-    case fore::RED: ansi_color_code = 31; break;
-    case fore::GREEN: ansi_color_code = 32; break;
-    case fore::YELLOW: ansi_color_code = 33; break;
-    case fore::BLUE: ansi_color_code = 34; break;
-    case fore::MAGENTA: ansi_color_code = 35; break;
-    case fore::CYAN: ansi_color_code = 36; break;
-
-    case fore::GRAY: ansi_color_code = 90; break;
-    case fore::GREY: ansi_color_code = 90; break;
-    case fore::LIGHT_RED: ansi_color_code = 91; break;
-    case fore::LIGHT_GREEN: ansi_color_code = 92; break;
-    case fore::LIGHT_YELLOW: ansi_color_code = 93; break;
-    case fore::LIGHT_BLUE: ansi_color_code = 94; break;
-    case fore::LIGHT_MAGENTA: ansi_color_code = 95; break;
-    case fore::LIGHT_CYAN: ansi_color_code = 96; break;
-    case fore::WHITE: ansi_color_code = 97; break;
-
-    default: throw std::runtime_error(
-      "ansi_color_code_fore: bad term::color::fore `color`"
-    );
+    num_set += append_code_if_effect_set(BOLD,          "1");
+    num_set += append_code_if_effect_set(UNDERLINE,     "4");
+    num_set += append_code_if_effect_set(REVERSE_VIDEO, "7");
+    num_set += append_code_if_effect_set(CROSSED_OUT,   "9");
   }
 
-  return ansi_color_code;
-}
+  {
+    size_t num_set = 0;
 
-static
-int ansi_color_code_back(term::color::value_type const color) {
-  term::color::value_type const bg_component = color & 0b11111111100000000000000000000000;
+    num_set += append_code_if_effect_set(FG_BLACK,   "30");
+    num_set += append_code_if_effect_set(FG_RED,     "31");
+    num_set += append_code_if_effect_set(FG_GREEN,   "32");
+    num_set += append_code_if_effect_set(FG_YELLOW,  "33");
+    num_set += append_code_if_effect_set(FG_BLUE,    "34");
+    num_set += append_code_if_effect_set(FG_MAGENTA, "35");
+    num_set += append_code_if_effect_set(FG_CYAN,    "36");
+    num_set += append_code_if_effect_set(FG_WHITE,   "37");
 
-  int ansi_color_code;
+    num_set += append_code_if_effect_set(FG_BRIGHT_BLACK,   "90");
+    num_set += append_code_if_effect_set(FG_BRIGHT_RED,     "91");
+    num_set += append_code_if_effect_set(FG_BRIGHT_GREEN,   "92");
+    num_set += append_code_if_effect_set(FG_BRIGHT_YELLOW,  "93");
+    num_set += append_code_if_effect_set(FG_BRIGHT_BLUE,    "94");
+    num_set += append_code_if_effect_set(FG_BRIGHT_MAGENTA, "95");
+    num_set += append_code_if_effect_set(FG_BRIGHT_CYAN,    "96");
+    num_set += append_code_if_effect_set(FG_BRIGHT_WHITE,   "97");
 
-  switch (bg_component) {
-    using namespace term::color;
-
-    case back::BLACK: ansi_color_code = 40; break;
-    case back::RED: ansi_color_code = 41; break;
-    case back::GREEN: ansi_color_code = 42; break;
-    case back::YELLOW: ansi_color_code = 43; break;
-    case back::BLUE: ansi_color_code = 44; break;
-    case back::MAGENTA: ansi_color_code = 45; break;
-    case back::CYAN: ansi_color_code = 46; break;
-    case back::WHITE: ansi_color_code = 47; break;
-    case back::DEFAULT: ansi_color_code = 49; break;
-
-    default: throw std::runtime_error(
-      "ansi_color_code_back: bad term::color::back `color`"
-    );
+    if (num_set > 1) {
+      throw std::runtime_error("multiple foreground colors set, only one can be set");
+    }
   }
 
-  return ansi_color_code;
+  {
+    size_t num_set = 0;
+
+    num_set += append_code_if_effect_set(BG_BLACK,   "40");
+    num_set += append_code_if_effect_set(BG_RED,     "41");
+    num_set += append_code_if_effect_set(BG_GREEN,   "42");
+    num_set += append_code_if_effect_set(BG_YELLOW,  "43");
+    num_set += append_code_if_effect_set(BG_BLUE,    "44");
+    num_set += append_code_if_effect_set(BG_MAGENTA, "45");
+    num_set += append_code_if_effect_set(BG_CYAN,    "46");
+    num_set += append_code_if_effect_set(BG_WHITE,   "47");
+
+    num_set += append_code_if_effect_set(BG_BRIGHT_BLACK,   "100");
+    num_set += append_code_if_effect_set(BG_BRIGHT_RED,     "101");
+    num_set += append_code_if_effect_set(BG_BRIGHT_GREEN,   "102");
+    num_set += append_code_if_effect_set(BG_BRIGHT_YELLOW,  "103");
+    num_set += append_code_if_effect_set(BG_BRIGHT_BLUE,    "104");
+    num_set += append_code_if_effect_set(BG_BRIGHT_MAGENTA, "105");
+    num_set += append_code_if_effect_set(BG_BRIGHT_CYAN,    "106");
+    num_set += append_code_if_effect_set(BG_BRIGHT_WHITE,   "107");
+
+    if (num_set > 1) {
+      throw std::runtime_error("multiple background colors set, only one can be set");
+    }
+  }
+
+  if (out.length() > 0)
+    out.pop_back(); // remove trailing ;
+
+  return out;
 }
 
-void term::color::set(term::color::value_type const color) {
-  if (color & 0b00000000000000001111111111111111) {
-    int const fg = ansi_color_code_fore(color);
-    std::printf("\033[%dm", fg);
-  }
-  if (color & 0b11111111100000000000000000000000) {
-    int const bg = ansi_color_code_back(color);
-    std::printf("\033[%dm", bg);
-  }
+std::string const &term::set_font_effects(font_effects_t const effects) {
+  static std::string fes(100, '\0');
+
+  compute_font_effects_str(effects, fes);
+  std::printf("\033[%sm", fes.c_str());
+
+  return fes;
 }
 
-void term::color::printf(term::color::value_type const color, char const *fmt, ...) {
-  color::set(color);
+void term::reset_font_effects() {
+  std::printf("\033[0m");
+}
+
+void term::printf(font_effects_t const effects, char const *fmt, ...) {
+  term::set_font_effects(effects);
 
   va_list args;
   va_start(args, fmt);
   vprintf(fmt, args);
   va_end(args);
 
-  color::set(fore::DEFAULT | back::DEFAULT);
+  term::reset_font_effects();
 }
+
+// And if I ever get around to implementing RGB colors:
+
+// struct rgb {
+//   uint8_t r;
+//   uint8_t g;
+//   uint8_t b;
+// };
+
+// term::font_effects_t term::foreground_rgb(uint8_t const r, uint8_t const g, uint8_t const b) {
+//   uint8_t data[8]{};
+
+//   data[0] = r;
+//   data[1] = g;
+//   data[2] = b;
+
+//   font_effects_t retval;
+//   std::memcpy(&retval, data, 8);
+//   return retval;
+// }
+
+// term::font_effects_t term::background_rgb(uint8_t const r, uint8_t const g, uint8_t const b) {
+//   uint8_t data[8]{};
+
+//   data[3] = r;
+//   data[4] = g;
+//   data[5] = b;
+
+//   font_effects_t retval;
+//   std::memcpy(&retval, data, 8);
+//   return retval;
+// }
+
+#if 0
+  uint8_t const *const effects_data = reinterpret_cast<uint8_t const *>(&effects);
+
+  // foreground
+  {
+    uint8_t const r = static_cast<uint8_t>(effects_data[0]);
+    uint8_t const g = static_cast<uint8_t>(effects_data[1]);
+    uint8_t const b = static_cast<uint8_t>(effects_data[2]);
+    char buffer[17];
+    std::sprintf(buffer, "38;2;%d;%d;%d", r, g, b);
+    out += buffer;
+  }
+
+  // background
+  {
+    uint8_t const r = static_cast<uint8_t>(effects_data[3]);
+    uint8_t const g = static_cast<uint8_t>(effects_data[4]);
+    uint8_t const b = static_cast<uint8_t>(effects_data[5]);
+    char buffer[17];
+    std::sprintf(buffer, "48;2;%d;%d;%d", r, g, b);
+    out += buffer;
+  }
+#endif

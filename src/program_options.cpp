@@ -1,4 +1,5 @@
 #include <regex>
+#include <thread>
 
 #include "pgm8.hpp"
 #include "json.hpp"

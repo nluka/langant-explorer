@@ -17,6 +17,10 @@
 
 namespace simulation
 {
+  typedef u8 cluster_t;
+  cluster_t const NO_CLUSTER = 0;
+  cluster_t next_cluster(std::vector<std::filesystem::path> const &clusters);
+
   // not using an enum class because I want to do arithmetic with
   // turn_direction values without casting.
   namespace orientation
