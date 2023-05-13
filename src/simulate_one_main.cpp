@@ -7,19 +7,13 @@
 #include <variant>
 #include <regex>
 
-#ifdef _WIN32
+#include "core_source_libs.hpp"
+#include "simulation.hpp"
+
+#if ON_WINDOWS
 #  include <Windows.h>
 #  undef max // because it conflicts with std::max
 #endif
-
-#include "json.hpp"
-#include "term.hpp"
-#include "primitives.hpp"
-#include "util.hpp"
-#include "simulation.hpp"
-#include "logger.hpp"
-#include "program_options.hpp"
-#include "platform.hpp"
 
 namespace fs = std::filesystem;
 using util::errors_t;

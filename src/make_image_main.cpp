@@ -1,6 +1,8 @@
 #include <random>
 #include <regex>
 #include <filesystem>
+#include <cerrno>  // for errno
+#include <cstring> // for std::strerror
 
 #include <boost/program_options.hpp>
 
@@ -78,7 +80,14 @@ try
     std::fstream file(s_options.out_file_path, fmode);
 
     try {
-      pgm8::write(file, img_props, pixels.get());
+      bool const success = pgm8::write(file, img_props, pixels.get());
+
+      if (!success) {
+        // don't do this removal right now, because it could mess up errno
+        std::atexit([]() { fs::remove(s_options.out_file_path); });
+
+        die("failed to write image - %s (did you run out of disk space?)", std::strerror(errno));
+      }
     } catch (std::runtime_error const &except) {
       die(except.what());
     }

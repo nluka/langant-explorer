@@ -173,6 +173,7 @@ try
       } else {
         ++s_num_states_failed;
         ++s_num_consecutive_states_failed;
+        fs::remove(state_file_path); // remove state file since we failed to write it
       }
 
       file.close();
@@ -180,6 +181,7 @@ try
       // once every ~2 seconds, we print a progress update to stdout
       {
         time_point_t const now = util::current_time();
+
         u64 const
           nanos_since_last_progress_log = util::nanos_between(last_progress_log_time, now),
           millis_since_last_progress_log = nanos_since_last_progress_log / 1'000'000;

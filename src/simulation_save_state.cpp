@@ -28,7 +28,7 @@ simulation::save_state_result simulation::save_state(
     std::string const state_file_path_str = file_path.generic_string();
     std::fstream state_file = util::open_file(state_file_path_str, std::ios::out);
 
-    b8 const success = print_state_json(
+    result.state_write_success = print_state_json(
       state_file,
       state_file_path_str,
       name_with_gen + ".pgm",
@@ -41,9 +41,13 @@ simulation::save_state_result simulation::save_state(
       state.ant_orientation,
       util::count_digits(state.maxval),
       state.rules);
-
-    result.state_write_succes = success;
+  } else {
+    // we aren't writing a state file, so consider it a success
+    result.state_write_success = true;
   }
+
+  if (!result.state_write_success)
+    fs::remove(file_path); // remove state file because we were not able to write it
 
   // write image file
   {
@@ -54,12 +58,15 @@ simulation::save_state_result simulation::save_state(
     img_props.set_maxval(state.maxval);
 
     file_path.replace_extension(".pgm");
-    std::string const img_path_str = file_path.string();
+    std::string const img_path_str = file_path.generic_string();
     std::fstream img_file = util::open_file(img_path_str, std::ios::out);
     b8 const success = pgm8::write(img_file, img_props, state.grid);
 
     result.image_write_success = success;
   }
+
+  if (!result.image_write_success)
+    fs::remove(file_path); // remove image file because we were not able to write it
 
   return result;
 }

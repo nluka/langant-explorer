@@ -132,7 +132,7 @@ namespace simulation
 
   struct save_state_result
   {
-    b8 state_write_succes;
+    b8 state_write_success;
     b8 image_write_success;
   };
 
@@ -185,7 +185,7 @@ namespace simulation
     b8 create_logs,
     b8 save_image_only,
     std::atomic<u64> *num_simulations_processed = nullptr,
-    u64 total = 0);
+    u64 total_num_of_simulations = 0);
 }
 
 #endif // SIMULATION_HPP

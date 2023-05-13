@@ -7,13 +7,13 @@
 #include <unordered_map>
 #include <atomic>
 
-#include "json.hpp"
-#include "term.hpp"
-#include "util.hpp"
+#include "core_source_libs.hpp"
 #include "simulation.hpp"
-#include "logger.hpp"
 
 namespace fs = std::filesystem;
+
+static std::atomic<u64> s_num_consecutive_save_fails = 0;
+static std::mutex s_death_mutex{};
 
 // Removes duplicate elements from a sorted vector.
 template <typename ElemTy>
@@ -72,14 +72,14 @@ simulation::run_result simulation::run(
   b8 const save_final_cfg,
   b8 const create_logs,
   b8 const save_image_only,
-  std::atomic<u64> *const num_simulations_processed,
-  u64 const total)
+  std::atomic<u64> *const num_sims_processed,
+  u64 const total_num_of_sims)
 {
   using logger::log;
   using logger::event_type;
 
   u64 const max_name_display_len = 32;
-  u64 const num_digits_in_total = util::count_digits(total);
+  u64 const num_digits_in_total = util::count_digits(total_num_of_sims);
 
   if (create_logs) {
     log(event_type::SIM_START, "%*.*s", max_name_display_len, max_name_display_len, name.c_str());
@@ -103,11 +103,18 @@ simulation::run_result simulation::run(
   };
 
   auto const do_save = [&] {
-    b8 failed = false;
+    bool success;
 
     try {
-      simulation::save_state(state, name.c_str(), save_dir, img_fmt, save_image_only);
+      auto const save_res = simulation::save_state(state, name.c_str(), save_dir, img_fmt, save_image_only);
+      success = save_res.state_write_success && save_res.image_write_success;
+    } catch (...) {
+      success = false;
+    }
+
+    if (success) {
       ++result.num_save_points_successful;
+      s_num_consecutive_save_fails.store(0);
 
       if (create_logs) {
         f64 const percent_of_gen_limit = (f64(state.generation) / f64(generation_limit)) * 100.0;
@@ -115,14 +122,28 @@ simulation::run_result simulation::run(
         log(event_type::SAVE_PNT, "%*.*s | %6.2lf %%, %zu",
           max_name_display_len, max_name_display_len, name.c_str(), percent_of_gen_limit, state.generation);
       }
-    // } catch (std::runtime_error const &) {
-    //   failed = true;
-    } catch (...) {
-      failed = true;
-    }
+    } else {
+      ++result.num_save_points_failed;
+      ++s_num_consecutive_save_fails;
 
-    static_assert(true == u8(1));
-    result.num_save_points_failed += static_cast<u8>(failed);
+      if (create_logs) {
+        f64 const percent_of_gen_limit = (f64(state.generation) / f64(generation_limit)) * 100.0;
+
+        log(event_type::ERR, "%*.*s | %6.2lf %%, %zu, save point failed!",
+          max_name_display_len, max_name_display_len, name.c_str(), percent_of_gen_limit, state.generation);
+      }
+
+      {
+        u64 const consecutive_fails = s_num_consecutive_save_fails.load();
+
+        if (consecutive_fails >= 3) {
+          // prevent multiple threads running simulation::run from killing the program at the same time
+          std::scoped_lock death_lock(s_death_mutex);
+
+          util::die("%zu consecutive failed save points (did you run out of disk space?)", consecutive_fails);
+        }
+      }
+    }
   };
 
   // sort save_points in descending order, so we can pop them off the back as we complete them
@@ -245,18 +266,18 @@ done:
       }
     }();
 
-    u64 const simulation_number = num_simulations_processed != nullptr
-      ? num_simulations_processed->load() + 1
+    u64 const simulation_number = num_sims_processed != nullptr
+      ? num_sims_processed->load() + 1
       : 0;
-    f64 const percent_of_total = total > 0 ?
-      ( f64(simulation_number) / f64(total) ) * 100.0
+    f64 const percent_of_total = total_num_of_sims > 0 ?
+      ( f64(simulation_number) / f64(total_num_of_sims) ) * 100.0
       : std::nan("percent_of_total");
 
     log(event_type::SIM_END, "%*.*s | (%*zu/%zu, %6.2lf %%) %6.2lf Mgens/s, %-18s",
       max_name_display_len, max_name_display_len,
       name.c_str(),
       num_digits_in_total, simulation_number,
-      total,
+      total_num_of_sims,
       percent_of_total,
       mega_gens_per_sec,
       result_cstr);

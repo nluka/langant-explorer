@@ -87,8 +87,16 @@ try
     ".*\\.json",
     fregex::entry_type::regular_file);
 
-  assert(!state_files.empty());
-  assert(state_files.size() <= u64(std::numeric_limits<std::ptrdiff_t>::max()));
+  if (state_files.empty())
+    die("no state files found in '%s'", s_options.state_dir_path.c_str());
+
+  {
+    auto const ptrdiff_max = std::numeric_limits<std::ptrdiff_t>::max();
+
+    if (state_files.size() > u64(ptrdiff_max))
+      die("too many state files in '%s', can only handle up to %ld",
+        s_options.state_dir_path.c_str(), ptrdiff_max);
+  }
 
   // A "queue", but using a vector because we don't care about the order of execution
   std::vector<named_simulation> simulation_queue(s_options.queue_size);
@@ -119,8 +127,6 @@ try
 
   // parse state files into initial simulation states and add them to the simulation_queue
   std::thread producer_thread([&]() {
-    assert(( state_files.size() - 1 ) < u64(std::numeric_limits<i64>::max()));
-
     for (i64 i = i64(state_files.size()) - 1; i >= 0; --i) {
       sem_empty.acquire();
       {
