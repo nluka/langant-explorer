@@ -144,7 +144,7 @@ bool simulation::print_state_json(
   ;
 
   if (os.bad()) {
-    log(event_type::ERR, "failed to write '%s', maybe not enough disk space?", file_path.c_str());
+    log(event_type::ERROR, "failed to write '%s', maybe not enough disk space?", file_path.c_str());
     return false;
   } else {
     return true;

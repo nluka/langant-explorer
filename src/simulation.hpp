@@ -87,6 +87,12 @@ namespace simulation
     SAVING,
   };
 
+  struct activity_time_breakdown
+  {
+    u64 nanos_spent_iterating;
+    u64 nanos_spent_saving;
+  };
+
   struct state
   {
     u64 start_generation;
@@ -109,17 +115,9 @@ namespace simulation
     b8 can_step_forward(u64 generation_limit = 0) const noexcept;
     u64 num_pixels() const noexcept;
     u64 generations_completed() const noexcept;
+    activity_time_breakdown query_activity_time_breakdown(util::time_point_t now = util::current_time());
+    f64 compute_mega_gens_per_sec();
   };
-
-  struct activity_time_breakdown
-  {
-    u64 nanos_spent_iterating;
-    u64 nanos_spent_saving;
-  };
-
-  activity_time_breakdown query_activity_time_breakdown(
-    state const &state,
-    util::time_point_t now = util::current_time());
 
   state parse_state(
     std::string const &json_str,
@@ -184,8 +182,8 @@ namespace simulation
     b8 save_final_state,
     b8 create_logs,
     b8 save_image_only,
-    std::atomic<u64> *num_simulations_processed = nullptr,
-    u64 total_num_of_simulations = 0);
+    std::atomic<u64> *num_simulations_processed,
+    u64 total_num_of_simulations);
 }
 
 #endif // SIMULATION_HPP

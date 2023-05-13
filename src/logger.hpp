@@ -14,6 +14,8 @@
 
 namespace logger {
 
+  u64 const MAX_SIM_NAME_DISPLAY_LEN = 32;
+
   /// Sets the pathname of the file to write logs to.
   void set_out_file_path(char const *);
   /// Sets the pathname of the file to write logs to.
@@ -29,19 +31,11 @@ namespace logger {
   void set_autoflush(bool);
 
   enum class event_type : u8 {
-    // Simulation start
     SIM_START = 0,
-
-    // Save point
-    SAVE_PNT,
-
-    // Simulation end
+    SIM_PROGRESS,
+    SAVE_POINT,
     SIM_END,
-
-    // Error
-    ERR,
-
-    // Number of event types
+    ERROR,
     COUNT,
   };
 

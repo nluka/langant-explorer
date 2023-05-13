@@ -77,12 +77,12 @@ simulation::run_result simulation::run(
 {
   using logger::log;
   using logger::event_type;
+  using logger::MAX_SIM_NAME_DISPLAY_LEN;
 
-  u64 const max_name_display_len = 32;
   u64 const num_digits_in_total = util::count_digits(total_num_of_sims);
 
   if (create_logs) {
-    log(event_type::SIM_START, "%*.*s", max_name_display_len, max_name_display_len, name.c_str());
+    log(event_type::SIM_START, "%*.*s", MAX_SIM_NAME_DISPLAY_LEN, MAX_SIM_NAME_DISPLAY_LEN, name.c_str());
   }
 
   run_result result{};
@@ -119,8 +119,8 @@ simulation::run_result simulation::run(
       if (create_logs) {
         f64 const percent_of_gen_limit = (f64(state.generation) / f64(generation_limit)) * 100.0;
 
-        log(event_type::SAVE_PNT, "%*.*s | %6.2lf %%, %zu",
-          max_name_display_len, max_name_display_len, name.c_str(), percent_of_gen_limit, state.generation);
+        log(event_type::SAVE_POINT, "%*.*s | %6.2lf %%, %zu",
+          MAX_SIM_NAME_DISPLAY_LEN, MAX_SIM_NAME_DISPLAY_LEN, name.c_str(), percent_of_gen_limit, state.generation);
       }
     } else {
       ++result.num_save_points_failed;
@@ -129,8 +129,8 @@ simulation::run_result simulation::run(
       if (create_logs) {
         f64 const percent_of_gen_limit = (f64(state.generation) / f64(generation_limit)) * 100.0;
 
-        log(event_type::ERR, "%*.*s | %6.2lf %%, %zu, save point failed!",
-          max_name_display_len, max_name_display_len, name.c_str(), percent_of_gen_limit, state.generation);
+        log(event_type::ERROR, "%*.*s | %6.2lf %%, %zu, save point failed!",
+          MAX_SIM_NAME_DISPLAY_LEN, MAX_SIM_NAME_DISPLAY_LEN, name.c_str(), percent_of_gen_limit, state.generation);
       }
 
       {
@@ -251,11 +251,7 @@ done:
   begin_new_activity(activity::NIL);
 
   if (create_logs) {
-    f64 const
-      f64_epsilon = std::numeric_limits<f64>::epsilon(),
-      mega_gens_completed = f64(state.generations_completed()) / 1'000'000.0,
-      secs_spent_iterating = f64(query_activity_time_breakdown(state).nanos_spent_iterating) / 1'000'000'000.0,
-      mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + f64_epsilon);
+    f64 const mega_gens_per_sec = state.compute_mega_gens_per_sec();
 
     char const *const result_cstr = [code = result.code] {
       switch (code) {
@@ -273,14 +269,15 @@ done:
       ( f64(simulation_number) / f64(total_num_of_sims) ) * 100.0
       : std::nan("percent_of_total");
 
-    log(event_type::SIM_END, "%*.*s | (%*zu/%zu, %6.2lf %%) %6.2lf Mgens/s, %-18s",
-      max_name_display_len, max_name_display_len,
-      name.c_str(),
-      num_digits_in_total, simulation_number,
-      total_num_of_sims,
-      percent_of_total,
-      mega_gens_per_sec,
-      result_cstr);
+    if (create_logs)
+      log(event_type::SIM_END, "%*.*s | (%*zu/%zu, %6.2lf %%) %6.2lf Mgens/s, %-18s",
+        MAX_SIM_NAME_DISPLAY_LEN, MAX_SIM_NAME_DISPLAY_LEN,
+        name.c_str(),
+        num_digits_in_total, simulation_number,
+        total_num_of_sims,
+        percent_of_total,
+        mega_gens_per_sec,
+        result_cstr);
   }
 
   return result;

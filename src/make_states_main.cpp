@@ -105,12 +105,10 @@ try
   simulation::rules_t rand_rules{};
   std::ofstream file;
   std::unordered_set<std::string> names{};
+  u64 last_progress_log_iteration = 0;
 
   time_point_t const start_time = util::current_time();
-
-  write_progress_log(start_time, std::nullopt);
   time_point_t last_progress_log_time = util::current_time();
-  u64 last_progress_log_iteration = 0;
 
   for (u64 i = 0; i < s_options.count; ++i) {
     try {

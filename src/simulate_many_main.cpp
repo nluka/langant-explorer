@@ -118,9 +118,8 @@ try
 
 #if ON_WINDOWS
   std::thread *threads = t_pool.get_threads().get();
-  for (u32 i = 0; i < t_pool.get_thread_count(); ++i) {
-    SetPriorityClass(threads[i].native_handle(), HIGH_PRIORITY_CLASS);
-  }
+  for (u32 i = 0; i < t_pool.get_thread_count(); ++i)
+    util::set_thread_priority_high(threads[i]);
 #endif
 
   time_point_t const start_time = util::current_time();
@@ -142,7 +141,7 @@ try
         if (!errors.empty()) {
           if (s_options.any_logging_enabled()) {
             std::string const err = make_str("failed to parse %s: %s", path_str.c_str(), util::stringify_errors(errors).c_str());
-            logger::log(logger::event_type::ERR, "%s", err.c_str());
+            logger::log(logger::event_type::ERROR, "%s", err.c_str());
           }
         } else {
           simulation_queue.emplace_back(simulation::extract_name_from_json_state_path(path_str), state);
@@ -169,7 +168,7 @@ try
         total);
 
       [[maybe_unused]] time_point_t const end_time = util::current_time();
-      auto const time_breakdown = simulation::query_activity_time_breakdown(sim.state);
+      auto const time_breakdown = sim.state.query_activity_time_breakdown();
 
       {
         std::scoped_lock compl_sims_lock(completed_simulations_mutex);
@@ -178,12 +177,12 @@ try
     } catch (std::exception const &except) {
       if (s_options.any_logging_enabled()) {
         std::string const err = make_str("%s failed: %s", except.what());
-        logger::log(logger::event_type::ERR, "%s", err.c_str());
+        logger::log(logger::event_type::ERROR, "%s", err.c_str());
       }
     } catch (...) {
       if (s_options.any_logging_enabled()) {
         std::string const err = make_str("%s failed, unknown cause - catch (...)", sim.name.c_str());
-        logger::log(logger::event_type::ERR, "%s", err.c_str());
+        logger::log(logger::event_type::ERROR, "%s", err.c_str());
       }
     }
 

@@ -42,10 +42,11 @@ using logger::event_type;
 
 static char const *event_type_to_str(event_type const ev_type) {
   switch (ev_type) {
-    case event_type::SIM_START: return "SIM_START ";
-    case event_type::SAVE_PNT:  return "SAVE_POINT";
-    case event_type::SIM_END:   return "SIM_END   ";
-    case event_type::ERR:       return "ERROR     ";
+    case event_type::SIM_START:    return "SIM_START   ";
+    case event_type::SIM_PROGRESS: return "SIM_PROGRESS";
+    case event_type::SAVE_POINT:   return "SAVE_POINT  ";
+    case event_type::SIM_END:      return "SIM_END     ";
+    case event_type::ERROR:        return "ERROR       ";
 
     case event_type::COUNT:
     default:
@@ -126,6 +127,7 @@ void assert_file_opened(std::ofstream const &file) {
 void logger::log(event_type const ev_type, char const *const fmt, ...) {
   static constexpr
   term::font_effects_t s_event_type_to_font_effects_map[u64(event_type::COUNT)] {
+    0,
     0,
     term::FG_YELLOW,
     term::FG_GREEN,

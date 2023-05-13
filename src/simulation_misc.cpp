@@ -119,31 +119,30 @@ u8 simulation::deduce_maxval_from_rules(simulation::rules_t const &rules)
   return 0;
 }
 
-simulation::activity_time_breakdown simulation::query_activity_time_breakdown(
-  simulation::state const &state,
+simulation::activity_time_breakdown simulation::state::query_activity_time_breakdown(
   util::time_point_t const now)
 {
-  if (state.current_activity == activity::NIL) {
+  if (this->current_activity == activity::NIL) {
     // currently doing nothing
     return {
-      state.nanos_spent_iterating,
-      state.nanos_spent_saving,
+      this->nanos_spent_iterating,
+      this->nanos_spent_saving,
     };
   }
 
   // we are in the middle of iterating or saving...
 
-  u64 const current_activity_duration_ns = util::nanos_between(state.activity_start, now);
+  u64 const current_activity_duration_ns = util::nanos_between(this->activity_start, now);
 
-  if (state.current_activity == activity::ITERATING) {
+  if (this->current_activity == activity::ITERATING) {
     return {
-      state.nanos_spent_iterating + current_activity_duration_ns,
-      state.nanos_spent_saving,
+      this->nanos_spent_iterating + current_activity_duration_ns,
+      this->nanos_spent_saving,
     };
   } else { // activity::SAVING
     return {
-      state.nanos_spent_iterating,
-      state.nanos_spent_saving + current_activity_duration_ns,
+      this->nanos_spent_iterating,
+      this->nanos_spent_saving + current_activity_duration_ns,
     };
   }
 }
@@ -179,4 +178,15 @@ std::string simulation::extract_name_from_json_state_path(std::string const &jso
     return filename_no_extension;
   else
     return filename_no_extension.erase(opening_paren_pos);
+}
+
+f64 simulation::state::compute_mega_gens_per_sec()
+{
+  f64 const
+    f64_epsilon = std::numeric_limits<f64>::epsilon(),
+    mega_gens_completed = f64(this->generations_completed()) / 1'000'000.0,
+    secs_spent_iterating = f64(this->query_activity_time_breakdown().nanos_spent_iterating) / 1'000'000'000.0,
+    mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + f64_epsilon);
+
+  return mega_gens_per_sec;
 }

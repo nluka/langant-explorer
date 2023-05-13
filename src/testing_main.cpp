@@ -347,7 +347,9 @@ i32 main()
         save_dir,
         true, // save_final_state
         false, // create_logs
-        false // save_image_only
+        false, // save_image_only
+        nullptr, // num_simulations_processed
+        0 // total_num_of_simulations
       );
 
       assert_save_point("RL_plain.expect(3).json",  "RL_plain.expect(3).pgm",  "RL_plain.actual(3).json");
@@ -384,7 +386,9 @@ i32 main()
         save_dir,
         true, // save_final_state
         false, // create_logs
-        false // save_image_only
+        false, // save_image_only
+        nullptr, // num_simulations_processed
+        0 // total_num_of_simulations
       );
 
       assert_save_point("RL_plain.expect(32).json", "RL_plain.expect(32).pgm", "RL_plain_from16.actual(32).json");
@@ -419,7 +423,9 @@ i32 main()
         save_dir,
         true, // save_final_state
         false, // create_logs
-        false // save_image_only
+        false, // save_image_only
+        nullptr, // num_simulations_processed
+        0 // total_num_of_simulations
       );
 
       assert_save_point("RL_raw.expect(3).json",  "RL_raw.expect(3).pgm",  "RL_raw.actual(3).json");
@@ -456,7 +462,9 @@ i32 main()
         save_dir,
         true, // save_final_state
         false, // create_logs
-        false // save_image_only
+        false, // save_image_only
+        nullptr, // num_simulations_processed
+        0 // total_num_of_simulations
       );
 
       assert_save_point("RL_raw.expect(32).json", "RL_raw.expect(32).pgm", "RL_raw_from16.actual(32).json");

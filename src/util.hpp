@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <thread>
 
 #include <boost/program_options.hpp>
 
@@ -53,6 +54,8 @@ namespace util
   b8 get_user_choice(std::string const &prompt);
 
   std::vector<u64> parse_json_array_u64(char const *str);
+
+  void set_thread_priority_high(std::thread &thr);
 
   template <typename IntTy>
   constexpr
