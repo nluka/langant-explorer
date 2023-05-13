@@ -33,7 +33,9 @@ static simulation::run_result s_sim_run_result{};
 
 void ui_loop(std::string const &sim_name);
 
-i32 main(i32 const argc, char const *const *const argv) {
+i32 main(i32 const argc, char const *const *const argv)
+try
+{
   if (argc < 2) {
     std::ostringstream usage_msg;
     usage_msg <<
@@ -107,6 +109,14 @@ i32 main(i32 const argc, char const *const *const argv) {
 
   return 0;
 }
+catch (std::exception const &except)
+{
+  die("%s", except.what());
+}
+catch (...)
+{
+  die("unknown error - catch (...)");
+}
 
 void ui_loop(std::string const &sim_name)
 {
@@ -127,13 +137,14 @@ void ui_loop(std::string const &sim_name)
       gens_completed = s_sim_state.generations_completed(),
       gens_remaining = s_options.sim.generation_limit - gens_completed;
     f64 const
-      total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
-      secs_elapsed_iterating = time_breakdown.nanos_spent_iterating / 1'000'000'000.0,
-      mega_gens_completed = gens_completed / 1'000'000.0,
-      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + std::numeric_limits<f64>::epsilon()),
-      percent_completion = ((gens_completed / gens_remaining) * 100.0),
-      percent_iteration = ( time_breakdown.nanos_spent_iterating / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0,
-      percent_saving    = ( time_breakdown.nanos_spent_saving    / (static_cast<f64>(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0;
+      f64_epsilon = std::numeric_limits<f64>::epsilon(),
+      total_secs_elapsed = f64(total_nanos_elapsed) / 1'000'000'000.0,
+      secs_elapsed_iterating = f64(time_breakdown.nanos_spent_iterating) / 1'000'000'000.0,
+      mega_gens_completed = f64(gens_completed) / 1'000'000.0,
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_elapsed_iterating, 0.0 + f64_epsilon),
+      percent_completion = ( ( f64(gens_completed) / f64(gens_remaining) ) * 100.0 ),
+      percent_iteration = ( f64(time_breakdown.nanos_spent_iterating) / (f64(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0,
+      percent_saving    = ( f64(time_breakdown.nanos_spent_saving   ) / (f64(time_breakdown.nanos_spent_iterating + time_breakdown.nanos_spent_saving)) ) * 100.0;
     b8 const is_simulation_done = s_sim_run_result.code != simulation::run_result::code::NIL;
 
     u64 num_lines_printed = 0;

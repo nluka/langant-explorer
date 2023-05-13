@@ -1,6 +1,7 @@
 #include <cassert>
 #include <string>
 #include <sstream>
+#include <limits>
 
 #include "pgm8.hpp"
 
@@ -116,7 +117,8 @@ void pgm8::read_pixels(
 
   if (props.get_format() == pgm8::format::RAW)
   {
-    file.read(reinterpret_cast<char *>(buffer), num_pixels);
+    assert(num_pixels <= std::numeric_limits<std::streamsize>::max());
+    file.read(reinterpret_cast<char *>(buffer), std::streamsize(num_pixels));
     assert(file.gcount() > 0 && static_cast<size_t>(file.gcount()) == num_pixels);
   }
   else // format::PLAIN
@@ -158,7 +160,8 @@ bool pgm8::write(
   if (fmt == format::RAW)
   {
     size_t const num_pixels = static_cast<size_t>(width) * height;
-    file.write(reinterpret_cast<char const *>(pixels), num_pixels);
+    assert(num_pixels <= std::numeric_limits<std::streamsize>::max());
+    file.write(reinterpret_cast<char const *>(pixels), std::streamsize(num_pixels));
   }
   else // format::PLAIN
   {

@@ -9,7 +9,6 @@
 #include <mutex>
 
 #include <boost/program_options.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
 
 #include "core_source_libs.hpp"
 #include "program_options.hpp"
@@ -120,14 +119,14 @@ try
 
   // parse state files into initial simulation states and add them to the simulation_queue
   std::thread producer_thread([&]() {
-    assert(state_files.size() - 1 < static_cast<u64>(std::numeric_limits<i64>::max()));
+    assert(( state_files.size() - 1 ) < u64(std::numeric_limits<i64>::max()));
 
-    for (i64 i = state_files.size() - 1; i >= 0; --i) {
+    for (i64 i = i64(state_files.size()) - 1; i >= 0; --i) {
       sem_empty.acquire();
       {
         std::scoped_lock sim_q_lock(simulation_queue_mutex);
         errors_t errors{};
-        std::string const path_str = state_files[i].generic_string();
+        std::string const path_str = state_files[u64(i)].generic_string();
 
         auto state = simulation::parse_state(
           util::extract_txt_file_contents(path_str.c_str(), false),
@@ -218,12 +217,13 @@ try
   u64 const
     total_nanos_elapsed = util::nanos_between(start_time, end_time);
   f64 const
-    total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
-    secs_spent_iterating = nanos_spent_iterating / 1'000'000'000.0,
-    mega_gens_completed = gens_completed / 1'000'000.0,
-    mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + std::numeric_limits<f64>::epsilon()),
-    percent_iteration = ( nanos_spent_iterating / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0,
-    percent_saving    = ( nanos_spent_saving    / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0;
+    f64_epsilon = std::numeric_limits<f64>::epsilon(),
+    total_secs_elapsed = f64(total_nanos_elapsed) / 1'000'000'000.0,
+    secs_spent_iterating = f64(nanos_spent_iterating) / 1'000'000'000.0,
+    mega_gens_completed = f64(gens_completed) / 1'000'000.0,
+    mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + f64_epsilon),
+    percent_iteration = ( f64(nanos_spent_iterating) / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0,
+    percent_saving    = ( f64(nanos_spent_saving   ) / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0;
 
   std::printf("---------------------------------\n");
   std::printf("Avg Mgens/sec : %.2lf\n", mega_gens_per_sec);
@@ -241,21 +241,9 @@ try
 }
 catch (std::exception const &except)
 {
-  std::cerr << except.what() << '\n';
-  return 1;
-}
-catch (std::string const &except)
-{
-  std::cerr << except << '\n';
-  return 1;
-}
-catch (char const *const except)
-{
-  std::cerr << except << '\n';
-  return 1;
+  die("%s", except.what());
 }
 catch (...)
 {
-  std::cerr << "unknown error - catch (...)\n";
-  return 1;
+  die("unknown error - catch (...)");
 }

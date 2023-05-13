@@ -107,8 +107,8 @@ bool simulation::print_state_json(
       os
         << "    " // indentation
         << "{ "
-        << "\"on\": " << std::setw(maxval_digits) << std::setfill(' ') << shade << ", "
-        << "\"replace_with\": " << std::setw(maxval_digits) << std::setfill(' ') << static_cast<u16>(rule.replacement_shade) << ", "
+        << "\"on\": " << std::setw(i32(maxval_digits)) << std::setfill(' ') << shade << ", "
+        << "\"replace_with\": " << std::setw(i32(maxval_digits)) << std::setfill(' ') << static_cast<u16>(rule.replacement_shade) << ", "
         << "\"turn\": \"" << simulation::turn_direction::to_cstr(rule.turn_dir) << "\""
         << " }" << (comma_at_end ? "," : "") << '\n'
       ;

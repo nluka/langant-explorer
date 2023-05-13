@@ -8,9 +8,9 @@ import colorama
 import pty
 import os
 
-next_cluster_executable_path = "staging/next_cluster"
-make_states_executable_path = "staging/make_states"
-simulate_many_executable_path = "staging/simulate_many"
+next_cluster_executable_path = "bin/release/next_cluster"
+make_states_executable_path = "bin/release/make_states"
+simulate_many_executable_path = "bin/release/simulate_many"
 
 width=1000
 height=1000

@@ -110,7 +110,7 @@ simulation::run_result simulation::run(
       ++result.num_save_points_successful;
 
       if (create_logs) {
-        f64 const percent_of_gen_limit = (state.generation / f64(generation_limit)) * 100.0;
+        f64 const percent_of_gen_limit = (f64(state.generation) / f64(generation_limit)) * 100.0;
 
         log(event_type::SAVE_PNT, "%*.*s | %6.2lf %%, %zu",
           max_name_display_len, max_name_display_len, name.c_str(), percent_of_gen_limit, state.generation);
@@ -231,9 +231,10 @@ done:
 
   if (create_logs) {
     f64 const
-      mega_gens_completed = state.generations_completed() / 1'000'000.0,
-      secs_spent_iterating = query_activity_time_breakdown(state).nanos_spent_iterating / 1'000'000'000.0,
-      mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + std::numeric_limits<f64>::epsilon());
+      f64_epsilon = std::numeric_limits<f64>::epsilon(),
+      mega_gens_completed = f64(state.generations_completed()) / 1'000'000.0,
+      secs_spent_iterating = f64(query_activity_time_breakdown(state).nanos_spent_iterating) / 1'000'000'000.0,
+      mega_gens_per_sec = mega_gens_completed / std::max(secs_spent_iterating, 0.0 + f64_epsilon);
 
     char const *const result_cstr = [code = result.code] {
       switch (code) {
@@ -248,7 +249,7 @@ done:
       ? num_simulations_processed->load() + 1
       : 0;
     f64 const percent_of_total = total > 0 ?
-      (simulation_number / f64(total)) * 100.0
+      ( f64(simulation_number) / f64(total) ) * 100.0
       : std::nan("percent_of_total");
 
     log(event_type::SIM_END, "%*.*s | (%*zu/%zu, %6.2lf %%) %6.2lf Mgens/s, %-18s",

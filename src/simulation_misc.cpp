@@ -153,7 +153,7 @@ u64 simulation::state::num_pixels() const noexcept
   assert(this->grid_width >= 0);
   assert(this->grid_height >= 0);
 
-  return static_cast<u64>(this->grid_width) * this->grid_height;
+  return u64(this->grid_width) * u64(this->grid_height);
 }
 
 u64 simulation::state::generations_completed() const noexcept

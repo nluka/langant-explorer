@@ -1,5 +1,4 @@
 # directories
-.vscode
 .vs
 *.user
 bin
@@ -14,7 +13,8 @@ temp
 *.log
 *.psd
 *.elf
-test
+.vscode/settings.json
+langant-explorer-linux.md
 
 # testing
 testing/*.expected

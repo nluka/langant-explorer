@@ -110,6 +110,7 @@ try
 
   write_progress_log(start_time, std::nullopt);
   time_point_t last_progress_log_time = util::current_time();
+  u64 last_progress_log_iteration = 0;
 
   for (u64 i = 0; i < s_options.count; ++i) {
     try {
@@ -186,17 +187,20 @@ try
         if (millis_since_last_progress_log > 2000) {
           write_progress_log(start_time, std::nullopt);
           last_progress_log_time = util::current_time();
+          last_progress_log_iteration = i;
         }
       }
 
     } catch (...) {
       ++s_num_states_failed;
       ++s_num_consecutive_states_failed;
+    }
 
-      if (s_num_consecutive_states_failed > 3) {
-        print_err("%zu consecutive failures - exiting... (did you run out of disk space?)");
-        std::exit(1);
-      }
+    if (s_num_consecutive_states_failed >= 3) {
+      if (last_progress_log_iteration != i)
+        write_progress_log(start_time, std::nullopt);
+
+      die("%zu consecutive failures (did you run out of disk space?)", s_num_consecutive_states_failed);
     }
   }
 
@@ -230,14 +234,13 @@ void write_progress_log(
   u64 const
     succeeded = s_num_states_completed,
     failed = s_num_states_failed,
-    // consecutive_fails = s_num_consecutive_states_failed,
     filename_conflicts = s_num_filename_conflicts,
-    total_done = succeeded + failed + filename_conflicts,
+    // total_done = succeeded + failed + filename_conflicts,
     total_nanos_elapsed = util::nanos_between(start_time, time_now);
   f64 const
-    total_secs_elapsed = total_nanos_elapsed / 1'000'000'000.0,
-    percent_done = (total_done / static_cast<f64>(s_options.count)) * 100.0,
-    states_per_sec = succeeded / total_secs_elapsed;
+    total_secs_elapsed = f64(total_nanos_elapsed) / 1'000'000'000.0,
+    percent_done = ( f64(succeeded) / f64(s_options.count) ) * 100.0,
+    states_per_sec = f64(succeeded) / total_secs_elapsed;
 
   util::time_span(u64(total_secs_elapsed)).stringify(time_elapsed, util::lengthof(time_elapsed));
 

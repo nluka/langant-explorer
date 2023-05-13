@@ -19,6 +19,7 @@ using util::die;
 static po::make_image_options s_options{};
 
 i32 main(i32 const argc, char const *const *const argv)
+try
 {
   if (argc == 1) {
     std::ostringstream usage_msg;
@@ -84,4 +85,12 @@ i32 main(i32 const argc, char const *const *const argv)
   }
 
   return 0;
+}
+catch (std::exception const &except)
+{
+  die("%s", except.what());
+}
+catch (...)
+{
+  die("unknown error - catch (...)");
 }

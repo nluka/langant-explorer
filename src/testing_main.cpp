@@ -28,17 +28,23 @@ i32 main()
 {
   using namespace term;
 
-  printf(FG_BLUE, "std::filesystem::current_path() = %s\n", fs::current_path().string().c_str());
+  std::printf("std::filesystem::current_path() = %s\n", fs::current_path().string().c_str());
 
   ntest::config::set_max_arr_preview_len(1);
   ntest::config::set_max_str_preview_len(10);
 
   {
     auto const res = ntest::init();
-    printf(FG_BLUE, "%zu residual files removed", res.num_files_removed);
+    u64 const total = res.num_files_removed + res.num_files_failed_to_remove;
+
+    if (total > 0)
+      printf(FG_MAGENTA, "ntest: ");
+    if (res.num_files_removed)
+      printf(FG_MAGENTA, "%zu residual files removed ", res.num_files_removed);
     if (res.num_files_failed_to_remove > 0)
-      printf(FG_YELLOW, " (%zu files failed to be removed)", res.num_files_failed_to_remove);
-    printf("\n");
+      printf(FG_YELLOW, "(%zu residual files failed to be removed)", res.num_files_failed_to_remove);
+    if (total > 0)
+      printf("\n");
   }
 
   #if 1 // simulation::parse_state
@@ -1450,11 +1456,11 @@ i32 main()
   {
     char const *report_name = nullptr;
 
-    #if ON_LINUX
+  #if ON_LINUX
     report_name = "langant-explorer-linux";
-    #elif ON_WINDOWS
+  #elif ON_WINDOWS
     report_name = "langant-explorer-windows";
-    #endif
+  #endif
 
     auto const res = ntest::generate_report(report_name, [](ntest::assertion const &a, bool const passed) {
       if (!passed)
@@ -1462,13 +1468,14 @@ i32 main()
     });
 
     if ((res.num_fails + res.num_passes) == 0) {
-      printf(BG_YELLOW, "No tests defined");
+      printf(FG_BRIGHT_YELLOW, "No tests defined");
     } else {
       if (res.num_fails > 0) {
-        printf(BG_BRIGHT_RED | FG_BLACK,   " %zu failed ", res.num_fails);
-        printf(BG_BRIGHT_GREEN | FG_BLACK, " %zu passed ", res.num_passes);
+        printf(FG_BRIGHT_RED,   "%zu failed", res.num_fails);
+        std::printf(" | ");
+        printf(FG_BRIGHT_GREEN, "%zu passed", res.num_passes);
       } else
-        printf(BG_BRIGHT_GREEN | FG_BLACK, " All %zu tests passed ", res.num_passes);
+        printf(FG_BRIGHT_GREEN, "All %zu tests passed", res.num_passes);
     }
     printf("\n");
 

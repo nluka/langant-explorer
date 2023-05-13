@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build_debug tests",
+      "type": "shell",
+      "command": "clear && make BUILD_TYPE=debug tests",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "build_debug next_cluster",
+      "type": "shell",
+      "command": "clear && make BUILD_TYPE=debug next_cluster",
+      "group": { "kind": "build", "isDefault": false },
+      "presentation": { "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "build_debug make_states",
+      "type": "shell",
+      "command": "clear && make BUILD_TYPE=debug make_states",
+      "group": { "kind": "build", "isDefault": false },
+      "presentation": { "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "build_debug make_image",
+      "type": "shell",
+      "command": "clear && make BUILD_TYPE=debug make_image",
+      "group": { "kind": "build", "isDefault": false },
+      "presentation": { "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "build_debug simulate_one",
+      "type": "shell",
+      "command": "clear && make BUILD_TYPE=debug simulate_one",
+      "group": { "kind": "build", "isDefault": false },
+      "presentation": { "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "build_debug simulate_many",
+      "type": "shell",
+      "command": "clear && make BUILD_TYPE=debug simulate_many",
+      "group": { "kind": "build", "isDefault": false },
+      "presentation": { "reveal": "always" },
+      "problemMatcher": []
+    },
+  ]
+}

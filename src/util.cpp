@@ -38,17 +38,18 @@ util::time_span::time_span(u64 const seconds_elapsed) noexcept
   }
 }
 
-class static_streambuf : public std::streambuf {
-public:
-  static_streambuf(char *const base, u64 const size) {
-    setp(base, base + size);
-  }
+class static_streambuf : public std::streambuf
+{
+  public:
+    static_streambuf(char *const base, u64 const size) {
+      setp(base, base + size);
+    }
 
-protected:
-  virtual int_type overflow(int_type const ch) override {
-    // Buffer is full, discard the character or handle overflow in another way
-    return traits_type::not_eof(ch);
-  }
+  protected:
+    virtual int_type overflow(int_type const ch) override {
+      // buffer is full, discard the character or handle overflow in another way
+      return traits_type::not_eof(ch);
+    }
 };
 
 char *util::time_span::stringify(char *const out, u64 const out_len) const
@@ -130,13 +131,14 @@ std::fstream util::open_file(
   std::ios_base::openmode const flags)
 {
   b8 const is_for_reading = (flags & std::ios::in) == std::ios::in;
+
   if (is_for_reading && !std::filesystem::exists(path))
-    throw "not found";
+    throw std::runtime_error(make_str("file not found: '%s'", path));
 
   std::fstream file(path, static_cast<std::ios_base::openmode>(flags));
 
   if (!file)
-    throw "exists, but unable to open";
+    throw std::runtime_error(make_str("file exists but failed to open: '%s'", path));
 
   return file;
 }
@@ -155,17 +157,18 @@ b8 util::file_is_openable(std::string const &path)
 vector<u64> util::parse_json_array_u64(char const *str)
 {
   json_t const json = json_t::parse(str);
-  if (!json.is_array()) {
+
+  if (!json.is_array())
     throw std::runtime_error("not a JSON array");
-  }
 
   std::vector<u64> save_points(json.size());
 
   for (u64 i = 0; i < json.size(); ++i) {
     auto const &elem = json[i];
-    if (!elem.is_number_unsigned()) {
+
+    if (!elem.is_number_unsigned())
       throw std::runtime_error(make_str("element at idx %zu is not unsigned number", i));
-    }
+
     save_points[i] = elem.get<u64>();
   }
 
@@ -238,6 +241,6 @@ b8 util::get_user_choice(std::string const &prompt)
   std::string input;
   std::cin >> input;
 
-  char const first_input_chr_lowercase = static_cast<char>(tolower(input.front()));
-  return first_input_chr_lowercase == 'y';
+  char const first_input_chr_is_lowercase = static_cast<char>(tolower(input.front()));
+  return first_input_chr_is_lowercase == 'y';
 }
