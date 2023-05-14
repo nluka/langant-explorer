@@ -402,7 +402,7 @@ simulation::state simulation::parse_state(
     auto const validate_property_set = [&json, &add_err](char const *const key) -> i8 {
       u64 const num_occurences = json.count(key);
       if (num_occurences == 0) {
-        add_err(make_str("`%s` not set", key));
+        add_err(make_str("%s not set", key));
         return 0;
       } else {
         return 1;

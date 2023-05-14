@@ -2,9 +2,15 @@
 
 A high-performance toolchain for discovering interesting [Langton's Ant](https://en.wikipedia.org/wiki/Langton%27s_ant) outcomes.
 
+## Table of Contents
+  - [The Toolchain](#toolchain)
+  - [Building](#building)
+  - [Third Party Libraries Used](#third-party-libraries-used)
+
 <img src="resources/gallery1.png" />
 <img src="resources/gallery2.png" style="margin-bottom:2rem;" />
 
+## Toolchain
 The toolchain consists of 5 separate programs designed to work together:
 - [next_cluster](#next_cluster)
   - Determines the next cluster number in a directory of clusters
@@ -19,52 +25,7 @@ The toolchain consists of 5 separate programs designed to work together:
   - Similar to `simulate_one`, but runs a batch of simulations in a thread pool, intended for mass processing
   - Simulations share a generation limit, save points, and save interval, but not state
 
-Having separate programs creates flexibility by allowing users to orchestrate them as desired. A simple example script for creating clusters of simulations:
-
-```sh
-if [ $# -ne 2 ]; then
-    printf 'Usage: cluster.sh <out_dir> <sim_count>'
-    exit 1
-fi
-
-width=1000
-height=1000
-col=500
-row=500
-gen_limit=10000000000
-out_dir=$1
-sim_count=$2
-
-./next_cluster_release.exe ${out_dir}
-cluster=$?
-
-printf "Cluster %d, %s\n" ${cluster} ${out_dir}
-
-./make_states_release.exe \
-  -N ${sim_count} \
-  -o ${out_dir}/cluster${cluster} \
-  -n randwords,2 \
-  -m 256 -M 256 \
-  -t LR \
-  -s rand \
-  -w ${width} -h ${height} \
-  -x ${col} -y ${row} \
-  -O NESW \
-  -g fill=0 \
-  -W words.txt \
-  -c
-wait
-
-./simulate_many_release.exe \
-  -T 6 \
-  -L ${out_dir}/cluster${cluster}/log.txt \
-  -S ${out_dir}/cluster${cluster} \
-  -g ${gen_limit} \
-  -f raw \
-  -o ${out_dir}/cluster${cluster} \
-  -s -y -l
-wait
-```
+Having separate programs creates flexibility by allowing users to orchestrate them as desired. See [scripts/cluster.py](/scripts/cluster.py) for a simple example script for creating clusters of simulations.
 
 ## make_states
 
@@ -272,6 +233,58 @@ Rules must form a closed chain. For example:
 Visualized:
 
 <img src="resources/rules.svg" />
+
+## Building
+
+For now the primary supported platform is Linux. As such, only Linux has a build system included. This project uses make.
+
+To build the toolchain in release (optimized) mode, run:
+
+```shell
+make -j $(nproc)
+```
+
+To build a specific program from the toolchain, run one of:
+
+```shell
+make -j $(nproc) next_cluster
+make -j $(nproc) make_states
+make -j $(nproc) make_image
+make -j $(nproc) simulate_one
+make -j $(nproc) simulate_many
+```
+
+To build the toolchain in debug mode, use `BUILD_TYPE=debug`:
+
+```shell
+# The whole toolchain:
+make -j $(nproc) BUILD_TYPE=debug
+
+# A specific program from the toolchain:
+make -j $(nproc) BUILD_TYPE=debug next_cluster
+make -j $(nproc) BUILD_TYPE=debug make_states
+make -j $(nproc) BUILD_TYPE=debug make_image
+make -j $(nproc) BUILD_TYPE=debug simulate_one
+make -j $(nproc) BUILD_TYPE=debug simulate_many
+```
+
+To build and run the testing suite in debug mode (recommended), run:
+
+```shell
+make -j $(nproc) BUILD_TYPE=debug tests && bin/debug/tests
+```
+
+To build and run the testing suite in release mode, run:
+
+```shell
+make -j $(nproc) tests && bin/release/tests
+```
+
+And the usual cleaning process:
+
+```shell
+make clean
+```
 
 ## Third Party Libraries Used
 

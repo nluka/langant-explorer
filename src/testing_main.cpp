@@ -93,15 +93,15 @@ i32 main()
     };
 
     assert_parse({/* state */}, {
-      "`generation` not set",
-      "`last_step_result` not set",
-      "`grid_width` not set",
-      "`grid_height` not set",
-      "`grid_state` not set",
-      "`ant_col` not set",
-      "`ant_row` not set",
-      "`ant_orientation` not set",
-      "`rules` not set",
+      "generation not set",
+      "last_step_result not set",
+      "grid_width not set",
+      "grid_height not set",
+      "grid_state not set",
+      "ant_col not set",
+      "ant_row not set",
+      "ant_orientation not set",
+      "rules not set",
     }, "occurence_errors.json");
 
     assert_parse({/* state */}, {
