@@ -10,8 +10,12 @@
 
 #include <boost/program_options.hpp>
 
-#include "core_source_libs.hpp"
 #include "program_options.hpp"
+#include "util.hpp"
+#include "term.hpp"
+#include "logger.hpp"
+#include "fregex.hpp"
+#include "BS_thread_pool.hpp"
 #include "simulation.hpp"
 
 #ifdef ON_WINDOWS
@@ -116,11 +120,9 @@ try
   // for processing multiple simulations at once
   BS::thread_pool t_pool(s_options.num_threads);
 
-#if ON_WINDOWS
   std::thread *threads = t_pool.get_threads().get();
   for (u32 i = 0; i < t_pool.get_thread_count(); ++i)
     util::set_thread_priority_high(threads[i]);
-#endif
 
   time_point_t const start_time = util::current_time();
 
@@ -230,7 +232,7 @@ try
     percent_iteration = ( f64(nanos_spent_iterating) / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0,
     percent_saving    = ( f64(nanos_spent_saving   ) / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0;
 
-  std::printf("---------------------------------\n");
+  std::printf("-----------------------------------\n");
   std::printf("Avg Mgens/sec : %.2lf\n", mega_gens_per_sec);
   std::printf("Avg I/S Ratio : %.2lf / %.2lf\n",
       std::isnan(percent_iteration) ? 0.0 : percent_iteration,

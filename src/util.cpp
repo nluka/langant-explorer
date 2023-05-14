@@ -257,14 +257,14 @@ void util::set_thread_priority_high(std::thread &thr) {
   auto native_handle = thr.native_handle();
 
 #if ON_LINUX
-    sched_param sch_params;
-    sch_params.sched_priority = sched_get_priority_max(SCHED_OTHER);
-    if (pthread_setschedparam(native_handle, SCHED_OTHER, &sch_params)) {
-      throw std::runtime_error("failed to set thread priority on Linux");
-    }
+  sched_param sch_params;
+  sch_params.sched_priority = sched_get_priority_max(SCHED_OTHER);
+  if (pthread_setschedparam(native_handle, SCHED_OTHER, &sch_params)) {
+    throw std::runtime_error("failed to set thread priority on Linux");
+  }
 #elif ON_WINDOWS
-    if (!SetThreadPriority(native_handle, THREAD_PRIORITY_HIGHEST)) {
-      throw std::runtime_error("failed to set thread priority on Windows");
-    }
+  if (!SetThreadPriority(native_handle, THREAD_PRIORITY_HIGHEST)) {
+    throw std::runtime_error("failed to set thread priority on Windows");
+  }
 #endif
 }

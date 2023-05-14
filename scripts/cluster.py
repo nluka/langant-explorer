@@ -16,7 +16,7 @@ width=1000
 height=1000
 col=500
 row=500
-gen_limit=10_000_000_000
+gen_limit="1'000'000'000"
 out_dir = None
 sim_count = None
 
@@ -35,7 +35,7 @@ if (__name__ == "__main__"):
   colorama.init(autoreset=True)
 
   if (len(sys.argv) == 1):
-    print("Usage: cluster.sh <out_dir> <sim_count>")
+    print(f"Usage: {sys.argv[0]} <out_dir> <sim_count>")
     sys.exit(1)
 
   out_dir = sys.argv[1]

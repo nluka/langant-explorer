@@ -268,7 +268,7 @@ options_description simulation_options_description()
 
   description.add_options()
     (fmt(simulation::generation_limit()).c_str(),
-      value<u64>(), "Generation limit, if reached the simulation will stop, 0 means max uint64.")
+      value<string>(), "Generation limit, if reached the simulation will stop, 0 means max uint64.")
 
     (fmt(simulation::image_format()).c_str(),
       value<string>(), "PGM image format for saves, raw|plain.")
@@ -727,10 +727,12 @@ void validate_and_set_simulation_options(
 
   {
     option const opt = simulation::generation_limit();
-    auto const generation_limit = get_required_option<u64>(opt, vm, errors);
+    auto const generation_limit = get_required_option<std::string>(opt, vm, errors);
 
-    if (generation_limit.has_value())
-      out.generation_limit = generation_limit.value();
+    if (generation_limit.has_value()) {
+      u64 const parsed_gen_limit = util::string_to_uint<u64>(generation_limit.value());
+      out.generation_limit = parsed_gen_limit;
+    }
   }
 
   {

@@ -8,8 +8,11 @@
 #include <boost/program_options.hpp>
 #include <boost/container/static_vector.hpp>
 
-#include "core_source_libs.hpp"
+#include "util.hpp"
+#include "json.hpp"
 #include "simulation.hpp"
+#include "program_options.hpp"
+#include "logger.hpp"
 
 namespace fs = std::filesystem;
 namespace bpo = boost::program_options;

@@ -6,9 +6,14 @@
 #include <thread>
 #include <variant>
 #include <regex>
+#include <mutex>
+#include <condition_variable>
 
-#include "core_source_libs.hpp"
+#include "util.hpp"
+#include "term.hpp"
+#include "program_options.hpp"
 #include "simulation.hpp"
+#include "logger.hpp"
 
 #if ON_WINDOWS
 #  include <Windows.h>

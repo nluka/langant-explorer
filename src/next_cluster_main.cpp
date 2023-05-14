@@ -2,7 +2,8 @@
 #include <filesystem>
 #include <cinttypes>
 
-#include "core_source_libs.hpp"
+#include "util.hpp"
+#include "fregex.hpp"
 #include "simulation.hpp"
 
 i32 main(i32 const argc, char const *const *const argv) {

@@ -112,6 +112,33 @@ namespace util
     return static_cast<Ty>(ch) - 48;
   }
 
+  template <typename IntTy>
+  [[nodiscard]] IntTy string_to_uint(std::string const &str, char const *const separators = "',._")
+  {
+    if (str.empty())
+      throw std::runtime_error("empty string");
+
+    IntTy retval = 0;
+
+    u64 i = str.length() - 1;
+    u64 place_multiplier = 1;
+
+    for (auto ch = str.rbegin(); ch != str.rend(); ++ch, --i) {
+      if (std::strchr(separators, *ch))
+        continue;
+
+      if (!std::strchr("0123456789", *ch))
+        throw std::runtime_error(make_str("illegal character 0x%02X (%d) at index %zu in string", *ch, *ch, i));
+
+      u64 const digit = util::ascii_digit_to<u64>(*ch);
+
+      retval += digit * place_multiplier;
+      place_multiplier *= 10;
+    }
+
+    return retval;
+  }
+
   // Returns the size of a static (stack-allocated) C-style array at compile time.
   template <typename ElemTy, u64 Length>
   consteval u64 lengthof(ElemTy (&)[Length])

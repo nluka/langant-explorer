@@ -2,8 +2,13 @@
 
 #include "ntest.hpp"
 #include "simulation.hpp"
-#include "core_source_libs.hpp"
 #include "program_options.hpp"
+#include "util.hpp"
+#include "primitives.hpp"
+#include "json.hpp"
+#include "term.hpp"
+#include "fregex.hpp"
+#include "platform.hpp"
 
 namespace fs = std::filesystem;
 using json_t = nlohmann::json;
@@ -27,6 +32,7 @@ simulation::rules_t generate_rules(
 i32 main()
 {
   using namespace term;
+  using term::printf;
 
   std::printf("std::filesystem::current_path() = %s\n", fs::current_path().string().c_str());
 
@@ -44,7 +50,7 @@ i32 main()
     if (res.num_files_failed_to_remove > 0)
       printf(FG_YELLOW, "(%zu residual files failed to be removed)", res.num_files_failed_to_remove);
     if (total > 0)
-      printf("\n");
+      std::printf("\n");
   }
 
   #if 1 // simulation::parse_state
@@ -1461,6 +1467,33 @@ i32 main()
   }
   #endif // simulation::next_cluster
 
+  #if 1 // util::string_to_uint
+  {
+    using util::string_to_uint;
+
+    ntest::assert_uint64(0, string_to_uint<u64>("0"));
+
+    ntest::assert_uint64(42, string_to_uint<u64>("42"));
+
+    ntest::assert_uint64(1'000'000, string_to_uint<u64>("1'000'000"));
+
+    ntest::assert_uint64(1'000'000'000'000, string_to_uint<u64>("1,000'000.000_000"));
+
+    std::string what_str;
+
+    what_str = ntest::assert_throws<std::runtime_error>([] {
+      [[maybe_unused]] auto ret = string_to_uint<u64>("-42");
+    });
+    ntest::assert_stdstr("illegal character 0x2D (45) at index 0 in string", what_str);
+
+    what_str = ntest::assert_throws<std::runtime_error>([] {
+      [[maybe_unused]] auto ret = string_to_uint<u64>("");
+    });
+    ntest::assert_stdstr("empty string", what_str);
+  }
+  #endif // util::string_to_uint
+
+  // report output
   {
     char const *report_name = nullptr;
 
@@ -1485,7 +1518,7 @@ i32 main()
       } else
         printf(FG_BRIGHT_GREEN, "All %zu tests passed", res.num_passes);
     }
-    printf("\n");
+    std::printf("\n\n");
 
     return 0;
   }
