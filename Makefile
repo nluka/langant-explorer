@@ -31,7 +31,7 @@ DEPS = $(OBJS:.o=.d)
 
 default: all
 
-all: next_cluster make_image make_states simulate_one simulate_many
+all: next_cluster make_image make_states simulate_one simulate_many file_write_benchmark
 
 core = $(addprefix $(BIN_DIR)/, fregex.o logger.o pgm8.o program_options.o simulation_misc.o simulation_parse_state.o simulation_run.o simulation_save_state.o util.o term.o)
 
@@ -53,6 +53,9 @@ simulate_many: $(core) $(BIN_DIR)/simulate_many_main.o
 tests: $(core) $(BIN_DIR)/ntest.o $(BIN_DIR)/testing_main.o
 	@$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$@ $^ $(LDFLAG)
 	@echo 'compiling tests...'
+file_write_benchmark: $(BIN_DIR)/file_write_benchmark.o
+	@$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/file_write_benchmark $^ $(LDFLAG)
+	@echo 'compiling file_write_benchmark...'
 
 $(BIN_DIR):
 	@mkdir -p $(BIN_DIR)
