@@ -7,8 +7,10 @@ A high-performance toolchain for discovering interesting [Langton's Ant](https:/
   - [Building](#building)
   - [Third Party Libraries Used](#third-party-libraries-used)
 
-<img src="resources/gallery1.png" />
-<img src="resources/gallery2.png" style="margin-bottom:2rem;" />
+<img src="resources/gallery01.png" />
+<img src="resources/gallery02.png" style="margin-bottom:2rem;" />
+
+[More galleries here.](galleries.md)
 
 ## Toolchain
 The toolchain consists of 5 separate programs designed to work together:
