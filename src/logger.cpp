@@ -184,7 +184,7 @@ void logger::flush() {
   }
 
   for (auto const &evt : s_events) {
-    if (!file) {
+    if (file.has_value() && !file.value()) {
       throw std::runtime_error("logger::flush failed - bad file");
     }
 

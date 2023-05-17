@@ -128,6 +128,7 @@ try
 
   // parse state files into initial simulation states and add them to the simulation_queue
   std::thread producer_thread([&]() {
+
     for (i64 i = i64(state_files.size()) - 1; i >= 0; --i) {
       sem_empty.acquire();
       {
@@ -135,18 +136,25 @@ try
         errors_t errors{};
         std::string const path_str = state_files[u64(i)].generic_string();
 
-        auto state = simulation::parse_state(
-          util::extract_txt_file_contents(path_str.c_str(), false),
-          fs::path(s_options.state_dir_path),
-          errors);
+        simulation::state state;
+        try {
+          state = simulation::parse_state(
+            util::extract_txt_file_contents(path_str.c_str(), false),
+            fs::path(s_options.state_dir_path),
+            errors);
 
-        if (!errors.empty()) {
-          if (s_options.any_logging_enabled()) {
-            std::string const err = make_str("failed to parse %s: %s", path_str.c_str(), util::stringify_errors(errors).c_str());
-            logger::log(logger::event_type::ERROR, "%s", err.c_str());
+          if (!errors.empty()) {
+            if (s_options.any_logging_enabled()) {
+              std::string const err = make_str("failed to parse %s: %s", path_str.c_str(), util::stringify_errors(errors).c_str());
+              logger::log(logger::event_type::ERROR, "%s", err.c_str());
+            }
+          } else {
+            simulation_queue.emplace_back(simulation::extract_name_from_json_state_path(path_str), state);
           }
-        } else {
-          simulation_queue.emplace_back(simulation::extract_name_from_json_state_path(path_str), state);
+        } catch (std::exception const &except) {
+          logger::log(logger::event_type::ERROR, "%s", except.what());
+        } catch (...) {
+          logger::log(logger::event_type::ERROR, "catch (...) in producer_thread");
         }
       }
       sem_full.release();
@@ -164,7 +172,7 @@ try
         s_options.sim.image_format,
         s_options.sim.save_path,
         s_options.sim.save_final_state,
-        s_options.sim.create_logs,
+        s_options.any_logging_enabled(),
         s_options.sim.save_image_only,
         &num_simulations_processed,
         total);
@@ -196,10 +204,14 @@ try
   std::thread consumer_thread([&]() {
     for (u64 i = 0; i < state_files.size(); ++i) {
       sem_full.acquire();
-      {
+      try {
         std::scoped_lock sim_q_lock(simulation_queue_mutex);
         t_pool.push_task(simulation_task, std::move(simulation_queue.back()), state_files.size());
         simulation_queue.pop_back();
+      } catch (std::exception const &except) {
+        logger::log(logger::event_type::ERROR, "%s", except.what());
+      } catch (...) {
+        logger::log(logger::event_type::ERROR, "catch (...) in consumer_thread");
       }
       sem_empty.release();
     }
@@ -232,7 +244,10 @@ try
     percent_iteration = ( f64(nanos_spent_iterating) / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0,
     percent_saving    = ( f64(nanos_spent_saving   ) / f64(nanos_spent_iterating + nanos_spent_saving) ) * 100.0;
 
-  std::printf("-----------------------------------\n");
+  if (s_options.any_logging_enabled()) {
+    // print separator between logs and statistics
+    std::printf("-----------------------------------\n");
+  }
   std::printf("Avg Mgens/sec : %.2lf\n", mega_gens_per_sec);
   std::printf("Avg I/S Ratio : %.2lf / %.2lf\n",
       std::isnan(percent_iteration) ? 0.0 : percent_iteration,

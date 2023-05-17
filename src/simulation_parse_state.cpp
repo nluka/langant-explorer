@@ -309,7 +309,7 @@ b8 try_to_parse_and_set_grid_state(
     try {
       state.grid = new u8[num_pixels];
     } catch (std::bad_alloc const &) {
-      add_err(make_str("failed to allocate %zu bytes for grid", num_pixels * sizeof(u8)));
+      add_err(make_str("unable to allocate %zu bytes for grid", num_pixels * sizeof(u8)));
       return false;
     }
 
@@ -320,8 +320,7 @@ b8 try_to_parse_and_set_grid_state(
     fs::path const img_path = dir / grid_state;
 
     if (!fs::exists(img_path)) {
-      add_err(
-        make_str("bad grid_state, file \"%s\" does not exist", grid_state.c_str()));
+      add_err(make_str("bad grid_state, file \"%s\" does not exist", grid_state.c_str()));
       return false;
     }
 
@@ -358,7 +357,7 @@ b8 try_to_parse_and_set_grid_state(
     try {
       state.grid = new u8[num_pixels];
     } catch (std::bad_alloc const &) {
-      add_err(make_str("failed to allocate %zu bytes for grid", num_pixels * sizeof(u8)));
+      add_err(make_str("unable to allocate %zu bytes for grid", num_pixels * sizeof(u8)));
       return false;
     }
 

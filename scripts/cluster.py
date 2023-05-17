@@ -12,10 +12,10 @@ next_cluster_executable_path = "bin/release/next_cluster"
 make_states_executable_path = "bin/release/make_states"
 simulate_many_executable_path = "bin/release/simulate_many"
 
-width=1000
-height=1000
-col=500
-row=500
+width=500
+height=500
+col=250
+row=250
 gen_limit="1'000'000'000"
 out_dir = None
 sim_count = None
@@ -41,8 +41,16 @@ if (__name__ == "__main__"):
   out_dir = sys.argv[1]
   sim_count = sys.argv[2]
 
-  proc = subprocess.Popen([next_cluster_executable_path, out_dir],
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  arguments = [
+    next_cluster_executable_path,
+    out_dir
+  ]
+
+  proc = subprocess.Popen(
+    arguments,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE
+  )
 
   # Wait for the subprocess to finish and capture the exit code
   next_cluster_exit_code = proc.wait()
@@ -54,24 +62,32 @@ if (__name__ == "__main__"):
 
   master_fd, slave_fd = pty.openpty()
 
+  arguments = [
+    make_states_executable_path,
+    "-N", f"{sim_count}",
+    "-o", f"{out_dir}/cluster{cluster}",
+    "-n", "randwords,2",
+    "-m", "50", "-M", "50",
+    "-t", "LR",
+    "-s", "rand",
+    "-w", f"{width}", "-h", f"{height}",
+    "-x", f"{col}", "-y", f"{row}",
+    "-O", "NESW",
+    "-g", "fill=0",
+    "-W", "resources/words.txt",
+    "-c",
+  ]
+
+  # print("[" + ", ".join(f'"{arg}"' for arg in arguments[1:]) + "]")
+
   proc = subprocess.Popen(
-    [
-      make_states_executable_path,
-      "-N", f"{sim_count}",
-      "-o", f"{out_dir}/cluster{cluster}",
-      "-n", "randwords,2",
-      "-m", "256", "-M", "256",
-      "-t", "LR",
-      "-s", "rand",
-      "-w", f"{width}", "-h", f"{height}",
-      "-x", f"{col}", "-y", f"{row}",
-      "-O", "NESW",
-      "-g", "fill=0",
-      "-W", "resources/words.txt",
-      "-c",
-    ],
-    stdout=slave_fd, stderr=slave_fd, text=True,
-    bufsize=1, close_fds=True, universal_newlines=True
+    arguments,
+    stdout=slave_fd,
+    stderr=slave_fd,
+    text=True,
+    bufsize=1,
+    close_fds=True,
+    universal_newlines=True
   )
 
   os.close(slave_fd)
@@ -98,20 +114,28 @@ if (__name__ == "__main__"):
 
   master_fd, slave_fd = pty.openpty()
 
+  arguments = [
+    simulate_many_executable_path,
+    # "-T", "2",
+    # "-Q", "50",
+    "-L", f"{out_dir}/cluster{cluster}/log.txt",
+    "-S", f"{out_dir}/cluster{cluster}",
+    "-g", f"{gen_limit}",
+    "-f", "raw",
+    "-o", f"{out_dir}/cluster{cluster}",
+    "-s", "-y", "-l", "-C"
+  ]
+
+  # print("[" + ", ".join(f'"{arg}"' for arg in arguments[1:]) + "]")
+
   proc = subprocess.Popen(
-    [
-      simulate_many_executable_path,
-      # "-T" "6"
-      "-Q", "50",
-      "-L", f"{out_dir}/cluster{cluster}/log.txt",
-      "-S", f"{out_dir}/cluster{cluster}",
-      "-g", f"{gen_limit}",
-      "-f", "raw",
-      "-o", f"{out_dir}/cluster{cluster}",
-      "-s", "-y", "-l", "-C"
-    ],
-    stdout=slave_fd, stderr=slave_fd, text=True,
-    bufsize=1, close_fds=True, universal_newlines=True
+    arguments,
+    stdout=slave_fd,
+    stderr=slave_fd,
+    text=True,
+    bufsize=1,
+    close_fds=True,
+    universal_newlines=True
   )
 
   os.close(slave_fd)
@@ -131,5 +155,7 @@ if (__name__ == "__main__"):
 
   if (simulate_many_exit_code != 0):
     print(f"simulate_many exited with code {simulate_many_exit_code}")
+    if (simulate_many_exit_code == -9):
+      print(f"SIGKILL, you may not have enough memory")
 
   colorama.deinit()

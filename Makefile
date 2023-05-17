@@ -27,11 +27,11 @@ OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BIN_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
 # Rules
-.PHONY: default all clean
+.PHONY: default toolchain clean
 
-default: all
+default: toolchain
 
-all: next_cluster make_image make_states simulate_one simulate_many file_write_benchmark
+toolchain: next_cluster make_image make_states simulate_one simulate_many
 
 core = $(addprefix $(BIN_DIR)/, fregex.o logger.o pgm8.o program_options.o simulation_misc.o simulation_parse_state.o simulation_run.o simulation_save_state.o util.o term.o)
 

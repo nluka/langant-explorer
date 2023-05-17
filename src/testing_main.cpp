@@ -579,12 +579,11 @@ i32 main()
         "-S", "testing/valid_dir/valid_regular_file",
         "-g", "0",
         "-f", "unknown",
-        "-l", // therefore -L is required
+        "-l",
         "-v", "10", // therefore -o is required
       };
 
       errors_t expected_errors {
-        "-L [ --log_file_path ] required",
         "-o [ --save_path ] required",
         "-f [ --image_format ] must be one of raw|plain",
       };
@@ -826,12 +825,10 @@ i32 main()
         "-S", "testing/valid_dir",
         "-g", "0",
         "-f", "unknown",
-        "-l", // therefore -L is required
         "-v", "10", // therefore -o is required
       };
 
       errors_t expected_errors {
-        "-L [ --log_file_path ] required",
         "-o [ --save_path ] required",
         "-f [ --image_format ] must be one of raw|plain",
       };

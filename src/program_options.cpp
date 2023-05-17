@@ -849,9 +849,7 @@ void po::parse_simulate_one_options(
 
   {
     option const opt = simulate_one::log_file_path();
-    auto log_file_path = out.sim.create_logs
-      ? get_required_option<std::string>(opt, vm, errors)
-      : get_nonrequired_option<std::string>(opt, vm, errors);
+    auto log_file_path = get_nonrequired_option<std::string>(opt, vm, errors);
 
     if (log_file_path.has_value()) {
       if (!util::file_is_openable(log_file_path.value()))
@@ -903,10 +901,8 @@ void po::parse_simulate_many_options(
   }
 
   {
-    option const opt = simulate_one::log_file_path();
-    auto log_file_path = out.sim.create_logs
-      ? get_required_option<std::string>(opt, vm, errors)
-      : get_nonrequired_option<std::string>(opt, vm, errors);
+    option const opt = simulate_many::log_file_path();
+    auto log_file_path = get_nonrequired_option<std::string>(opt, vm, errors);
 
     if (log_file_path.has_value()) {
       if (!util::file_is_openable(log_file_path.value()))
