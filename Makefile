@@ -5,7 +5,7 @@ CXX = g++
 BUILD_TYPE ?= release
 
 # Flags
-CXXFLAGS = -MMD -MP -std=c++20 -Werror -Wall -Wextra -Wpedantic -Wformat -Wmissing-include-dirs -Wuninitialized -Wunreachable-code -Wshadow -Wconversion -Wsign-conversion -Wredundant-decls -Winit-self -Wswitch-default -Wfloat-equal -Wunused-parameter -MMD -MP
+CXXFLAGS = -MMD -MP -std=c++20 -Werror -Wall -Wextra -Wpedantic -Wformat -Wmissing-include-dirs -Wuninitialized -Wunreachable-code -Wshadow -Wconversion -Wsign-conversion -Wredundant-decls -Winit-self -Wswitch-default -Wfloat-equal -Wunused-parameter
 ifeq ($(BUILD_TYPE),debug)
 	CXXFLAGS += -g
 	BIN_DIR = bin/debug

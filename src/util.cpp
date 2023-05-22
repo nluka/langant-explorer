@@ -203,7 +203,7 @@ void util::die(char const *fmt, ...)
   std::exit(1);
 }
 
-int util::print_err(char const *fmt, ...)
+i32 util::print_err(char const *fmt, ...)
 {
   using namespace term;
 
